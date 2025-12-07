@@ -12,4 +12,7 @@ internal b32_t buffer_is_valid(buffer_t* buffer);
 internal b32_t buffer_is_valid_idx(buffer_t* buffer, u64_t idx);
 internal b32_t buffer_is_equal(buffer_t* lhs, buffer_t* rhs);
 
+internal buffer_t buffer_from_cstr(const char* cstr);
+internal void     buffer_to_cstr(buffer_t* buffer, char* dest);
+
 #endif //BUFFER_H
