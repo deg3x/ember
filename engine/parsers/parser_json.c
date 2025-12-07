@@ -1,5 +1,22 @@
-internal void
-json_parse(const char* file_path, arena_t* arena)
+internal json_entry_t*
+json_parse(u8_t* data, u64_t size, arena_t* arena)
+{
+    json_parser_t parser;
+
+    parser.arena       = arena;
+    parser.position    = 0;
+    parser.has_error   = EMBER_FALSE;
+    parser.source.data = data;
+    parser.source.size = size;
+
+    json_token_t token   = json_parse_token(&parser);
+    json_entry_t* result = json_parse_entry(&parser, &(buffer_t){0}, &token);
+
+    return result;
+}
+
+internal json_entry_t*
+json_parse_file(const char* file_path, arena_t* arena)
 {
     platform_handle_t file_handle    = platform_file_open(file_path, PLATFORM_FILE_FLAGS_read | PLATFORM_FILE_FLAGS_share_r);
     platform_file_props_t file_props = platform_file_props(file_handle);
@@ -18,6 +35,8 @@ json_parse(const char* file_path, arena_t* arena)
     json_entry_t* result = json_parse_entry(&parser, &(buffer_t){0}, &token);
 
     platform_file_close(file_handle);
+
+    return result;
 }
 
 internal json_entry_t*
@@ -51,7 +70,7 @@ json_parse_entry(json_parser_t* parser, buffer_t* label, json_token_t* token)
 
     if (is_valid)
     {
-        result        = MEMORY_PUSH(parser->arena, json_entry_t, sizeof(json_entry_t));
+        result        = MEMORY_PUSH(parser->arena, json_entry_t, 1);
         result->label = *label;
         result->value = token->value;
         result->child = sub_entry;
@@ -200,10 +219,7 @@ json_parse_token(json_parser_t* parser)
             {
                 pos += 1;
 
-                buffer_t remain = {
-                    4,
-                    (u8_t *)"alse"
-                };
+                buffer_t remain = buffer_from_cstr("alse");
 
                 if ((src.size - pos) >= remain.size)
                 {
@@ -227,10 +243,7 @@ json_parse_token(json_parser_t* parser)
             {
                 pos += 1;
 
-                buffer_t remain = {
-                    3,
-                    (u8_t *)"rue"
-                };
+                buffer_t remain = buffer_from_cstr("rue");
 
                 if ((src.size - pos) >= remain.size)
                 {
@@ -254,10 +267,7 @@ json_parse_token(json_parser_t* parser)
             {
                 pos += 1;
 
-                buffer_t remain = {
-                    3,
-                    (u8_t *)"ull"
-                };
+                buffer_t remain = buffer_from_cstr("ull");
 
                 if ((src.size - pos) >= remain.size)
                 {
@@ -372,6 +382,42 @@ json_parse_token(json_parser_t* parser)
     }
 
     parser->position = pos;
+
+    return result;
+}
+
+internal u32_t
+json_num_of_children(json_entry_t* entry)
+{
+    EMBER_ASSERT(entry != NULL);
+
+    u32_t result = 0;
+
+    json_entry_t* current = entry->child;
+    while (current != NULL)
+    {
+        result += 1;
+        current = current->next;
+    }
+
+    return result;
+}
+
+internal json_entry_t*
+json_find_child(json_entry_t* entry, buffer_t* child_label)
+{
+    EMBER_ASSERT(entry != NULL);
+
+    json_entry_t* result = NULL;
+
+    for (json_entry_t* iter = entry->child; iter != NULL; iter = iter->next)
+    {
+        if (buffer_is_equal(&iter->label, child_label))
+        {
+            result = iter;
+            break;
+        }
+    }
 
     return result;
 }
