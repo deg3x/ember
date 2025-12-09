@@ -423,6 +423,61 @@ json_find_child(json_entry_t* entry, buffer_t* child_label)
 }
 
 internal b32_t
+json_child_value(arena_t* arena, json_entry_t* entry, json_value_type_t type, void* dest, const c8_t* child_label)
+{
+    EMBER_ASSERT(entry != NULL);
+    EMBER_ASSERT(dest != NULL);
+    EMBER_ASSERT(child_label != NULL);
+
+    buffer_t label_buffer = buffer_from_cstr(child_label);
+    json_entry_t* child   = json_find_child(entry, &label_buffer);
+
+    if (child == NULL)
+    {
+        return EMBER_FALSE;
+    }
+
+    scratch_t scratch = arena_scratch_begin(arena);
+    b32_t result;
+
+    switch (type)
+    {
+        case JSON_VALUE_TYPE_i32:
+        {
+            c8_t* value_str = MEMORY_PUSH(scratch.arena, c8_t, child->value.size);
+            buffer_to_cstr(&child->value, value_str);
+
+            *((i32_t *)dest) = strtol(value_str, NULL, 10);
+
+            result = EMBER_TRUE;
+
+            break;
+        }
+        case JSON_VALUE_TYPE_f32:
+        {
+            c8_t* value_str = MEMORY_PUSH(scratch.arena, c8_t, child->value.size);
+            buffer_to_cstr(&child->value, value_str);
+
+            *((f32_t *)dest) = strtof(value_str, NULL);
+
+            result = EMBER_TRUE;
+            
+            break;
+        }
+        default:
+        {
+            result = EMBER_FALSE;
+
+            break;
+        }
+    }
+
+    arena_scratch_end(scratch);
+
+    return result;
+}
+
+internal b32_t
 json_parser_is_valid(json_parser_t* parser)
 {
     b32_t result = (!parser->has_error && buffer_is_valid_idx(&parser->source, parser->position));
@@ -445,7 +500,7 @@ json_is_whitespace(buffer_t* buffer, u64_t pos)
     {
         u8_t value = buffer->data[pos];
 
-        result = ((value == ' ') || (value == '\r') || (value == '\n') || (value == '\t'));
+        result = IS_WHITESPACE(value);
     }
 
     return result;

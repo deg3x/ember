@@ -74,90 +74,37 @@ gltf_parse_chunk_json(gltf_parser_t* parser, u32_t chunk_length)
         }
         else if (buffer_is_equal(&views_label, &current->label))
         {
-            json_entry_t* views = current;
+            json_entry_t* buffer_views = current;
 
-            EMBER_ASSERT(views != NULL);
+            EMBER_ASSERT(buffer_views != NULL);
 
-            u32_t buffer_view_count = json_num_of_children(views);
-            result.buffer_views = MEMORY_PUSH(scratch.arena, gltf_buffer_views_t, buffer_view_count);
+            u32_t view_count    = json_num_of_children(buffer_views);
+            result.buffer_views = MEMORY_PUSH(scratch.arena, gltf_buffer_views_t, view_count);
 
-            json_entry_t* current_view = views->child;
-            for (u32_t i = 0; current_view != NULL; i++)
+            json_entry_t* view = buffer_views->child;
+            for (u32_t i = 0; view != NULL; i++)
             {
-                buffer_t buf_id_label = buffer_from_cstr("buffer");
-                buffer_t offset_label = buffer_from_cstr("byteOffset");
-                buffer_t length_label = buffer_from_cstr("byteLength");
-                buffer_t stride_label = buffer_from_cstr("byteStride");
-                buffer_t target_label = buffer_from_cstr("target");
+                i32_t buf_id;
+                i32_t offset;
+                i32_t length;
+                i32_t stride;
+                i32_t target;
 
-                json_entry_t* buf_id = json_find_child(current_view, &buf_id_label);
-                json_entry_t* offset = json_find_child(current_view, &offset_label);
-                json_entry_t* length = json_find_child(current_view, &length_label);
-                json_entry_t* stride = json_find_child(current_view, &stride_label);
-                json_entry_t* target = json_find_child(current_view, &target_label);
+                b32_t buf_id_is_valid = json_child_value(parser->arena, view, JSON_VALUE_TYPE_i32, &buf_id, "buffer");
+                b32_t offset_is_valid = json_child_value(parser->arena, view, JSON_VALUE_TYPE_i32, &offset, "byteOffset");
+                b32_t length_is_valid = json_child_value(parser->arena, view, JSON_VALUE_TYPE_i32, &length, "byteLength");
+                b32_t stride_is_valid = json_child_value(parser->arena, view, JSON_VALUE_TYPE_i32, &stride, "byteStride");
+                b32_t target_is_valid = json_child_value(parser->arena, view, JSON_VALUE_TYPE_i32, &target, "target");
 
-                c8_t* buf_id_str;
-                c8_t* offset_str;
-                c8_t* length_str;
-                c8_t* stride_str;
-                c8_t* target_str;
+                result.buffer_views[i].buffer_id   = buf_id_is_valid ? buf_id : -1;
+                result.buffer_views[i].byte_offset = offset_is_valid ? offset : -1;
+                result.buffer_views[i].byte_length = length_is_valid ? length : -1;
+                result.buffer_views[i].byte_stride = stride_is_valid ? stride : -1;
+                result.buffer_views[i].target      = target_is_valid ? target : -1;
 
-                i32_t buf_id_val;
-                i32_t offset_val;
-                i32_t length_val;
-                i32_t stride_val;
-                i32_t target_val;
+                EMBER_ASSERT(i < view_count)
 
-                if (buf_id != NULL)
-                {
-                    buf_id_str = MEMORY_PUSH(scratch.arena, c8_t, buf_id->value.size);
-                    buffer_to_cstr(&buf_id->value, buf_id_str);
-
-                    buf_id_val = strtol(buf_id_str, NULL, 10);
-                }
-
-                if (offset != NULL)
-                {
-                    offset_str = MEMORY_PUSH(scratch.arena, c8_t, offset->value.size);
-                    buffer_to_cstr(&offset->value, offset_str);
-
-                    offset_val = strtol(offset_str, NULL, 10);
-                }
-
-                if (length != NULL)
-                {
-                    length_str = MEMORY_PUSH(scratch.arena, c8_t, length->value.size);
-                    buffer_to_cstr(&length->value, length_str);
-
-                    length_val = strtol(length_str, NULL, 10);
-                }
-
-                if (stride != NULL)
-                {
-                    stride_str = MEMORY_PUSH(scratch.arena, c8_t, stride->value.size);
-                    buffer_to_cstr(&stride->value, stride_str);
-
-                    stride_val = strtol(stride_str, NULL, 10);
-                }
-
-                if (target != NULL)
-                {
-                    target_str = MEMORY_PUSH(scratch.arena, c8_t, target->value.size);
-                    buffer_to_cstr(&target->value, target_str);
-
-                    target_val = strtol(target_str, NULL, 10);
-                }
-
-                // TODO(): Implement str to numeric conversions
-                result.buffer_views[i].buffer_id   = buf_id != NULL ? buf_id_val : -1;
-                result.buffer_views[i].byte_offset = offset != NULL ? offset_val : -1;
-                result.buffer_views[i].byte_length = length != NULL ? length_val : -1;
-                result.buffer_views[i].byte_stride = stride != NULL ? stride_val : -1;
-                result.buffer_views[i].target      = target != NULL ? target_val : -1;
-
-                EMBER_ASSERT(i < buffer_view_count)
-
-                current_view = current_view->next;
+                view = view->next;
             }
         }
 

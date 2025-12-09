@@ -18,6 +18,13 @@ enum
     JSON_TOKEN_TYPE_error,
 };
 
+typedef u32_t json_value_type_t;
+enum
+{
+    JSON_VALUE_TYPE_i32,
+    JSON_VALUE_TYPE_f32
+};
+
 typedef struct json_token_t json_token_t;
 struct json_token_t
 {
@@ -51,11 +58,12 @@ internal json_token_t  json_parse_token(json_parser_t* parser);
 
 internal u32_t         json_num_of_children(json_entry_t* entry);
 internal json_entry_t* json_find_child(json_entry_t* entry, buffer_t* child_label);
+internal b32_t         json_child_value(arena_t* arena, json_entry_t* entry, json_value_type_t type, void* dest, const c8_t* child_label);
 
-internal b32_t        json_parser_is_valid(json_parser_t* parser);
-internal void         json_parser_error(json_parser_t* parser);
+internal b32_t         json_parser_is_valid(json_parser_t* parser);
+internal void          json_parser_error(json_parser_t* parser);
 
-internal b32_t        json_is_whitespace(buffer_t* buffer, u64_t pos);
-internal b32_t        json_is_number(buffer_t* buffer, u64_t pos);
+internal b32_t         json_is_whitespace(buffer_t* buffer, u64_t pos);
+internal b32_t         json_is_number(buffer_t* buffer, u64_t pos);
 
 #endif //PARSER_JSON_H
