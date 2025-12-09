@@ -1,5 +1,6 @@
 #include <stdint.h>
 #include <string.h>
+#include <stdlib.h>
 #include <math.h>
 
 #if RHI_VULKAN
@@ -30,6 +31,7 @@
 #include "containers/buffer.h"
 #include "input/input.h"
 #include "parsers/parser_json.h"
+#include "parsers/parser_gltf.h"
 
 #include "renderer/renderer.h"
 #if RHI_VULKAN
@@ -56,6 +58,7 @@
 #include "containers/buffer.c"
 #include "input/input.c"
 #include "parsers/parser_json.c"
+#include "parsers/parser_gltf.c"
 
 #include "renderer/renderer.c"
 #if RHI_VULKAN

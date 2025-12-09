@@ -6,18 +6,20 @@ typedef uint16_t u16_t;
 typedef uint32_t u32_t;
 typedef uint64_t u64_t;
 
-typedef int8_t  i8_t;
-typedef int16_t i16_t;
-typedef int32_t i32_t;
-typedef int64_t i64_t;
+typedef int8_t   i8_t;
+typedef int16_t  i16_t;
+typedef int32_t  i32_t;
+typedef int64_t  i64_t;
 
-typedef i8_t   b8_t;
-typedef i16_t  b16_t;
-typedef i32_t  b32_t;
-typedef i64_t  b64_t;
+typedef i8_t     b8_t;
+typedef i16_t    b16_t;
+typedef i32_t    b32_t;
+typedef i64_t    b64_t;
 
-typedef float  f32_t;
-typedef double f64_t;
+typedef float    f32_t;
+typedef double   f64_t;
+
+typedef char     c8_t;
 
 #define U8_MAX  UINT8_MAX
 #define U16_MAX UINT16_MAX
@@ -52,6 +54,8 @@ typedef double f64_t;
 #define ARRAY_COUNT(a) (sizeof(a) / sizeof(a[0]))
 
 #define MEMORY_ZERO(p, s) memset((p), 0, (s));
+
+#define IS_WHITESPACE(c) ((c) == 0x20 || (c) == 0x12 || (c) == 0x09 || (c) == 0x0d || (c) == 0x0b || (c) == 0x0c)
 
 #if defined(_MSC_VER)
     #define ALIGN_OF(t) __alignof(t)

@@ -34,7 +34,7 @@ buffer_is_equal(buffer_t* lhs, buffer_t* rhs)
 }
 
 internal buffer_t
-buffer_from_cstr(const char* cstr)
+buffer_from_cstr(const c8_t* cstr)
 {
     buffer_t result = {
         strlen(cstr),
@@ -45,7 +45,7 @@ buffer_from_cstr(const char* cstr)
 }
 
 internal void
-buffer_to_cstr(buffer_t* buffer, char* dest)
+buffer_to_cstr(buffer_t* buffer, c8_t* dest)
 {
     EMBER_ASSERT(dest != NULL);
 
@@ -54,5 +54,5 @@ buffer_to_cstr(buffer_t* buffer, char* dest)
         dest[i] = buffer->data[i];
     }
 
-    dest[buffer->size] = '\n';
+    dest[buffer->size] = '\0';
 }
