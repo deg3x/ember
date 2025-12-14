@@ -1,36 +1,32 @@
 #ifndef PARSER_GLTF_H
 #define PARSER_GLTF_H
 
-#define GLTF_MAGIC                0x46546C67
-#define GLTF_CHUNK_JSON           0x4E4F534A
-#define GLTF_CHUNK_BIN            0x004E4942
-#define GLTF_BYTE                 5120
-#define GLTF_UBYTE                5121
-#define GLTF_SHORT                5122
-#define GLTF_USHORT               5123
-#define GLTF_UINT                 5125
-#define GLTF_FLOAT                5126
-#define GLTF_POINTS               0
-#define GLTF_LINES                1
-#define GLTF_LINE_LOOP            2
-#define GLTF_LINE_STRIP           3
-#define GLTF_TRIANGLES            4
-#define GLTF_TRIANGLE_STRIP       5
-#define GLTF_TRIANGLE_FAN         6
-#define GLTF_ARRAY_BUFFER         34962
-#define GLTF_ELEMENT_ARRAY_BUFFER 34963
+#define GLTF_MAGIC                    0x46546C67
+#define GLTF_CHUNK_JSON               0x4E4F534A
+#define GLTF_CHUNK_BIN                0x004E4942
+#define GLTF_COMPONENT_TYPE_BYTE      5120
+#define GLTF_COMPONENT_TYPE_UBYTE     5121
+#define GLTF_COMPONENT_TYPE_SHORT     5122
+#define GLTF_COMPONENT_TYPE_USHORT    5123
+#define GLTF_COMPONENT_TYPE_UINT      5125
+#define GLTF_COMPONENT_TYPE_FLOAT     5126
+#define GLTF_DRAW_MODE_POINTS         0
+#define GLTF_DRAW_MODE_LINES          1
+#define GLTF_DRAW_MODE_LINE_LOOP      2
+#define GLTF_DRAW_MODE_LINE_STRIP     3
+#define GLTF_DRAW_MODE_TRIANGLES      4
+#define GLTF_DRAW_MODE_TRIANGLE_STRIP 5
+#define GLTF_DRAW_MODE_TRIANGLE_FAN   6
+#define GLTF_ARRAY_BUFFER             34962
+#define GLTF_ELEMENT_ARRAY_BUFFER     34963
 
-typedef u32_t gltf_accessor_type_t;
-enum
-{
-    GLTF_ACCESSOR_TYPE_scalar,
-    GLTF_ACCESSOR_TYPE_vec2,
-    GLTF_ACCESSOR_TYPE_vec3,
-    GLTF_ACCESSOR_TYPE_vec4,
-    GLTF_ACCESSOR_TYPE_mat2,
-    GLTF_ACCESSOR_TYPE_mat3,
-    GLTF_ACCESSOR_TYPE_mat4,
-};
+#define GLTF_CUSTOM_TYPE_SCALAR       100
+#define GLTF_CUSTOM_TYPE_VEC2         101
+#define GLTF_CUSTOM_TYPE_VEC3         102
+#define GLTF_CUSTOM_TYPE_VEC4         103
+#define GLTF_CUSTOM_TYPE_MAT2         104
+#define GLTF_CUSTOM_TYPE_MAT3         105
+#define GLTF_CUSTOM_TYPE_MAT4         106
 
 typedef struct gltf_parser_t gltf_parser_t;
 struct gltf_parser_t
@@ -40,42 +36,44 @@ struct gltf_parser_t
     u64_t    position;
 };
 
-typedef struct gltf_primitives_t gltf_primitives_t;
-struct gltf_primitives_t
+typedef struct gltf_primitive_t gltf_primitive_t;
+struct gltf_primitive_t
 {
-    i32_t              position;
-    i32_t              normal;
-    i32_t              tangent;
-    i32_t              texcoord;
-    i32_t              color;
-    i32_t              indices;
-    i32_t              material;
-    i32_t              draw_mode;
-    gltf_primitives_t* next;
+    i32_t             position;
+    i32_t             normal;
+    i32_t             tangent;
+    i32_t             texcoord;
+    i32_t             color;
+    i32_t             joints;
+    i32_t             weights;
+    i32_t             indices;
+    i32_t             material;
+    i32_t             draw_mode;
+    gltf_primitive_t* next;
 };
 
-typedef struct gltf_meshes_t gltf_meshes_t;
-struct gltf_meshes_t
+typedef struct gltf_mesh_t gltf_mesh_t;
+struct gltf_mesh_t
 {
-    buffer_t          name;
-    gltf_primitives_t first_primitives;
+    buffer_t         name;
+    gltf_primitive_t first_primitive;
 };
 
-typedef struct gltf_accessors_t gltf_accessors_t;
-struct gltf_accessors_t
+typedef struct gltf_accessor_t gltf_accessor_t;
+struct gltf_accessor_t
 {
-    i32_t                buffer_view_id;
-    i32_t                byte_offset;
-    i32_t                component_type;
-    i32_t                count;
-    b32_t                normalized;
-    buffer_t             min;
-    buffer_t             max;
-    gltf_accessor_type_t type;
+    i32_t    buffer_view_id;
+    i32_t    byte_offset;
+    i32_t    component_type;
+    i32_t    count;
+    b32_t    normalized;
+    u32_t    type;
+    buffer_t min;
+    buffer_t max;
 };
 
-typedef struct gltf_buffer_views_t gltf_buffer_views_t;
-struct gltf_buffer_views_t
+typedef struct gltf_buffer_view_t gltf_buffer_view_t;
+struct gltf_buffer_view_t
 {
     i32_t buffer_id;
     i32_t byte_offset;
@@ -84,8 +82,8 @@ struct gltf_buffer_views_t
     i32_t target;
 };
 
-typedef struct gltf_buffers_t gltf_buffers_t;
-struct gltf_buffers_t
+typedef struct gltf_buffer_t gltf_buffer_t;
+struct gltf_buffer_t
 {
     i32_t byte_length;
 };
@@ -93,10 +91,14 @@ struct gltf_buffers_t
 typedef struct gltf_json_data_t gltf_json_data_t;
 struct gltf_json_data_t
 {
-    gltf_buffers_t*      buffers;
-    gltf_buffer_views_t* buffer_views;
-    gltf_accessors_t*    accessors;
-    gltf_meshes_t*       meshes;
+    gltf_buffer_t*      buffers;
+    gltf_buffer_view_t* buffer_views;
+    gltf_accessor_t*    accessors;
+    gltf_mesh_t*        meshes;
+    u32_t               buffer_count;
+    u32_t               buffer_view_count;
+    u32_t               accessor_count;
+    u32_t               mesh_count;
 };
 
 typedef struct gltf_data_t gltf_data_t;
@@ -107,8 +109,8 @@ struct gltf_data_t
     u32_t*  indices;
 };
 
-internal void gltf_parse_file(const char* file_path, arena_t* arena);
-internal void gltf_parse_chunk_json(gltf_parser_t* parser, u32_t chunk_length);
-internal void gltf_parse_chunk_binary(gltf_parser_t* parser, u32_t chunk_length);
+internal gltf_data_t      gltf_parse_file(const char* file_path, arena_t* arena);
+internal gltf_json_data_t gltf_parse_chunk_json(gltf_parser_t* parser, u32_t chunk_length);
+internal gltf_data_t      gltf_parse_chunk_binary(gltf_parser_t* parser, u32_t chunk_length, gltf_json_data_t json_data);
 
 #endif //PARSER_GLTF_H
