@@ -438,30 +438,41 @@ json_child_value(arena_t* arena, json_entry_t* entry, json_value_type_t type, vo
     }
 
     scratch_t scratch = arena_scratch_begin(arena);
-    b32_t result;
+    b32_t result      = EMBER_TRUE;
 
     switch (type)
     {
         case JSON_VALUE_TYPE_i32:
         {
-            c8_t* value_str = MEMORY_PUSH(scratch.arena, c8_t, child->value.size);
+            c8_t* value_str = MEMORY_PUSH(scratch.arena, c8_t, child->value.size + 1);
             buffer_to_cstr(&child->value, value_str);
 
             *((i32_t *)dest) = strtol(value_str, NULL, 10);
 
-            result = EMBER_TRUE;
+            break;
+        }
+        case JSON_VALUE_TYPE_u32:
+        {
+            c8_t* value_str = MEMORY_PUSH(scratch.arena, c8_t, child->value.size + 1);
+            buffer_to_cstr(&child->value, value_str);
+
+            *((u32_t *)dest) = strtol(value_str, NULL, 10);
 
             break;
         }
         case JSON_VALUE_TYPE_f32:
         {
-            c8_t* value_str = MEMORY_PUSH(scratch.arena, c8_t, child->value.size);
+            c8_t* value_str = MEMORY_PUSH(scratch.arena, c8_t, child->value.size + 1);
             buffer_to_cstr(&child->value, value_str);
 
             *((f32_t *)dest) = strtof(value_str, NULL);
-
-            result = EMBER_TRUE;
             
+            break;
+        }
+        case JSON_VALUE_TYPE_str:
+        {
+            buffer_to_cstr(&child->value, (c8_t *)dest);
+
             break;
         }
         default:
