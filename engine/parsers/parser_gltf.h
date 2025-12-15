@@ -67,7 +67,7 @@ struct gltf_accessor_t
     i32_t    component_type;
     i32_t    count;
     b32_t    normalized;
-    u32_t    type;
+    i32_t    type;
     buffer_t min;
     buffer_t max;
 };
@@ -91,14 +91,14 @@ struct gltf_buffer_t
 typedef struct gltf_json_data_t gltf_json_data_t;
 struct gltf_json_data_t
 {
-    gltf_buffer_t*      buffers;
-    gltf_buffer_view_t* buffer_views;
-    gltf_accessor_t*    accessors;
     gltf_mesh_t*        meshes;
-    u32_t               buffer_count;
-    u32_t               buffer_view_count;
-    u32_t               accessor_count;
+    gltf_accessor_t*    accessors;
+    gltf_buffer_view_t* buffer_views;
+    gltf_buffer_t*      buffers;
     u32_t               mesh_count;
+    u32_t               accessor_count;
+    u32_t               buffer_view_count;
+    u32_t               buffer_count;
 };
 
 typedef struct gltf_data_t gltf_data_t;
@@ -106,11 +106,14 @@ struct gltf_data_t
 {
     vec3_t* vertices;
     vec3_t* normals;
+    vec2_t* uvs;
     u32_t*  indices;
+    u32_t   vertex_count;
+    u32_t   index_count;
 };
 
 internal gltf_data_t      gltf_parse_file(const char* file_path, arena_t* arena);
 internal gltf_json_data_t gltf_parse_chunk_json(gltf_parser_t* parser, u32_t chunk_length);
-internal gltf_data_t      gltf_parse_chunk_binary(gltf_parser_t* parser, u32_t chunk_length, gltf_json_data_t json_data);
+internal gltf_data_t      gltf_parse_chunk_binary(gltf_parser_t* parser, u32_t chunk_length, gltf_json_data_t* json_data);
 
 #endif //PARSER_GLTF_H

@@ -40,7 +40,7 @@ gltf_parse_file(const char* file_path, arena_t* arena)
         }
         else if (chunk_type == GLTF_CHUNK_BIN)
         {
-            result = gltf_parse_chunk_binary(&parser, chunk_length, json_data);
+            result = gltf_parse_chunk_binary(&parser, chunk_length, &json_data);
         }
         else
         {
@@ -94,7 +94,9 @@ gltf_parse_chunk_json(gltf_parser_t* parser, u32_t chunk_length)
                 buffer_t attributes_buffer = buffer_from_cstr("attributes");
 
                 json_entry_t* primitives = json_find_child(mesh, &primitives_buffer);
-                json_entry_t* attributes = json_find_child(primitives->child, &attributes_buffer);
+                primitives               = primitives->child;
+
+                json_entry_t* attributes = json_find_child(primitives, &attributes_buffer);
 
                 b32_t position_is_valid = json_child_value(parser->arena, attributes, JSON_VALUE_TYPE_i32, &position, "POSITION");
                 b32_t normal_is_valid   = json_child_value(parser->arena, attributes, JSON_VALUE_TYPE_i32, &normal, "NORMAL");
@@ -103,7 +105,7 @@ gltf_parse_chunk_json(gltf_parser_t* parser, u32_t chunk_length)
                 b32_t color_is_valid    = json_child_value(parser->arena, attributes, JSON_VALUE_TYPE_i32, &color, "COLOR_0");
                 b32_t joints_is_valid   = json_child_value(parser->arena, attributes, JSON_VALUE_TYPE_i32, &joints, "JOINTS_0");
                 b32_t weights_is_valid  = json_child_value(parser->arena, attributes, JSON_VALUE_TYPE_i32, &weights, "WEIGHTS_0");
-                b32_t indices_is_valid  = json_child_value(parser->arena, mesh, JSON_VALUE_TYPE_i32, &indices, "indices");
+                b32_t indices_is_valid  = json_child_value(parser->arena, primitives, JSON_VALUE_TYPE_i32, &indices, "indices");
                 b32_t material_is_valid = json_child_value(parser->arena, mesh, JSON_VALUE_TYPE_i32, &material, "material");
                 b32_t mode_is_valid     = json_child_value(parser->arena, mesh, JSON_VALUE_TYPE_i32, &mode, "mode");
 
@@ -145,7 +147,7 @@ gltf_parse_chunk_json(gltf_parser_t* parser, u32_t chunk_length)
                 b32_t type_is_valid           = json_child_value(parser->arena, accessor, JSON_VALUE_TYPE_str, &type, "type");
 
                 result.accessors[i].buffer_view_id = buffer_view_id_is_valid ? buffer_view_id : -1;
-                result.accessors[i].byte_offset    = byte_offset_is_valid ? byte_offset : -1;
+                result.accessors[i].byte_offset    = byte_offset_is_valid ? byte_offset : 0;
                 result.accessors[i].component_type = component_type_is_valid ? component_type : -1;
                 result.accessors[i].count          = count_is_valid ? count : -1;
 
@@ -225,9 +227,44 @@ gltf_parse_chunk_json(gltf_parser_t* parser, u32_t chunk_length)
 }
 
 internal gltf_data_t
-gltf_parse_chunk_binary(gltf_parser_t* parser, u32_t chunk_length, gltf_json_data_t json_data)
+gltf_parse_chunk_binary(gltf_parser_t* parser, u32_t chunk_length, gltf_json_data_t* json_data)
 {
-    gltf_data_t result = {};
+    u8_t* data = parser->source.data + parser->position;
+
+    gltf_data_t result = {0};
+
+    EMBER_ASSERT(json_data != NULL);
+
+    for (u32_t i = 0; i < json_data->mesh_count; i++)
+    {
+        i32_t acs_pos = json_data->meshes[i].first_primitive.position;
+        i32_t acs_nrm = json_data->meshes[i].first_primitive.normal;
+        i32_t acs_uvs = json_data->meshes[i].first_primitive.texcoord;
+        i32_t acs_ids = json_data->meshes[i].first_primitive.indices;
+
+        i32_t data_offset_pos = json_data->buffer_views[json_data->accessors[acs_pos].buffer_view_id].byte_offset + json_data->accessors[acs_pos].byte_offset;
+        i32_t data_offset_nrm = json_data->buffer_views[json_data->accessors[acs_nrm].buffer_view_id].byte_offset + json_data->accessors[acs_nrm].byte_offset;
+        i32_t data_offset_uvs = json_data->buffer_views[json_data->accessors[acs_uvs].buffer_view_id].byte_offset + json_data->accessors[acs_uvs].byte_offset;
+        i32_t data_offset_ids = json_data->buffer_views[json_data->accessors[acs_ids].buffer_view_id].byte_offset + json_data->accessors[acs_ids].byte_offset;
+
+        EMBER_ASSERT(
+            (json_data->accessors[acs_pos].count == json_data->accessors[acs_nrm].count) &&
+            (json_data->accessors[acs_pos].count == json_data->accessors[acs_uvs].count)
+        );
+
+        result.vertex_count = json_data->accessors[acs_pos].count;
+        result.index_count  = json_data->accessors[acs_ids].count;
+
+        result.vertices = MEMORY_PUSH(parser->arena, vec3_t, result.vertex_count);
+        result.normals  = MEMORY_PUSH(parser->arena, vec3_t, result.vertex_count);
+        result.uvs      = MEMORY_PUSH(parser->arena, vec2_t, result.vertex_count);
+        result.indices  = MEMORY_PUSH(parser->arena, u32_t,  result.index_count);
+
+        memcpy(result.vertices, data + data_offset_pos, result.vertex_count * sizeof(vec3_t));
+        memcpy(result.normals, data + data_offset_nrm, result.vertex_count * sizeof(vec3_t));
+        memcpy(result.uvs, data + data_offset_uvs, result.vertex_count * sizeof(vec2_t));
+        memcpy(result.indices, data + data_offset_ids, result.index_count * sizeof(u32_t));
+    }
 
     return result;
 }
