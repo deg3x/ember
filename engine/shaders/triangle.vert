@@ -13,10 +13,12 @@ layout(location = 2) in vec3 color;
 layout(location = 3) in vec2 uv;
 
 layout(location = 0) out vec3 frag_color;
+layout(location = 1) out vec3 frag_normal;
 
 void main()
 {
     gl_Position = ubo.proj * ubo.view * ubo.model * vec4(position, 1.0);
 
-    frag_color = color;
+    frag_color  = color;
+    frag_normal = normal;
 }
