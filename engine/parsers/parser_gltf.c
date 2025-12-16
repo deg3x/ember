@@ -149,7 +149,7 @@ gltf_parse_chunk_json(gltf_parser_t* parser, u32_t chunk_length)
                 result.accessors[i].buffer_view_id = buffer_view_id_is_valid ? buffer_view_id : -1;
                 result.accessors[i].byte_offset    = byte_offset_is_valid ? byte_offset : 0;
                 result.accessors[i].component_type = component_type_is_valid ? component_type : -1;
-                result.accessors[i].count          = count_is_valid ? count : -1;
+                result.accessors[i].count          = count_is_valid ? count : 0;
 
                 result.accessors[i].type = -1;
                 if (type_is_valid)
@@ -193,9 +193,9 @@ gltf_parse_chunk_json(gltf_parser_t* parser, u32_t chunk_length)
                 b32_t target_is_valid = json_child_value(parser->arena, view, JSON_VALUE_TYPE_i32, &target, "target");
 
                 result.buffer_views[i].buffer_id   = buf_id_is_valid ? buf_id : -1;
-                result.buffer_views[i].byte_offset = offset_is_valid ? offset : -1;
-                result.buffer_views[i].byte_length = length_is_valid ? length : -1;
-                result.buffer_views[i].byte_stride = stride_is_valid ? stride : -1;
+                result.buffer_views[i].byte_offset = offset_is_valid ? offset : 0;
+                result.buffer_views[i].byte_length = length_is_valid ? length : 0;
+                result.buffer_views[i].byte_stride = stride_is_valid ? stride : 0;
                 result.buffer_views[i].target      = target_is_valid ? target : -1;
 
                 view = view->next;
@@ -235,17 +235,24 @@ gltf_parse_chunk_binary(gltf_parser_t* parser, u32_t chunk_length, gltf_json_dat
 
     EMBER_ASSERT(json_data != NULL);
 
-    for (u32_t i = 0; i < json_data->mesh_count; i++)
+    for (u32_t mesh_idx = 0; mesh_idx < json_data->mesh_count; mesh_idx++)
     {
-        i32_t acs_pos = json_data->meshes[i].first_primitive.position;
-        i32_t acs_nrm = json_data->meshes[i].first_primitive.normal;
-        i32_t acs_uvs = json_data->meshes[i].first_primitive.texcoord;
-        i32_t acs_ids = json_data->meshes[i].first_primitive.indices;
+        i32_t acs_pos = json_data->meshes[mesh_idx].first_primitive.position;
+        i32_t acs_nrm = json_data->meshes[mesh_idx].first_primitive.normal;
+        i32_t acs_uvs = json_data->meshes[mesh_idx].first_primitive.texcoord;
+        i32_t acs_ids = json_data->meshes[mesh_idx].first_primitive.indices;
 
-        i32_t data_offset_pos = json_data->buffer_views[json_data->accessors[acs_pos].buffer_view_id].byte_offset + json_data->accessors[acs_pos].byte_offset;
-        i32_t data_offset_nrm = json_data->buffer_views[json_data->accessors[acs_nrm].buffer_view_id].byte_offset + json_data->accessors[acs_nrm].byte_offset;
-        i32_t data_offset_uvs = json_data->buffer_views[json_data->accessors[acs_uvs].buffer_view_id].byte_offset + json_data->accessors[acs_uvs].byte_offset;
-        i32_t data_offset_ids = json_data->buffer_views[json_data->accessors[acs_ids].buffer_view_id].byte_offset + json_data->accessors[acs_ids].byte_offset;
+        i32_t data_offset_pos = json_data->buffer_views[json_data->accessors[acs_pos].buffer_view_id].byte_offset
+                              + json_data->accessors[acs_pos].byte_offset;
+
+        i32_t data_offset_nrm = json_data->buffer_views[json_data->accessors[acs_nrm].buffer_view_id].byte_offset
+                              + json_data->accessors[acs_nrm].byte_offset;
+
+        i32_t data_offset_uvs = json_data->buffer_views[json_data->accessors[acs_uvs].buffer_view_id].byte_offset
+                              + json_data->accessors[acs_uvs].byte_offset;
+
+        i32_t data_offset_ids = json_data->buffer_views[json_data->accessors[acs_ids].buffer_view_id].byte_offset
+                              + json_data->accessors[acs_ids].byte_offset;
 
         EMBER_ASSERT(
             (json_data->accessors[acs_pos].count == json_data->accessors[acs_nrm].count) &&
@@ -255,16 +262,173 @@ gltf_parse_chunk_binary(gltf_parser_t* parser, u32_t chunk_length, gltf_json_dat
         result.vertex_count = json_data->accessors[acs_pos].count;
         result.index_count  = json_data->accessors[acs_ids].count;
 
-        result.vertices = MEMORY_PUSH(parser->arena, vec3_t, result.vertex_count);
-        result.normals  = MEMORY_PUSH(parser->arena, vec3_t, result.vertex_count);
-        result.uvs      = MEMORY_PUSH(parser->arena, vec2_t, result.vertex_count);
+        result.vertices = MEMORY_PUSH(parser->arena, vertex_t, result.vertex_count);
         result.indices  = MEMORY_PUSH(parser->arena, u32_t,  result.index_count);
 
-        memcpy(result.vertices, data + data_offset_pos, result.vertex_count * sizeof(vec3_t));
-        memcpy(result.normals, data + data_offset_nrm, result.vertex_count * sizeof(vec3_t));
-        memcpy(result.uvs, data + data_offset_uvs, result.vertex_count * sizeof(vec2_t));
-        memcpy(result.indices, data + data_offset_ids, result.index_count * sizeof(u32_t));
+        gltf_parse_components(
+            (data + data_offset_ids),
+            result.index_count,
+            0,
+            sizeof(u32_t),
+            json_data->accessors[acs_ids].component_type,
+            json_data->accessors[acs_ids].type,
+            result.indices
+        );
+
+        gltf_parse_components(
+            (data + data_offset_pos),
+            result.vertex_count,
+            offsetof(vertex_t, position),
+            sizeof(vertex_t),
+            json_data->accessors[acs_pos].component_type,
+            json_data->accessors[acs_pos].type,
+            result.vertices
+        );
+
+        gltf_parse_components(
+            (data + data_offset_nrm),
+            result.vertex_count,
+            offsetof(vertex_t, normal),
+            sizeof(vertex_t),
+            json_data->accessors[acs_nrm].component_type,
+            json_data->accessors[acs_nrm].type,
+            result.vertices
+        );
+
+        gltf_parse_components(
+            (data + data_offset_uvs),
+            result.vertex_count,
+            offsetof(vertex_t, uv),
+            sizeof(vertex_t),
+            json_data->accessors[acs_uvs].component_type,
+            json_data->accessors[acs_uvs].type,
+            result.vertices
+        );
+
+        // NOTE(): Manually write to the color value
+        for (u32_t i = 0; i < result.vertex_count; i++)
+        {
+            result.vertices[i].color = (vec3_t){1.0f, 1.0f, 1.0f};
+        }
+
+        if (mesh_idx == 1)
+        {
+            break;
+        }
     }
 
     return result;
+}
+
+internal void
+gltf_parse_components(void* source, u32_t count, u32_t offset, u32_t stride, i32_t cmp_type, i32_t data_type, void* dest)
+{
+    offset /= 4;
+    stride /= 4;
+
+    u8_t data_type_size = 1;
+    switch (data_type)
+    {
+        case GLTF_CUSTOM_TYPE_SCALAR:
+        {
+            data_type_size = 1;
+            break;
+        }
+        case GLTF_CUSTOM_TYPE_VEC2:
+        {
+            data_type_size = 2;
+            break;
+        }
+        case GLTF_CUSTOM_TYPE_VEC3:
+        {
+            data_type_size = 3;
+            break;
+        }
+        case GLTF_CUSTOM_TYPE_VEC4:
+        {
+            data_type_size = 4;
+            break;
+        }
+        case GLTF_CUSTOM_TYPE_MAT2:
+        {
+            data_type_size = 4;
+            break;
+        }
+        case GLTF_CUSTOM_TYPE_MAT3:
+        {
+            data_type_size = 9;
+            break;
+        }
+        case GLTF_CUSTOM_TYPE_MAT4:
+        {
+            data_type_size = 16;
+            break;
+        }
+    }
+    
+    switch (cmp_type)
+    {
+        case GLTF_COMPONENT_TYPE_BYTE:
+        case GLTF_COMPONENT_TYPE_UBYTE:
+        {
+            u8_t* src_data  = (u8_t *)source;
+            u32_t* dst_data = (u32_t *)dest;
+            for (u32_t i = 0; i < count; i++)
+            {
+                for (u32_t j = 0; j < data_type_size; j++)
+                {
+                    *(dst_data + i * stride + offset + j) = *(src_data + i * data_type_size + j);
+                }
+            }
+
+            break;
+        }
+        case GLTF_COMPONENT_TYPE_SHORT:
+        case GLTF_COMPONENT_TYPE_USHORT:
+        {
+            u16_t* src_data = (u16_t *)source;
+            u32_t* dst_data = (u32_t *)dest;
+            for (u32_t i = 0; i < count; i++)
+            {
+                for (u32_t j = 0; j < data_type_size; j++)
+                {
+                    *(dst_data + i * stride + offset + j) = *(src_data + i * data_type_size + j);
+                }
+            }
+
+            break;
+        }
+        case GLTF_COMPONENT_TYPE_UINT:
+        {
+            u32_t* src_data = (u32_t *)source;
+            u32_t* dst_data = (u32_t *)dest;
+            for (u32_t i = 0; i < count; i++)
+            {
+                for (u32_t j = 0; j < data_type_size; j++)
+                {
+                    *(dst_data + i * stride + offset + j) = *(src_data + i * data_type_size + j);
+                }
+            }
+
+            break;
+        }
+        case GLTF_COMPONENT_TYPE_FLOAT:
+        {
+            f32_t* src_data = (f32_t *)source;
+            f32_t* dst_data = (f32_t *)dest;
+            for (u32_t i = 0; i < count; i++)
+            {
+                for (u32_t j = 0; j < data_type_size; j++)
+                {
+                    *(dst_data + i * stride + offset + j) = *(src_data + i * data_type_size + j);
+                }
+            }
+
+            break;
+        }
+        default:
+        {
+            EMBER_ASSERT(EMBER_FALSE);
+        }
+    }
 }

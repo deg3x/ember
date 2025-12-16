@@ -104,16 +104,15 @@ struct gltf_json_data_t
 typedef struct gltf_data_t gltf_data_t;
 struct gltf_data_t
 {
-    vec3_t* vertices;
-    vec3_t* normals;
-    vec2_t* uvs;
-    u32_t*  indices;
-    u32_t   vertex_count;
-    u32_t   index_count;
+    vertex_t* vertices;
+    u32_t*    indices;
+    u32_t     vertex_count;
+    u32_t     index_count;
 };
 
 internal gltf_data_t      gltf_parse_file(const char* file_path, arena_t* arena);
 internal gltf_json_data_t gltf_parse_chunk_json(gltf_parser_t* parser, u32_t chunk_length);
 internal gltf_data_t      gltf_parse_chunk_binary(gltf_parser_t* parser, u32_t chunk_length, gltf_json_data_t* json_data);
+internal void             gltf_parse_components(void* source, u32_t count, u32_t offset, u32_t stride, i32_t cmp_type, i32_t data_type, void* dest);
 
 #endif //PARSER_GLTF_H
