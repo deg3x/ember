@@ -77,6 +77,33 @@ typedef char     c8_t;
     #define DEBUG_BREAK()
 #endif
 
+#if EMBER_PROFILING_ENABLED
+
+#include <intrin.h>
+
+typedef struct trace_event_t trace_event_t;
+struct trace_event_t
+{
+    u64_t cpu_clock_start;
+    u64_t cpu_clock_end;
+    u64_t cpu_clock_dif;
+};
+
+#define EMBER_TRACE_BEGIN(n)                     \
+        trace_event_t _event_##n;                \
+        _event_##n.cpu_clock_start = __rdtsc()
+
+#define EMBER_TRACE_END(n)                       \
+        _event_##n.cpu_clock_end = __rdtsc();    \
+        _event_##n.cpu_clock_dif = _event_##n.cpu_clock_end - _event_##n.cpu_clock_start
+
+#else
+
+#define EMBER_TRACE_BEGIN(n)
+#define EMBER_TRACE_END(n)
+
+#endif // EMBER_PROFILING_ENABLED
+
 #if EMBER_ASSERT_ENABLED
 void assert_fail(const char* expression, const char* message, const char* file, i32_t line)
 {
@@ -107,6 +134,6 @@ void assert_fail(const char* expression, const char* message, const char* file, 
 #else
 #define EMBER_ASSERT(expr)
 #define EMBER_ASSERT_MSG(expr, msg)
-#endif
+#endif // EMBER_ASSERT_ENABLED
 
 #endif // ENGINE_DEFS_H
