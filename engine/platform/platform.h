@@ -32,7 +32,10 @@ struct platform_window_state_t
 typedef struct platform_program_state_t platform_program_state_t;
 struct platform_program_state_t
 {
-    b32_t is_running;
+    b32_t             is_running;
+    platform_handle_t h_stdin;
+    platform_handle_t h_stdout;
+    platform_handle_t h_stderr;
 };
 
 typedef struct platform_timer_t platform_timer_t;
@@ -71,6 +74,8 @@ global platform_window_state_t  g_window_state;
 
 internal void platform_info_init();
 internal void platform_abort(i32_t exit_code);
+
+internal void platform_console_init();
 
 internal void  platform_timer_init();
 internal void  platform_timer_update();

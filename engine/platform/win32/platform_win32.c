@@ -17,6 +17,22 @@ platform_abort(i32_t exit_code)
 }
 
 internal void
+platform_console_init()
+{
+#if EMBER_BUILD_CONSOLE
+    AllocConsole();
+
+    g_program_state.h_stdin.hnd  = GetStdHandle(STD_INPUT_HANDLE);
+    g_program_state.h_stdout.hnd = GetStdHandle(STD_OUTPUT_HANDLE);
+    g_program_state.h_stderr.hnd = GetStdHandle(STD_ERROR_HANDLE);
+
+    freopen("CONIN$", "r", stdin);
+    freopen("CONOUT$", "w", stdout);
+    freopen("CONOUT$", "w", stderr);
+#endif
+}
+
+internal void
 platform_timer_init()
 {
     QueryPerformanceFrequency((LARGE_INTEGER *)&g_timer.frequency);
@@ -429,6 +445,7 @@ WinMain(HINSTANCE instance, HINSTANCE prev_instance, LPSTR cmd_line, int show_cm
     g_program_state.is_running = EMBER_TRUE;
 
     platform_info_init();
+    platform_console_init();
     platform_timer_init();
     platform_gfx_init();
 
@@ -454,6 +471,8 @@ WinMain(HINSTANCE instance, HINSTANCE prev_instance, LPSTR cmd_line, int show_cm
     }
 
     renderer_destroy();
+
+    FreeConsole();
 
     return 0;
 }

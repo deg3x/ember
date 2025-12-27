@@ -107,7 +107,18 @@ struct trace_event_t
 #if EMBER_ASSERT_ENABLED
 void assert_fail(const char* expression, const char* message, const char* file, i32_t line)
 {
-    // TODO(KB): Add logging here
+#if EMBER_BUILD_CONSOLE
+    fprintf(stderr, "Assertion failed: (%s)\n\nFile: [%s::%d]\nMessage: %s\n", expression, file, line, message);
+#endif
+
+#if PLATFORM_WINDOWS
+    char assert_buf[4096];
+
+    wsprintfA(assert_buf, "Assertion failed: (%s)\n\nFile: [%s::%d]\nMessage: %s\n", expression, file, line, message);
+
+    MessageBoxA(NULL, assert_buf, "Assertion Failure", MB_OK | MB_ICONERROR | MB_SYSTEMMODAL);
+#endif
+
     return;
 }
 
