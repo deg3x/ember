@@ -4,10 +4,13 @@ platform_info_init()
     SYSTEM_INFO system_info;
     GetSystemInfo(&system_info);
 
+    QueryPerformanceFrequency((LARGE_INTEGER *)&g_platform_info.perf_cnt_freq);
+
     g_platform_info.page_size_large   = GetLargePageMinimum();
     g_platform_info.page_size         = system_info.dwPageSize;
     g_platform_info.processor_count   = system_info.dwNumberOfProcessors;
     g_platform_info.alloc_granularity = system_info.dwAllocationGranularity;
+    g_platform_info.perf_cnt_freq_inv = 1.0 / (f64_t)g_platform_info.perf_cnt_freq;
 }
 
 internal void
@@ -32,38 +35,41 @@ platform_console_init()
 #endif
 }
 
-internal void
+internal platform_timer_t
 platform_timer_init()
 {
-    QueryPerformanceFrequency((LARGE_INTEGER *)&g_timer.frequency);
-    QueryPerformanceCounter((LARGE_INTEGER *)&g_timer.start);
+    platform_timer_t result;
 
-    g_timer.last     = g_timer.start;
-    g_timer.inv_freq = 1.0 / (f64_t)g_timer.frequency;
+    QueryPerformanceCounter((LARGE_INTEGER *)&result.start);
+
+    result.last = result.start;
+    result.now  = result.start;
+
+    return result;
 }
 
 internal void
-platform_timer_update()
+platform_timer_update(platform_timer_t* timer)
 {
-    g_timer.last = g_timer.now;
+    timer->last = timer->now;
 
-    QueryPerformanceCounter((LARGE_INTEGER *)&g_timer.now);
+    QueryPerformanceCounter((LARGE_INTEGER *)&timer->now);
 }
 
 internal f64_t
-platform_timer_since_start()
+platform_timer_since_start(platform_timer_t timer)
 {
-    u64_t time_diff = g_timer.now - g_timer.start;
-    f64_t time      = (f64_t)time_diff * g_timer.inv_freq;
+    u64_t time_diff = timer.now - timer.start;
+    f64_t time      = g_platform_info.perf_cnt_freq_inv * (f64_t)time_diff;
 
     return time;
 }
 
 internal f64_t
-platform_timer_delta()
+platform_timer_delta(platform_timer_t timer)
 {
-    u64_t time_diff  = g_timer.now - g_timer.last;
-    f64_t delta_time = (f64_t)time_diff * g_timer.inv_freq;
+    u64_t time_diff  = timer.now - timer.last;
+    f64_t delta_time = g_platform_info.perf_cnt_freq_inv * (f64_t)time_diff;
 
     return delta_time;
 }
@@ -443,10 +449,10 @@ int WINAPI
 WinMain(HINSTANCE instance, HINSTANCE prev_instance, LPSTR cmd_line, int show_cmd)
 {
     g_program_state.is_running = EMBER_TRUE;
+    g_program_state.timer      = platform_timer_init();
 
     platform_info_init();
     platform_console_init();
-    platform_timer_init();
     platform_gfx_init();
 
     platform_handle_t window_handle = platform_gfx_window_create("Ember Engine");
@@ -458,9 +464,9 @@ WinMain(HINSTANCE instance, HINSTANCE prev_instance, LPSTR cmd_line, int show_cm
     for(;;)
     {
         platform_gfx_process_events();
-        platform_timer_update();
+        platform_timer_update(&g_program_state.timer);
 
-        // f32_t delta_time = (f32_t)platform_timer_delta();
+        // f32_t delta_time = (f32_t)platform_timer_delta(&g_program_state.timer);
 
         if (!g_program_state.is_running)
         {
