@@ -29,6 +29,15 @@ struct vertex_t
     vec2_t uv;
 };
 
+typedef struct mesh_t mesh_t;
+struct mesh_t
+{
+    vertex_t* vertices;
+    u32_t*    indices;
+    u32_t     vertex_count;
+    u32_t     index_count;
+};
+
 internal void renderer_init(platform_handle_t window_handle);
 internal void renderer_update(platform_handle_t window_handle);
 internal void renderer_destroy();

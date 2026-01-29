@@ -233,6 +233,9 @@ gltf_parse_chunk_binary(gltf_parser_t* parser, u32_t chunk_length, gltf_json_dat
 
     gltf_data_t result = {0};
 
+    result.meshes     = MEMORY_PUSH(parser->arena, mesh_t, json_data->mesh_count);
+    result.mesh_count = json_data->mesh_count;
+
     EMBER_ASSERT(json_data != NULL);
 
     for (u32_t mesh_idx = 0; mesh_idx < json_data->mesh_count; mesh_idx++)
@@ -259,61 +262,56 @@ gltf_parse_chunk_binary(gltf_parser_t* parser, u32_t chunk_length, gltf_json_dat
             (json_data->accessors[acs_pos].count == json_data->accessors[acs_uvs].count)
         );
 
-        result.vertex_count = json_data->accessors[acs_pos].count;
-        result.index_count  = json_data->accessors[acs_ids].count;
+        result.meshes[mesh_idx].vertex_count = json_data->accessors[acs_pos].count;
+        result.meshes[mesh_idx].index_count  = json_data->accessors[acs_ids].count;
 
-        result.vertices = MEMORY_PUSH(parser->arena, vertex_t, result.vertex_count);
-        result.indices  = MEMORY_PUSH(parser->arena, u32_t,  result.index_count);
+        result.meshes[mesh_idx].vertices = MEMORY_PUSH(parser->arena, vertex_t, result.meshes[mesh_idx].vertex_count);
+        result.meshes[mesh_idx].indices  = MEMORY_PUSH(parser->arena, u32_t,  result.meshes[mesh_idx].index_count);
 
         gltf_parse_components(
             (data + data_offset_ids),
-            result.index_count,
+            result.meshes[mesh_idx].index_count,
             0,
             sizeof(u32_t),
             json_data->accessors[acs_ids].component_type,
             json_data->accessors[acs_ids].type,
-            result.indices
+            result.meshes[mesh_idx].indices
         );
 
         gltf_parse_components(
             (data + data_offset_pos),
-            result.vertex_count,
+            result.meshes[mesh_idx].vertex_count,
             offsetof(vertex_t, position),
             sizeof(vertex_t),
             json_data->accessors[acs_pos].component_type,
             json_data->accessors[acs_pos].type,
-            result.vertices
+            result.meshes[mesh_idx].vertices
         );
 
         gltf_parse_components(
             (data + data_offset_nrm),
-            result.vertex_count,
+            result.meshes[mesh_idx].vertex_count,
             offsetof(vertex_t, normal),
             sizeof(vertex_t),
             json_data->accessors[acs_nrm].component_type,
             json_data->accessors[acs_nrm].type,
-            result.vertices
+            result.meshes[mesh_idx].vertices
         );
 
         gltf_parse_components(
             (data + data_offset_uvs),
-            result.vertex_count,
+            result.meshes[mesh_idx].vertex_count,
             offsetof(vertex_t, uv),
             sizeof(vertex_t),
             json_data->accessors[acs_uvs].component_type,
             json_data->accessors[acs_uvs].type,
-            result.vertices
+            result.meshes[mesh_idx].vertices
         );
 
         // NOTE(): Manually write to the color value
-        for (u32_t i = 0; i < result.vertex_count; i++)
+        for (u32_t i = 0; i < result.meshes[mesh_idx].vertex_count; i++)
         {
-            result.vertices[i].color = (vec3_t){1.0f, 1.0f, 1.0f};
-        }
-
-        if (mesh_idx == 1)
-        {
-            break;
+            result.meshes[mesh_idx].vertices[i].color = (vec3_t){1.0f, 1.0f, 1.0f};
         }
     }
 

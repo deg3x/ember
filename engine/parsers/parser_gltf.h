@@ -104,10 +104,13 @@ struct gltf_json_data_t
 typedef struct gltf_data_t gltf_data_t;
 struct gltf_data_t
 {
-    vertex_t* vertices;
-    u32_t*    indices;
-    u32_t     vertex_count;
-    u32_t     index_count;
+    //vertex_t* vertices;
+    //u32_t*    indices;
+    //u32_t     vertex_count;
+    //u32_t     index_count;
+
+    mesh_t* meshes;
+    u32_t   mesh_count;
 };
 
 internal gltf_data_t      gltf_parse_file(const char* file_path, arena_t* arena);
