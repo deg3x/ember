@@ -1,5 +1,5 @@
-#ifndef RENDERER_VULKAN_H 
-#define RENDERER_VULKAN_H 
+#ifndef RENDERER_H 
+#define RENDERER_H 
 
 #define RENDERER_SIZE_VERTEX sizeof(vertex_t)
 #define RENDERER_SIZE_INDEX  sizeof(u32_t)
@@ -139,7 +139,6 @@ global const char* g_device_extensions[] = {
     VK_KHR_SWAPCHAIN_EXTENSION_NAME,
 };
 
-
 internal void renderer_init(platform_handle_t window_handle);
 internal void renderer_update(platform_handle_t window_handle);
 internal void renderer_destroy();
@@ -187,4 +186,4 @@ internal b32_t renderer_check_instance_extensions();
 internal b32_t renderer_check_device_extensions(VkPhysicalDevice device);
 internal b32_t renderer_device_is_suitable(VkPhysicalDevice device);
 
-#endif // RENDERER_VULKAN_H 
+#endif // RENDERER_H 
