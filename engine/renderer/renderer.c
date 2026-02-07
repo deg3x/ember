@@ -25,7 +25,7 @@ renderer_init(platform_handle_t window_handle)
 
     g_renderer.pipelines      = MEMORY_PUSH_ZERO(g_renderer.host_arena, renderer_pipeline_t, 1);
     g_renderer.pipeline_count = 1;
-    
+
     renderer_pipeline_init(g_renderer.pipelines);
 }
 
@@ -553,23 +553,18 @@ renderer_create_sync_primitives()
 internal void
 renderer_create_resources()
 {
-    VkDeviceSize size_vert = GPU_MEM_SIZE_VERTEX;
-    VkDeviceSize size_idx  = GPU_MEM_SIZE_INDEX;
-    VkDeviceSize size_stg  = GPU_MEM_SIZE_STG;
-    VkDeviceSize size_ubo  = sizeof(renderer_ubo_t);
-
     VkBufferUsageFlags flags_vert = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
     VkBufferUsageFlags flags_idx  = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
     VkBufferUsageFlags flags_stg  = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
     VkBufferUsageFlags flags_ubo  = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
 
-    renderer_create_buffer(&g_renderer.buffers.vertex_buf, size_vert, flags_vert);
-    renderer_create_buffer(&g_renderer.buffers.index_buf, size_idx, flags_idx);
-    renderer_create_buffer(&g_renderer.buffers.stage_buf, size_stg, flags_stg);
+    renderer_create_buffer(&g_renderer.buffers.vertex_buf, GPU_MEM_SIZE_VERTEX, flags_vert);
+    renderer_create_buffer(&g_renderer.buffers.index_buf, GPU_MEM_SIZE_INDEX, flags_idx);
+    renderer_create_buffer(&g_renderer.buffers.stage_buf, GPU_MEM_SIZE_STG, flags_stg);
 
     for (u32_t i = 0; i < RENDERER_FRAMES_IN_FLIGHT; i++)
     {
-        renderer_create_buffer(&g_renderer.buffers.ubo_buf[i], size_ubo, flags_ubo);
+        renderer_create_buffer(&g_renderer.buffers.ubo_buf[i], GPU_MEM_SIZE_UBO / RENDERER_FRAMES_IN_FLIGHT, flags_ubo);
     }
 
     g_renderer.buffers.vertex_mem = renderer_create_buffer_memory(g_renderer.buffers.vertex_buf, GPU_MEM_TYPE_mesh);
@@ -590,15 +585,15 @@ renderer_create_resources()
     for (u32_t i = 0; i < RENDERER_FRAMES_IN_FLIGHT; i++)
     {
         g_renderer.buffers.ubo_mem[i] = renderer_create_buffer_memory(
-                g_renderer.buffers.ubo_buf[i],
-                GPU_MEM_TYPE_ubo
-            );
+            g_renderer.buffers.ubo_buf[i],
+            GPU_MEM_TYPE_ubo
+        );
 
         vk_result = vkMapMemory(
             g_renderer.device,
             g_renderer.buffers.ubo_mem[i]->memory,
             g_renderer.buffers.ubo_mem[i]->offset,
-            size_ubo,
+            GPU_MEM_SIZE_UBO,
             0,
             &g_renderer.buffers.ubo_mapped[i]
         );
