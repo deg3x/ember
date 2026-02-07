@@ -32,7 +32,6 @@
 #include "containers/buffer.h"
 #include "input/input.h"
 
-#include "renderer/renderer.h"
 #if RHI_VULKAN
     #include "renderer/gpu_arena.h"
     #include "renderer/vulkan/renderer_vulkan.h"
@@ -61,7 +60,6 @@
 #include "containers/buffer.c"
 #include "input/input.c"
 
-#include "renderer/renderer.c"
 #if RHI_VULKAN
     #include "renderer/gpu_arena.c"
     #include "renderer/vulkan/renderer_vulkan.c"

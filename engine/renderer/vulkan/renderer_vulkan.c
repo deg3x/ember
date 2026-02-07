@@ -4,24 +4,24 @@ renderer_init(platform_handle_t window_handle)
     arena_params_t params = { GB(4), GB(4), 0 };
     g_renderer.host_arena = arena_init(&params);
 
-    renderer_vk_create_instance();
-    renderer_vk_create_surface(window_handle);
-    renderer_vk_create_physical_device();
-    renderer_vk_create_queue_ids();
-    renderer_vk_create_device();
+    renderer_create_instance();
+    renderer_create_surface(window_handle);
+    renderer_create_physical_device();
+    renderer_create_queue_ids();
+    renderer_create_device();
 
     g_renderer.gpu_arena = gpu_arena_init(g_renderer.physical_device, g_renderer.device);
 
-    renderer_vk_create_swapchain(window_handle);
-    renderer_vk_create_command_pool();
-    renderer_vk_create_command_buffers();
-    renderer_vk_create_descriptor_pool();
-    renderer_vk_create_sync_primitives();
-    renderer_vk_create_resources();
+    renderer_create_swapchain(window_handle);
+    renderer_create_command_pool();
+    renderer_create_command_buffers();
+    renderer_create_descriptor_pool();
+    renderer_create_sync_primitives();
+    renderer_create_resources();
 
     g_renderer.mesh_data = NULL;
 
-    renderer_vk_create_depth_resources();
+    renderer_create_depth_resources();
 
     g_renderer.pipelines      = MEMORY_PUSH_ZERO(g_renderer.host_arena, renderer_pipeline_t, 1);
     g_renderer.pipeline_count = 1;
@@ -48,7 +48,7 @@ renderer_update(platform_handle_t window_handle)
 
     if (vk_result == VK_ERROR_OUT_OF_DATE_KHR)
     {
-        renderer_vk_swapchain_recreate(window_handle);
+        renderer_swapchain_recreate(window_handle);
 
         return;
     }
@@ -60,9 +60,9 @@ renderer_update(platform_handle_t window_handle)
     vkResetFences(g_renderer.device, 1, &g_renderer.fence_in_flight[frame_id]);
     vkResetCommandBuffer(g_renderer.command_buffers[frame_id], 0);
 
-    renderer_vk_command_buffer_record(&g_renderer.pipelines[0], frame_id, img_id);
+    renderer_command_buffer_record(&g_renderer.pipelines[0], frame_id, img_id);
 
-    renderer_vk_ubo_t ubo;
+    renderer_ubo_t ubo;
 
     quat_t base_rot  = quat_from_axis_angle(&(vec3_t){1.0f, 0.0f, 0.0f}, (f32_t)MATH_HALF_PI);
     quat_t rotation  = quat_from_axis_angle(&(vec3_t){0.0f, 0.0f, 1.0f}, (f32_t)platform_timer_since_start(g_program_state.timer));
@@ -131,7 +131,7 @@ renderer_update(platform_handle_t window_handle)
 
     if (vk_result == VK_ERROR_OUT_OF_DATE_KHR || vk_result == VK_SUBOPTIMAL_KHR || g_window_state.is_resizing)
     {
-        renderer_vk_swapchain_recreate(window_handle);
+        renderer_swapchain_recreate(window_handle);
     }
     else
     {
@@ -194,10 +194,10 @@ renderer_destroy()
 internal void
 renderer_pipeline_init(renderer_pipeline_t* pipeline)
 {
-    renderer_vk_pipeline_create_descriptor_set_layout(pipeline);
-    renderer_vk_pipeline_create_descriptor_sets(pipeline);
-    renderer_vk_pipeline_create_graphics_pipeline_layout(pipeline);
-    renderer_vk_pipeline_create_graphics_pipeline(pipeline);
+    renderer_pipeline_create_descriptor_set_layout(pipeline);
+    renderer_pipeline_create_descriptor_sets(pipeline);
+    renderer_pipeline_create_graphics_pipeline_layout(pipeline);
+    renderer_pipeline_create_graphics_pipeline(pipeline);
 }
 
 internal void
@@ -217,7 +217,7 @@ renderer_pipeline_destroy(renderer_pipeline_t* pipeline)
 }
 
 internal void
-renderer_vk_create_instance()
+renderer_create_instance()
 {
     u32_t vk_api_version = VK_API_VERSION_1_4;
 
@@ -241,11 +241,11 @@ renderer_vk_create_instance()
 
     EMBER_ASSERT(vk_api_version_supported >= vk_api_version);
 
-    b32_t exts_found = renderer_vk_check_instance_extensions();
+    b32_t exts_found = renderer_check_instance_extensions();
     EMBER_ASSERT(exts_found);
 
 #if RHI_VK_VALIDATIONS_ENABLED
-    b32_t layers_found = renderer_vk_check_validation_layers();
+    b32_t layers_found = renderer_check_validation_layers();
 #endif
 
     VkInstanceCreateInfo instance_info    = {0};
@@ -271,7 +271,7 @@ renderer_vk_create_instance()
 }
 
 internal void
-renderer_vk_create_surface(platform_handle_t window_handle)
+renderer_create_surface(platform_handle_t window_handle)
 {
 #if PLATFORM_WINDOWS
     VkWin32SurfaceCreateInfoKHR surface_info = {0};
@@ -287,7 +287,7 @@ renderer_vk_create_surface(platform_handle_t window_handle)
 }
 
 internal void
-renderer_vk_create_physical_device()
+renderer_create_physical_device()
 {
     g_renderer.physical_device = VK_NULL_HANDLE;
 
@@ -303,7 +303,7 @@ renderer_vk_create_physical_device()
 
     for (u32_t i = 0; i < device_count; i++)
     {
-        if (renderer_vk_device_is_suitable(devices[i]))
+        if (renderer_device_is_suitable(devices[i]))
         {
             g_renderer.physical_device = devices[i];
             break;
@@ -316,7 +316,7 @@ renderer_vk_create_physical_device()
 }
 
 internal void
-renderer_vk_create_queue_ids()
+renderer_create_queue_ids()
 {
     scratch_t scratch = arena_scratch_begin(g_renderer.host_arena);
 
@@ -371,7 +371,7 @@ renderer_vk_create_queue_ids()
 }
 
 internal void
-renderer_vk_create_device()
+renderer_create_device()
 {
     scratch_t scratch = arena_scratch_begin(g_renderer.host_arena);
 
@@ -420,11 +420,11 @@ renderer_vk_create_device()
 }
 
 internal void
-renderer_vk_create_swapchain(platform_handle_t window_handle)
+renderer_create_swapchain(platform_handle_t window_handle)
 {
-    VkSurfaceFormatKHR swap_format = renderer_vk_swapchain_find_format();
-    VkPresentModeKHR swap_present  = renderer_vk_swapchain_find_present();
-    VkExtent2D swap_extent         = renderer_vk_swapchain_find_extent(window_handle);
+    VkSurfaceFormatKHR swap_format = renderer_swapchain_find_format();
+    VkPresentModeKHR swap_present  = renderer_swapchain_find_present();
+    VkExtent2D swap_extent         = renderer_swapchain_find_extent(window_handle);
 
     VkSurfaceCapabilitiesKHR capabilities;
     vkGetPhysicalDeviceSurfaceCapabilitiesKHR(g_renderer.physical_device, g_renderer.surface, &capabilities);
@@ -474,7 +474,7 @@ renderer_vk_create_swapchain(platform_handle_t window_handle)
 
     for (u32_t i = 0; i < img_count; i++)
     {
-        renderer_vk_create_image_view(
+        renderer_create_image_view(
             g_renderer.swapchain_images[i],
             &g_renderer.swapchain_img_views[i],
             g_renderer.swapchain_img_fmt,
@@ -484,7 +484,7 @@ renderer_vk_create_swapchain(platform_handle_t window_handle)
 }
 
 internal void
-renderer_vk_create_command_pool()
+renderer_create_command_pool()
 {
     VkCommandPoolCreateInfo pool_info = {0};
     pool_info.sType                   = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
@@ -496,7 +496,7 @@ renderer_vk_create_command_pool()
 }
 
 internal void
-renderer_vk_create_command_buffers()
+renderer_create_command_buffers()
 {
     VkCommandBufferAllocateInfo alloc_info = {0};
     alloc_info.sType                       = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -509,7 +509,7 @@ renderer_vk_create_command_buffers()
 }
 
 internal void
-renderer_vk_create_descriptor_pool()
+renderer_create_descriptor_pool()
 {
     VkDescriptorPoolSize pool_sizes[1] = {0};
     pool_sizes[0].type                 = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -526,7 +526,7 @@ renderer_vk_create_descriptor_pool()
 }
 
 internal void
-renderer_vk_create_sync_primitives()
+renderer_create_sync_primitives()
 {
     VkSemaphoreCreateInfo sem_info = {0};
     sem_info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
@@ -551,30 +551,30 @@ renderer_vk_create_sync_primitives()
 }
 
 internal void
-renderer_vk_create_resources()
+renderer_create_resources()
 {
     VkDeviceSize size_vert = GPU_MEM_SIZE_BUF_VERTEX;
     VkDeviceSize size_idx  = GPU_MEM_SIZE_BUF_INDEX;
     VkDeviceSize size_stg  = GPU_MEM_SIZE_STAGING;
-    VkDeviceSize size_ubo  = sizeof(renderer_vk_ubo_t);
+    VkDeviceSize size_ubo  = sizeof(renderer_ubo_t);
 
     VkBufferUsageFlags flags_vert = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
     VkBufferUsageFlags flags_idx  = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
     VkBufferUsageFlags flags_stg  = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
     VkBufferUsageFlags flags_ubo  = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
 
-    renderer_vk_create_buffer(&g_renderer.buffers.vertex_buf, size_vert, flags_vert);
-    renderer_vk_create_buffer(&g_renderer.buffers.index_buf, size_idx, flags_idx);
-    renderer_vk_create_buffer(&g_renderer.buffers.stage_buf, size_stg, flags_stg);
+    renderer_create_buffer(&g_renderer.buffers.vertex_buf, size_vert, flags_vert);
+    renderer_create_buffer(&g_renderer.buffers.index_buf, size_idx, flags_idx);
+    renderer_create_buffer(&g_renderer.buffers.stage_buf, size_stg, flags_stg);
 
     for (u32_t i = 0; i < RENDERER_FRAMES_IN_FLIGHT; i++)
     {
-        renderer_vk_create_buffer(&g_renderer.buffers.ubo_buf[i], size_ubo, flags_ubo);
+        renderer_create_buffer(&g_renderer.buffers.ubo_buf[i], size_ubo, flags_ubo);
     }
 
-    g_renderer.buffers.vertex_mem = renderer_vk_create_buffer_memory(g_renderer.buffers.vertex_buf, GPU_MEM_TYPE_device);
-    g_renderer.buffers.index_mem  = renderer_vk_create_buffer_memory(g_renderer.buffers.index_buf, GPU_MEM_TYPE_device);
-    g_renderer.buffers.stage_mem  = renderer_vk_create_buffer_memory(g_renderer.buffers.stage_buf, GPU_MEM_TYPE_staging);
+    g_renderer.buffers.vertex_mem = renderer_create_buffer_memory(g_renderer.buffers.vertex_buf, GPU_MEM_TYPE_device);
+    g_renderer.buffers.index_mem  = renderer_create_buffer_memory(g_renderer.buffers.index_buf, GPU_MEM_TYPE_device);
+    g_renderer.buffers.stage_mem  = renderer_create_buffer_memory(g_renderer.buffers.stage_buf, GPU_MEM_TYPE_staging);
 
     VkResult vk_result = vkMapMemory(
         g_renderer.device,
@@ -589,7 +589,7 @@ renderer_vk_create_resources()
 
     for (u32_t i = 0; i < RENDERER_FRAMES_IN_FLIGHT; i++)
     {
-        g_renderer.buffers.ubo_mem[i] = renderer_vk_create_buffer_memory(
+        g_renderer.buffers.ubo_mem[i] = renderer_create_buffer_memory(
                 g_renderer.buffers.ubo_buf[i],
                 GPU_MEM_TYPE_host_vco
             );
@@ -608,7 +608,7 @@ renderer_vk_create_resources()
 }
 
 internal void
-renderer_vk_create_mesh(vertex_t* vertices, u32_t vertex_count, u32_t* indices, u32_t index_count)
+renderer_create_mesh(vertex_t* vertices, u32_t vertex_count, u32_t* indices, u32_t index_count)
 {
     u32_t vertex_size = vertex_count * RENDERER_SIZE_VERTEX;
     u32_t index_size  = index_count * RENDERER_SIZE_INDEX;
@@ -637,7 +637,7 @@ renderer_vk_create_mesh(vertex_t* vertices, u32_t vertex_count, u32_t* indices, 
     new_mesh->index_count   = index_count;
 
     memcpy(g_renderer.buffers.stage_mapped, vertices, vertex_size);
-    renderer_vk_copy_buffer(
+    renderer_copy_buffer(
         g_renderer.buffers.stage_buf,
         g_renderer.buffers.vertex_buf,
         0,
@@ -646,7 +646,7 @@ renderer_vk_create_mesh(vertex_t* vertices, u32_t vertex_count, u32_t* indices, 
     );
 
     memcpy((u8_t*)g_renderer.buffers.stage_mapped, indices, index_size);
-    renderer_vk_copy_buffer(
+    renderer_copy_buffer(
         g_renderer.buffers.stage_buf,
         g_renderer.buffers.index_buf,
         0,
@@ -656,7 +656,7 @@ renderer_vk_create_mesh(vertex_t* vertices, u32_t vertex_count, u32_t* indices, 
 }
 
 internal void
-renderer_vk_create_depth_resources()
+renderer_create_depth_resources()
 {
     VkFormat formats[] = {
         VK_FORMAT_D32_SFLOAT,
@@ -680,7 +680,7 @@ renderer_vk_create_depth_resources()
 
     EMBER_ASSERT(depth_format != VK_FORMAT_UNDEFINED);
 
-    renderer_vk_create_image(
+    renderer_create_image(
         &g_renderer.buffers.depth_image,
         g_renderer.swapchain_extent.width,
         g_renderer.swapchain_extent.height,
@@ -691,9 +691,9 @@ renderer_vk_create_depth_resources()
 
     // NOTE(KB): We should probably create a separate block for images.
     //           Debug/Profile and track metrics
-    g_renderer.buffers.depth_mem = renderer_vk_create_image_memory(g_renderer.buffers.depth_image, GPU_MEM_TYPE_device);
+    g_renderer.buffers.depth_mem = renderer_create_image_memory(g_renderer.buffers.depth_image, GPU_MEM_TYPE_device);
 
-    renderer_vk_create_image_view(
+    renderer_create_image_view(
         g_renderer.buffers.depth_image,
         &g_renderer.buffers.depth_image_view,
         depth_format,
@@ -759,7 +759,7 @@ renderer_vk_create_depth_resources()
 }
 
 internal void
-renderer_vk_create_buffer(VkBuffer* buffer, VkDeviceSize size, VkBufferUsageFlags usage)
+renderer_create_buffer(VkBuffer* buffer, VkDeviceSize size, VkBufferUsageFlags usage)
 {
     VkBufferCreateInfo buffer_info = {0};
     buffer_info.sType              = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -773,7 +773,7 @@ renderer_vk_create_buffer(VkBuffer* buffer, VkDeviceSize size, VkBufferUsageFlag
 }
 
 internal void
-renderer_vk_create_image(VkImage* image, u32_t width, u32_t height, VkImageUsageFlags usage, VkImageTiling tiling, VkFormat format)
+renderer_create_image(VkImage* image, u32_t width, u32_t height, VkImageUsageFlags usage, VkImageTiling tiling, VkFormat format)
 {
     VkImageCreateInfo image_info     = {0};
     image_info.sType                 = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
@@ -798,7 +798,7 @@ renderer_vk_create_image(VkImage* image, u32_t width, u32_t height, VkImageUsage
 }
 
 internal void
-renderer_vk_create_image_view(VkImage image, VkImageView* view, VkFormat format, VkImageAspectFlags aspect_flags)
+renderer_create_image_view(VkImage image, VkImageView* view, VkFormat format, VkImageAspectFlags aspect_flags)
 {
     VkImageViewCreateInfo view_info           = {0};
     view_info.sType                           = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -821,7 +821,7 @@ renderer_vk_create_image_view(VkImage image, VkImageView* view, VkFormat format,
 }
 
 internal void
-renderer_vk_copy_buffer(VkBuffer src, VkBuffer dst, VkDeviceSize offset_src, VkDeviceSize offset_dst, VkDeviceSize size)
+renderer_copy_buffer(VkBuffer src, VkBuffer dst, VkDeviceSize offset_src, VkDeviceSize offset_dst, VkDeviceSize size)
 {
     VkCommandBufferAllocateInfo alloc_info = {0};
     alloc_info.sType                       = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -865,7 +865,7 @@ renderer_vk_copy_buffer(VkBuffer src, VkBuffer dst, VkDeviceSize offset_src, VkD
 
 
 internal gpu_mem_t*
-renderer_vk_create_buffer_memory(VkBuffer buffer, gpu_mem_type_t mem_type)
+renderer_create_buffer_memory(VkBuffer buffer, gpu_mem_type_t mem_type)
 {
     VkMemoryRequirements mem_req;
     vkGetBufferMemoryRequirements(g_renderer.device, buffer, &mem_req);
@@ -880,7 +880,7 @@ renderer_vk_create_buffer_memory(VkBuffer buffer, gpu_mem_type_t mem_type)
 }
 
 internal gpu_mem_t*
-renderer_vk_create_image_memory(VkImage image, gpu_mem_type_t mem_type)
+renderer_create_image_memory(VkImage image, gpu_mem_type_t mem_type)
 {
     VkMemoryRequirements mem_req;
     vkGetImageMemoryRequirements(g_renderer.device, image, &mem_req);
@@ -895,7 +895,7 @@ renderer_vk_create_image_memory(VkImage image, gpu_mem_type_t mem_type)
 }
 
 internal void
-renderer_vk_pipeline_create_descriptor_set_layout(renderer_pipeline_t* pipeline)
+renderer_pipeline_create_descriptor_set_layout(renderer_pipeline_t* pipeline)
 {
     VkDescriptorSetLayoutBinding bindings[1] = {0};
     bindings[0].binding                      = 0;
@@ -914,7 +914,7 @@ renderer_vk_pipeline_create_descriptor_set_layout(renderer_pipeline_t* pipeline)
 }
 
 internal void
-renderer_vk_pipeline_create_descriptor_sets(renderer_pipeline_t* pipeline)
+renderer_pipeline_create_descriptor_sets(renderer_pipeline_t* pipeline)
 {
     VkDescriptorSetLayout layouts[RENDERER_FRAMES_IN_FLIGHT] = {
         pipeline->descriptor_set_layout,
@@ -935,7 +935,7 @@ renderer_vk_pipeline_create_descriptor_sets(renderer_pipeline_t* pipeline)
         VkDescriptorBufferInfo ubo_info = {0};
         ubo_info.buffer                 = g_renderer.buffers.ubo_buf[i];
         ubo_info.offset                 = 0;
-        ubo_info.range                  = sizeof(renderer_vk_ubo_t);
+        ubo_info.range                  = sizeof(renderer_ubo_t);
 
         VkWriteDescriptorSet write_set[1] = {0};
         write_set[0].sType                = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
@@ -953,7 +953,7 @@ renderer_vk_pipeline_create_descriptor_sets(renderer_pipeline_t* pipeline)
 }
 
 internal void
-renderer_vk_pipeline_create_graphics_pipeline_layout(renderer_pipeline_t* pipeline)
+renderer_pipeline_create_graphics_pipeline_layout(renderer_pipeline_t* pipeline)
 {
     VkPipelineLayoutCreateInfo layout_info = {0};
     layout_info.sType                      = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
@@ -967,7 +967,7 @@ renderer_vk_pipeline_create_graphics_pipeline_layout(renderer_pipeline_t* pipeli
 }
 
 internal void
-renderer_vk_pipeline_create_graphics_pipeline(renderer_pipeline_t* pipeline)
+renderer_pipeline_create_graphics_pipeline(renderer_pipeline_t* pipeline)
 {
     scratch_t scratch = arena_scratch_begin(g_renderer.host_arena);
     u8_t* vert        = MEMORY_PUSH(scratch.arena, u8_t, KB(16));
@@ -976,8 +976,8 @@ renderer_vk_pipeline_create_graphics_pipeline(renderer_pipeline_t* pipeline)
     u64_t vert_size = platform_file_data("./triangle_vert.spv", vert);
     u64_t frag_size = platform_file_data("./triangle_frag.spv", frag);
 
-    VkShaderModule vert_module = renderer_vk_pipeline_create_shader_module(vert, vert_size);
-    VkShaderModule frag_module = renderer_vk_pipeline_create_shader_module(frag, frag_size);
+    VkShaderModule vert_module = renderer_pipeline_create_shader_module(vert, vert_size);
+    VkShaderModule frag_module = renderer_pipeline_create_shader_module(frag, frag_size);
 
     VkPipelineShaderStageCreateInfo shader_info[2] = {0};
     shader_info[0].sType                           = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
@@ -1144,7 +1144,7 @@ renderer_vk_pipeline_create_graphics_pipeline(renderer_pipeline_t* pipeline)
 }
 
 internal VkShaderModule
-renderer_vk_pipeline_create_shader_module(const u8_t* code, u64_t code_size)
+renderer_pipeline_create_shader_module(const u8_t* code, u64_t code_size)
 {
     VkShaderModuleCreateInfo module_info = {0};
     module_info.sType                    = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
@@ -1160,7 +1160,7 @@ renderer_vk_pipeline_create_shader_module(const u8_t* code, u64_t code_size)
 }
 
 internal void
-renderer_vk_swapchain_recreate(platform_handle_t window_handle)
+renderer_swapchain_recreate(platform_handle_t window_handle)
 {
     while(platform_gfx_window_is_minimized(window_handle))
     {
@@ -1180,12 +1180,12 @@ renderer_vk_swapchain_recreate(platform_handle_t window_handle)
 
     gpu_arena_free(&g_renderer.gpu_arena, g_renderer.buffers.depth_mem);
 
-    renderer_vk_create_swapchain(window_handle);
-    renderer_vk_create_depth_resources();
+    renderer_create_swapchain(window_handle);
+    renderer_create_depth_resources();
 }
 
 internal VkSurfaceFormatKHR
-renderer_vk_swapchain_find_format()
+renderer_swapchain_find_format()
 {
     scratch_t scratch = arena_scratch_begin(g_renderer.host_arena);
 
@@ -1227,7 +1227,7 @@ renderer_vk_swapchain_find_format()
 }
 
 internal VkPresentModeKHR
-renderer_vk_swapchain_find_present()
+renderer_swapchain_find_present()
 {
     scratch_t scratch = arena_scratch_begin(g_renderer.host_arena);
 
@@ -1252,7 +1252,7 @@ renderer_vk_swapchain_find_present()
 }
 
 internal VkExtent2D
-renderer_vk_swapchain_find_extent(platform_handle_t window_handle)
+renderer_swapchain_find_extent(platform_handle_t window_handle)
 {
     VkSurfaceCapabilitiesKHR capabilities;
     vkGetPhysicalDeviceSurfaceCapabilitiesKHR(g_renderer.physical_device, g_renderer.surface, &capabilities);
@@ -1273,7 +1273,7 @@ renderer_vk_swapchain_find_extent(platform_handle_t window_handle)
 }
 
 internal void
-renderer_vk_command_buffer_record(renderer_pipeline_t* pipeline, u32_t buffer_id, u32_t img_id)
+renderer_command_buffer_record(renderer_pipeline_t* pipeline, u32_t buffer_id, u32_t img_id)
 {
     VkCommandBufferBeginInfo begin_info = {0};
     begin_info.sType                    = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -1426,7 +1426,7 @@ renderer_vk_command_buffer_record(renderer_pipeline_t* pipeline, u32_t buffer_id
 }
 
 internal b32_t
-renderer_vk_check_validation_layers()
+renderer_check_validation_layers()
 {
     scratch_t scratch = arena_scratch_begin(g_renderer.host_arena);
 
@@ -1458,7 +1458,7 @@ renderer_vk_check_validation_layers()
 }
 
 internal b32_t
-renderer_vk_check_instance_extensions()
+renderer_check_instance_extensions()
 {
     scratch_t scratch = arena_scratch_begin(g_renderer.host_arena);
 
@@ -1490,7 +1490,7 @@ renderer_vk_check_instance_extensions()
 }
 
 internal b32_t
-renderer_vk_check_device_extensions(VkPhysicalDevice device)
+renderer_check_device_extensions(VkPhysicalDevice device)
 {
     scratch_t scratch = arena_scratch_begin(g_renderer.host_arena);
 
@@ -1522,7 +1522,7 @@ renderer_vk_check_device_extensions(VkPhysicalDevice device)
 }
 
 internal b32_t
-renderer_vk_device_is_suitable(VkPhysicalDevice device)
+renderer_device_is_suitable(VkPhysicalDevice device)
 {
     VkPhysicalDeviceProperties2 props = {0};
     props.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2;
@@ -1537,7 +1537,7 @@ renderer_vk_device_is_suitable(VkPhysicalDevice device)
     vkGetPhysicalDeviceProperties2(device, &props);
     vkGetPhysicalDeviceFeatures2(device, &feats);
 
-    b32_t exts_supported = renderer_vk_check_device_extensions(device);
+    b32_t exts_supported = renderer_check_device_extensions(device);
     b32_t prop_supported = (props.properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU);
     b32_t feat_supported = feats.features.samplerAnisotropy && feats_13.dynamicRendering && feats_13.synchronization2;
 
