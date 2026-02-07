@@ -1,19 +1,21 @@
 #ifndef GPU_ARENA_H
 #define GPU_ARENA_H
 
-#define GPU_MEM_SIZE_STAGING  MB(64)
-#define GPU_MEM_SIZE_DEVICE   MB(1024)
-#define GPU_MEM_SIZE_HOST_VCO MB(64)
+#define GPU_MEM_SIZE_MESH MB(512)
+#define GPU_MEM_SIZE_TEX  MB(512)
+#define GPU_MEM_SIZE_STG  MB(32)
+#define GPU_MEM_SIZE_UBO  MB(32)
 
-#define GPU_MEM_SIZE_BUF_VERTEX (GPU_MEM_SIZE_DEVICE / 4)
-#define GPU_MEM_SIZE_BUF_INDEX  (GPU_MEM_SIZE_DEVICE / 4)
+#define GPU_MEM_SIZE_VERTEX (GPU_MEM_SIZE_MESH / 2)
+#define GPU_MEM_SIZE_INDEX  (GPU_MEM_SIZE_MESH / 2)
 
 typedef u32_t gpu_mem_type_t;
 enum
 {
-    GPU_MEM_TYPE_staging  = 0,
-    GPU_MEM_TYPE_device   = 1,
-    GPU_MEM_TYPE_host_vco = 2,
+    GPU_MEM_TYPE_mesh,
+    GPU_MEM_TYPE_tex,
+    GPU_MEM_TYPE_stg,
+    GPU_MEM_TYPE_ubo,
     GPU_MEM_TYPE_count
 };
 

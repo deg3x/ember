@@ -75,7 +75,7 @@ renderer_update(platform_handle_t window_handle)
     );
 
     ubo.view = mat4_look_at(
-        &(vec3_t){0.0f, 24.0f, -24.0f},
+        &(vec3_t){0.0f, 20.0f, -20.0f},
         &(vec3_t){0.0f,  0.0f,   0.0f},
         &(vec3_t){0.0f,  1.0f,   0.0f}
     );
@@ -553,9 +553,9 @@ renderer_create_sync_primitives()
 internal void
 renderer_create_resources()
 {
-    VkDeviceSize size_vert = GPU_MEM_SIZE_BUF_VERTEX;
-    VkDeviceSize size_idx  = GPU_MEM_SIZE_BUF_INDEX;
-    VkDeviceSize size_stg  = GPU_MEM_SIZE_STAGING;
+    VkDeviceSize size_vert = GPU_MEM_SIZE_VERTEX;
+    VkDeviceSize size_idx  = GPU_MEM_SIZE_INDEX;
+    VkDeviceSize size_stg  = GPU_MEM_SIZE_STG;
     VkDeviceSize size_ubo  = sizeof(renderer_ubo_t);
 
     VkBufferUsageFlags flags_vert = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
@@ -572,15 +572,15 @@ renderer_create_resources()
         renderer_create_buffer(&g_renderer.buffers.ubo_buf[i], size_ubo, flags_ubo);
     }
 
-    g_renderer.buffers.vertex_mem = renderer_create_buffer_memory(g_renderer.buffers.vertex_buf, GPU_MEM_TYPE_device);
-    g_renderer.buffers.index_mem  = renderer_create_buffer_memory(g_renderer.buffers.index_buf, GPU_MEM_TYPE_device);
-    g_renderer.buffers.stage_mem  = renderer_create_buffer_memory(g_renderer.buffers.stage_buf, GPU_MEM_TYPE_staging);
+    g_renderer.buffers.vertex_mem = renderer_create_buffer_memory(g_renderer.buffers.vertex_buf, GPU_MEM_TYPE_mesh);
+    g_renderer.buffers.index_mem  = renderer_create_buffer_memory(g_renderer.buffers.index_buf, GPU_MEM_TYPE_mesh);
+    g_renderer.buffers.stage_mem  = renderer_create_buffer_memory(g_renderer.buffers.stage_buf, GPU_MEM_TYPE_stg);
 
     VkResult vk_result = vkMapMemory(
         g_renderer.device,
         g_renderer.buffers.stage_mem->memory,
         g_renderer.buffers.stage_mem->offset,
-        GPU_MEM_SIZE_STAGING,
+        GPU_MEM_SIZE_STG,
         0,
         &g_renderer.buffers.stage_mapped
     );
@@ -591,7 +591,7 @@ renderer_create_resources()
     {
         g_renderer.buffers.ubo_mem[i] = renderer_create_buffer_memory(
                 g_renderer.buffers.ubo_buf[i],
-                GPU_MEM_TYPE_host_vco
+                GPU_MEM_TYPE_ubo
             );
 
         vk_result = vkMapMemory(
@@ -689,9 +689,7 @@ renderer_create_depth_resources()
         depth_format
     );
 
-    // NOTE(KB): We should probably create a separate block for images.
-    //           Debug/Profile and track metrics
-    g_renderer.buffers.depth_mem = renderer_create_image_memory(g_renderer.buffers.depth_image, GPU_MEM_TYPE_device);
+    g_renderer.buffers.depth_mem = renderer_create_image_memory(g_renderer.buffers.depth_image, GPU_MEM_TYPE_tex);
 
     renderer_create_image_view(
         g_renderer.buffers.depth_image,

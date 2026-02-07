@@ -5,80 +5,100 @@ gpu_arena_init(VkPhysicalDevice physical_device, VkDevice device)
 
     vkGetPhysicalDeviceMemoryProperties(physical_device, &ret.mem_props);
 
-    u32_t mem_idx_staging  = U32_MAX;
-    u32_t mem_idx_device   = U32_MAX;
-    u32_t mem_idx_host_vco = U32_MAX;
+    u32_t mem_idx_mesh = U32_MAX;
+    u32_t mem_idx_tex  = U32_MAX;
+    u32_t mem_idx_stg  = U32_MAX;
+    u32_t mem_idx_ubo  = U32_MAX;
 
-    VkMemoryPropertyFlags flags_staging  = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
-    VkMemoryPropertyFlags flags_device   = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
-    VkMemoryPropertyFlags flags_host_vco = flags_staging;
+    VkMemoryPropertyFlags flags_mesh = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+    VkMemoryPropertyFlags flags_tex  = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+    VkMemoryPropertyFlags flags_stg  = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+    VkMemoryPropertyFlags flags_ubo  = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
 
     for (u32_t i = 0; i < ret.mem_props.memoryTypeCount; i++)
     {
-        b32_t flag_check_staging  = (ret.mem_props.memoryTypes[i].propertyFlags & flags_staging) == flags_staging;
-        b32_t flag_check_device   = (ret.mem_props.memoryTypes[i].propertyFlags & flags_device) == flags_device;
-        b32_t flag_check_host_vco = (ret.mem_props.memoryTypes[i].propertyFlags & flags_host_vco) == flags_host_vco;
+        b32_t flag_check_mesh = (ret.mem_props.memoryTypes[i].propertyFlags & flags_mesh) == flags_mesh;
+        b32_t flag_check_tex  = (ret.mem_props.memoryTypes[i].propertyFlags & flags_tex) == flags_tex;
+        b32_t flag_check_stg  = (ret.mem_props.memoryTypes[i].propertyFlags & flags_stg) == flags_stg;
+        b32_t flag_check_ubo  = (ret.mem_props.memoryTypes[i].propertyFlags & flags_ubo) == flags_ubo;
 
-        if (flag_check_staging && mem_idx_staging == U32_MAX)
+        if (flag_check_mesh && mem_idx_mesh == U32_MAX)
         {
-            mem_idx_staging = i;
+            mem_idx_mesh = i;
         }
 
-        if (flag_check_device && mem_idx_device == U32_MAX)
+        if (flag_check_tex && mem_idx_tex == U32_MAX)
         {
-            mem_idx_device = i;
+            mem_idx_tex = i;
         }
 
-        if (flag_check_host_vco && mem_idx_host_vco == U32_MAX)
+        if (flag_check_stg && mem_idx_stg == U32_MAX)
         {
-            mem_idx_host_vco = i;
+            mem_idx_stg = i;
         }
 
-        if (mem_idx_staging != U32_MAX && mem_idx_device != U32_MAX && mem_idx_host_vco != U32_MAX)
+        if (flag_check_ubo && mem_idx_ubo == U32_MAX)
+        {
+            mem_idx_ubo = i;
+        }
+
+        if (mem_idx_mesh != U32_MAX && mem_idx_tex != U32_MAX && mem_idx_stg != U32_MAX && mem_idx_ubo != U32_MAX)
         {
             break;
         }
     }
 
-    EMBER_ASSERT(mem_idx_staging != U32_MAX);
-    EMBER_ASSERT(mem_idx_device != U32_MAX);
-    EMBER_ASSERT(mem_idx_host_vco != U32_MAX);
+    EMBER_ASSERT(mem_idx_mesh != U32_MAX);
+    EMBER_ASSERT(mem_idx_tex != U32_MAX);
+    EMBER_ASSERT(mem_idx_stg != U32_MAX);
+    EMBER_ASSERT(mem_idx_ubo != U32_MAX);
 
-    VkMemoryAllocateInfo alloc_info_staging = {0};
-    alloc_info_staging.sType                = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-    alloc_info_staging.allocationSize       = GPU_MEM_SIZE_STAGING;
-    alloc_info_staging.memoryTypeIndex      = mem_idx_staging;
+    VkMemoryAllocateInfo alloc_info_mesh = {0};
+    alloc_info_mesh.sType                = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+    alloc_info_mesh.allocationSize       = GPU_MEM_SIZE_MESH;
+    alloc_info_mesh.memoryTypeIndex      = mem_idx_mesh;
 
-    VkMemoryAllocateInfo alloc_info_device = {0};
-    alloc_info_device.sType                = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-    alloc_info_device.allocationSize       = GPU_MEM_SIZE_DEVICE;
-    alloc_info_device.memoryTypeIndex      = mem_idx_device;
+    VkMemoryAllocateInfo alloc_info_tex = {0};
+    alloc_info_tex.sType                = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+    alloc_info_tex.allocationSize       = GPU_MEM_SIZE_TEX;
+    alloc_info_tex.memoryTypeIndex      = mem_idx_mesh;
 
-    VkMemoryAllocateInfo alloc_info_host_vco = {0};
-    alloc_info_host_vco.sType                = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-    alloc_info_host_vco.allocationSize       = GPU_MEM_SIZE_HOST_VCO;
-    alloc_info_host_vco.memoryTypeIndex      = mem_idx_host_vco;
+    VkMemoryAllocateInfo alloc_info_stg = {0};
+    alloc_info_stg.sType                = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+    alloc_info_stg.allocationSize       = GPU_MEM_SIZE_STG;
+    alloc_info_stg.memoryTypeIndex      = mem_idx_stg;
+
+    VkMemoryAllocateInfo alloc_info_ubo = {0};
+    alloc_info_ubo.sType                = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+    alloc_info_ubo.allocationSize       = GPU_MEM_SIZE_UBO;
+    alloc_info_ubo.memoryTypeIndex      = mem_idx_ubo;
 
     VkResult vk_result;
 
-    vk_result = vkAllocateMemory(device, &alloc_info_staging, NULL, &ret.blocks[GPU_MEM_TYPE_staging].memory);
+    vk_result = vkAllocateMemory(device, &alloc_info_mesh, NULL, &ret.blocks[GPU_MEM_TYPE_mesh].memory);
     EMBER_ASSERT(vk_result == VK_SUCCESS);
 
-    vk_result = vkAllocateMemory(device, &alloc_info_device, NULL, &ret.blocks[GPU_MEM_TYPE_device].memory);
+    vk_result = vkAllocateMemory(device, &alloc_info_tex, NULL, &ret.blocks[GPU_MEM_TYPE_tex].memory);
     EMBER_ASSERT(vk_result == VK_SUCCESS);
 
-    vk_result = vkAllocateMemory(device, &alloc_info_host_vco, NULL, &ret.blocks[GPU_MEM_TYPE_host_vco].memory);
+    vk_result = vkAllocateMemory(device, &alloc_info_stg, NULL, &ret.blocks[GPU_MEM_TYPE_stg].memory);
     EMBER_ASSERT(vk_result == VK_SUCCESS);
 
-    ret.blocks[GPU_MEM_TYPE_staging].position  = 0;
-    ret.blocks[GPU_MEM_TYPE_device].position   = 0;
-    ret.blocks[GPU_MEM_TYPE_host_vco].position = 0;
-    ret.blocks[GPU_MEM_TYPE_staging].size      = GPU_MEM_SIZE_STAGING;
-    ret.blocks[GPU_MEM_TYPE_device].size       = GPU_MEM_SIZE_DEVICE;
-    ret.blocks[GPU_MEM_TYPE_host_vco].size     = GPU_MEM_SIZE_HOST_VCO;
-    ret.blocks[GPU_MEM_TYPE_staging].mem_idx   = mem_idx_staging;
-    ret.blocks[GPU_MEM_TYPE_device].mem_idx    = mem_idx_device;
-    ret.blocks[GPU_MEM_TYPE_host_vco].mem_idx  = mem_idx_host_vco;
+    vk_result = vkAllocateMemory(device, &alloc_info_ubo, NULL, &ret.blocks[GPU_MEM_TYPE_ubo].memory);
+    EMBER_ASSERT(vk_result == VK_SUCCESS);
+
+    ret.blocks[GPU_MEM_TYPE_mesh].position = 0;
+    ret.blocks[GPU_MEM_TYPE_tex].position  = 0;
+    ret.blocks[GPU_MEM_TYPE_stg].position  = 0;
+    ret.blocks[GPU_MEM_TYPE_ubo].position  = 0;
+    ret.blocks[GPU_MEM_TYPE_mesh].size     = GPU_MEM_SIZE_MESH;
+    ret.blocks[GPU_MEM_TYPE_tex].size      = GPU_MEM_SIZE_TEX;
+    ret.blocks[GPU_MEM_TYPE_stg].size      = GPU_MEM_SIZE_STG;
+    ret.blocks[GPU_MEM_TYPE_ubo].size      = GPU_MEM_SIZE_UBO;
+    ret.blocks[GPU_MEM_TYPE_mesh].mem_idx  = mem_idx_mesh;
+    ret.blocks[GPU_MEM_TYPE_tex].mem_idx   = mem_idx_tex;
+    ret.blocks[GPU_MEM_TYPE_stg].mem_idx   = mem_idx_stg;
+    ret.blocks[GPU_MEM_TYPE_ubo].mem_idx   = mem_idx_ubo;
 
     arena_params_t host_arena_params = { KB(32), KB(32), 0 };
 
