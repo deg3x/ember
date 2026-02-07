@@ -34,6 +34,7 @@
 
 #include "renderer/renderer.h"
 #if RHI_VULKAN
+    #include "renderer/gpu_arena.h"
     #include "renderer/vulkan/renderer_vulkan.h"
 #else
     #error RHI not supported
@@ -62,6 +63,7 @@
 
 #include "renderer/renderer.c"
 #if RHI_VULKAN
+    #include "renderer/gpu_arena.c"
     #include "renderer/vulkan/renderer_vulkan.c"
 #else
     #error RHI not supported

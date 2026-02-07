@@ -1,6 +1,9 @@
 #ifndef RENDERER_VULKAN_H 
 #define RENDERER_VULKAN_H 
 
+#define RENDERER_SIZE_VERTEX sizeof(vertex_t)
+#define RENDERER_SIZE_INDEX  sizeof(u32_t)
+
 typedef struct renderer_vk_queue_ids_t renderer_vk_queue_ids_t;
 struct renderer_vk_queue_ids_t
 {
@@ -16,52 +19,66 @@ struct renderer_vk_ubo_t
     mat4_t proj;
 };
 
-typedef struct renderer_mesh_data_t renderer_mesh_data_t;
-struct renderer_mesh_data_t
+typedef struct renderer_buffers_t renderer_buffers_t;
+struct renderer_buffers_t
 {
-    VkBuffer       vertex_buffer;
-    VkBuffer       index_buffer;
-    VkBuffer       ubo_buffer[RENDERER_FRAMES_IN_FLIGHT];
+    VkBuffer    vertex_buf;
+    VkBuffer    index_buf;
+    VkBuffer    stage_buf;
+    VkBuffer    ubo_buf[RENDERER_FRAMES_IN_FLIGHT];
 
-    VkImage        depth_image;
-    VkImageView    depth_image_view;
+    VkImage     depth_image;
+    VkImageView depth_image_view;
 
-    VkDeviceMemory vertex_memory;
-    VkDeviceMemory index_memory;
-    VkDeviceMemory ubo_memory[RENDERER_FRAMES_IN_FLIGHT];
-    VkDeviceMemory depth_memory;
+    gpu_mem_t*  vertex_mem;
+    gpu_mem_t*  index_mem;
+    gpu_mem_t*  stage_mem;
+    gpu_mem_t*  ubo_mem[RENDERER_FRAMES_IN_FLIGHT];
+    gpu_mem_t*  depth_mem;
 
-    void*          ubo_mapped[RENDERER_FRAMES_IN_FLIGHT];
-    u32_t          indices_count;
+    void*       stage_mapped;
+    void*       ubo_mapped[RENDERER_FRAMES_IN_FLIGHT];
+};
+
+typedef struct renderer_mesh_t renderer_mesh_t;
+struct renderer_mesh_t
+{
+    renderer_mesh_t* next;
+
+    u32_t            vertex_offset;
+    u32_t            vertex_count;
+    i32_t            index_offset;
+    u32_t            index_count;
 };
 
 struct renderer_t
 {
-    arena_t*                         arena;
-    VkInstance                       instance;
-    VkSurfaceKHR                     surface;
-    VkPhysicalDevice                 physical_device;
-    VkPhysicalDeviceMemoryProperties device_mem_props;
-    VkDevice                         device;
-    renderer_vk_queue_ids_t          queue_ids;
-    VkQueue                          graphics_queue;
-    VkQueue                          present_queue;
-    VkSwapchainKHR                   swapchain;
-    VkImage*                         swapchain_images;
-    VkImageView*                     swapchain_img_views;
-    VkExtent2D                       swapchain_extent;
-    VkFormat                         swapchain_img_fmt;
-    VkCommandPool                    command_pool;
-    VkDescriptorPool                 descriptor_pool;
-    VkCommandBuffer                  command_buffers[RENDERER_FRAMES_IN_FLIGHT];
-    VkSemaphore                      sem_img_avail[RENDERER_FRAMES_IN_FLIGHT];
-    VkSemaphore                      sem_render_end[RENDERER_FRAMES_IN_FLIGHT];
-    VkFence                          fence_in_flight[RENDERER_FRAMES_IN_FLIGHT];
+    gpu_arena_t             gpu_arena;
+    renderer_mesh_t*        mesh_data;
+    arena_t*                host_arena;
+    VkInstance              instance;
+    VkSurfaceKHR            surface;
+    VkPhysicalDevice        physical_device;
+    VkDevice                device;
+    renderer_vk_queue_ids_t queue_ids;
+    VkQueue                 graphics_queue;
+    VkQueue                 present_queue;
+    VkSwapchainKHR          swapchain;
+    VkImage*                swapchain_images;
+    VkImageView*            swapchain_img_views;
+    VkExtent2D              swapchain_extent;
+    VkFormat                swapchain_img_fmt;
+    VkCommandPool           command_pool;
+    VkDescriptorPool        descriptor_pool;
+    VkCommandBuffer         command_buffers[RENDERER_FRAMES_IN_FLIGHT];
+    VkSemaphore             sem_img_avail[RENDERER_FRAMES_IN_FLIGHT];
+    VkSemaphore             sem_render_end[RENDERER_FRAMES_IN_FLIGHT];
+    VkFence                 fence_in_flight[RENDERER_FRAMES_IN_FLIGHT];
 
-    renderer_mesh_data_t             mesh_data;
+    renderer_buffers_t      buffers;
 
-    renderer_pipeline_t*             pipelines;
-    u64_t                            pipeline_count;
+    renderer_pipeline_t*    pipelines;
+    u64_t                   pipeline_count;
 };
 
 struct renderer_pipeline_t
@@ -99,15 +116,17 @@ internal void renderer_vk_create_command_pool();
 internal void renderer_vk_create_command_buffers();
 internal void renderer_vk_create_descriptor_pool();
 internal void renderer_vk_create_sync_primitives();
+internal void renderer_vk_create_resources();
 
-internal void renderer_vk_create_mesh_data(vertex_t* vertices, u32_t vertex_count, u32_t* indices, u32_t indices_count);
+internal void renderer_vk_create_mesh(vertex_t* vertices, u32_t vertex_count, u32_t* indices, u32_t index_count);
 internal void renderer_vk_create_depth_resources();
 internal void renderer_vk_create_buffer(VkBuffer* buffer, VkDeviceSize size, VkBufferUsageFlags usage);
-internal void renderer_vk_create_buffer_memory(VkBuffer buffer, VkDeviceMemory* memory, VkMemoryPropertyFlags mem_flags);
 internal void renderer_vk_create_image(VkImage* image, u32_t width, u32_t height, VkImageUsageFlags usage, VkImageTiling tiling, VkFormat format);
 internal void renderer_vk_create_image_view(VkImage image, VkImageView* view, VkFormat format, VkImageAspectFlags aspect_flags);
-internal void renderer_vk_create_image_memory(VkImage image, VkDeviceMemory* memory, VkMemoryPropertyFlags mem_flags);
-internal void renderer_vk_copy_buffer(VkBuffer src, VkBuffer dst, VkDeviceSize size);
+internal void renderer_vk_copy_buffer(VkBuffer src, VkBuffer dst, VkDeviceSize offset_src, VkDeviceSize offset_dst, VkDeviceSize size);
+
+internal gpu_mem_t* renderer_vk_create_buffer_memory(VkBuffer buffer, gpu_mem_type_t mem_type);
+internal gpu_mem_t* renderer_vk_create_image_memory(VkImage image, gpu_mem_type_t mem_type);
 
 internal void           renderer_vk_pipeline_create_descriptor_set_layout(renderer_pipeline_t* pipeline);
 internal void           renderer_vk_pipeline_create_descriptor_sets(renderer_pipeline_t* pipeline);

@@ -1,6 +1,8 @@
 #ifndef QUATERNION_H
 #define QUATERNION_H
 
+#define QUAT_IDENTITY (quat_t){0.0f, 0.0f, 0.0f, 1.0f}
+
 internal quat_t quat_normalize(quat_t* quat);
 internal quat_t quat_renormalize(quat_t* quat);
 
