@@ -475,6 +475,56 @@ json_child_value(arena_t* arena, json_entry_t* entry, json_value_type_t type, vo
 
             break;
         }
+        case JSON_VALUE_TYPE_arr_i32:
+        {
+            if (child->value.size != 1 || *((c8_t*)(child->value.data)) != '[')
+            {
+                result = EMBER_FALSE;
+
+                break;
+            }
+
+            i32_t* i_dest = (i32_t *)dest;
+            json_entry_t* array_child = child->child;
+            while (array_child != NULL)
+            {
+                c8_t* value_str = MEMORY_PUSH(scratch.arena, c8_t, array_child->value.size + 1);
+                buffer_to_cstr(&array_child->value, value_str);
+
+                *i_dest = strtol(value_str, NULL, 10);
+
+                i_dest++;
+
+                array_child = array_child->next;
+            }
+
+            break;
+        }
+        case JSON_VALUE_TYPE_arr_f32:
+        {
+            if (child->value.size != 1 || *((c8_t*)(child->value.data)) != '[')
+            {
+                result = EMBER_FALSE;
+
+                break;
+            }
+
+            f32_t* f_dest = (f32_t *)dest;
+            json_entry_t* array_child = child->child;
+            while (array_child != NULL)
+            {
+                c8_t* value_str = MEMORY_PUSH(scratch.arena, c8_t, array_child->value.size + 1);
+                buffer_to_cstr(&array_child->value, value_str);
+
+                *f_dest = strtof(value_str, NULL);
+
+                f_dest++;
+
+                array_child = array_child->next;
+            }
+
+            break;
+        }
         default:
         {
             result = EMBER_FALSE;

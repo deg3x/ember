@@ -25,6 +25,8 @@ enum
     JSON_VALUE_TYPE_u32,
     JSON_VALUE_TYPE_f32,
     JSON_VALUE_TYPE_str,
+    JSON_VALUE_TYPE_arr_i32,
+    JSON_VALUE_TYPE_arr_f32,
 };
 
 typedef struct json_token_t json_token_t;
