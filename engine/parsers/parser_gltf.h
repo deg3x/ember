@@ -52,6 +52,17 @@ struct gltf_primitive_t
     gltf_primitive_t* next;
 };
 
+typedef struct gltf_node_t gltf_node_t;
+struct gltf_node_t
+{
+    mat4_t matrix;
+    i32_t* children;
+    i32_t  parent;
+    b32_t  has_parent;
+    u32_t  child_count;
+    i32_t  mesh;
+};
+
 typedef struct gltf_mesh_t gltf_mesh_t;
 struct gltf_mesh_t
 {
@@ -91,10 +102,12 @@ struct gltf_buffer_t
 typedef struct gltf_json_data_t gltf_json_data_t;
 struct gltf_json_data_t
 {
+    gltf_node_t*        nodes;
     gltf_mesh_t*        meshes;
     gltf_accessor_t*    accessors;
     gltf_buffer_view_t* buffer_views;
     gltf_buffer_t*      buffers;
+    u32_t               node_count;
     u32_t               mesh_count;
     u32_t               accessor_count;
     u32_t               buffer_view_count;
@@ -104,13 +117,10 @@ struct gltf_json_data_t
 typedef struct gltf_data_t gltf_data_t;
 struct gltf_data_t
 {
-    //vertex_t* vertices;
-    //u32_t*    indices;
-    //u32_t     vertex_count;
-    //u32_t     index_count;
-
-    mesh_t* meshes;
-    u32_t   mesh_count;
+    scene_node_t* nodes;
+    mesh_t*       meshes;
+    u32_t         node_count;
+    u32_t         mesh_count;
 };
 
 internal gltf_data_t      gltf_parse_file(const char* file_path, arena_t* arena);

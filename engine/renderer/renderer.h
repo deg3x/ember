@@ -26,6 +26,16 @@ struct vertex_t
     vec2_t uv;
 };
 
+typedef struct scene_node_t scene_node_t;
+struct scene_node_t
+{
+    mat4_t transform;
+    i32_t* children;
+    u32_t  child_count;
+    i32_t  parent;
+    i32_t  mesh_id;
+};
+
 typedef struct mesh_t mesh_t;
 struct mesh_t
 {

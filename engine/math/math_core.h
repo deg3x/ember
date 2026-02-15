@@ -145,6 +145,18 @@ union mat4_t
     f32_t m[4][4];
 };
 
+#define VEC2_ZERO     (vec2_t){0.0f, 0.0f}
+#define VEC3_ZERO     (vec3_t){0.0f, 0.0f, 0.0f}
+#define VEC4_ZERO     (vec4_t){0.0f, 0.0f, 0.0f, 0.0f}
+#define QUAT_IDENTITY (quat_t){0.0f, 0.0f, 0.0f, 1.0f}
+#define MAT4_IDENTITY (mat4_t)  \
+    {                           \
+        1.0f, 0.0f, 0.0f, 0.0f, \
+        0.0f, 1.0f, 0.0f, 0.0f, \
+        0.0f, 1.0f, 0.0f, 0.0f, \
+        0.0f, 0.0f, 0.0f, 1.0f  \
+    }
+
 #pragma warning(pop)
 
 ///////////////
