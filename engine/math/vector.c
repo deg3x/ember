@@ -334,15 +334,25 @@ vec3_cross(vec3_t* lhs, vec3_t* rhs)
     return result;
 }
 
-// internal vec3_t
-// vec3_rotate_quat(vec3_t* vector, quat_t* quat)
-// {
-//     return *vector;
-// }
-// 
-// internal vec3_t
-// vec3_rotate_axis(vec3_t* vector, vec3_t* axis, f32_t angle)
-// {
-//     return *vector;
-// }
+internal vec3_t
+vec3_rotate_quat(vec3_t* vector, quat_t* quat)
+{
+    quat_t vec_q = {vector->x, vector->y, vector->z, 1.0f};
+    quat_t conj  = quat_conjugate(quat);
+    quat_t res_q = quat_mul(quat, &vec_q);
+    res_q        = quat_mul(&res_q, &conj);
+
+    vec3_t result = {res_q.x, res_q.y, res_q.z};
+
+    return result;
+}
+
+internal vec3_t
+vec3_rotate_axis(vec3_t* vector, vec3_t* axis, f32_t angle)
+{
+    quat_t rot    = quat_from_axis_angle(axis, angle);
+    vec3_t result = vec3_rotate_quat(vector, &rot);
+
+    return result;
+}
 

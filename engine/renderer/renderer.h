@@ -55,9 +55,14 @@ struct renderer_queue_ids_t
 typedef struct renderer_ubo_t renderer_ubo_t;
 struct renderer_ubo_t
 {
-    mat4_t model;
     mat4_t view;
     mat4_t proj;
+};
+
+typedef struct renderer_push_constant_t renderer_push_constant_t;
+struct renderer_push_constant_t
+{
+    u32_t transform_id;
 };
 
 typedef struct renderer_buffers_t renderer_buffers_t;
@@ -67,6 +72,7 @@ struct renderer_buffers_t
     VkBuffer    index_buf;
     VkBuffer    stage_buf;
     VkBuffer    ubo_buf[RENDERER_FRAMES_IN_FLIGHT];
+    VkBuffer    ssbo_buf[RENDERER_FRAMES_IN_FLIGHT];
 
     VkImage     depth_image;
     VkImageView depth_image_view;
@@ -75,10 +81,12 @@ struct renderer_buffers_t
     gpu_mem_t*  index_mem;
     gpu_mem_t*  stage_mem;
     gpu_mem_t*  ubo_mem[RENDERER_FRAMES_IN_FLIGHT];
+    gpu_mem_t*  ssbo_mem[RENDERER_FRAMES_IN_FLIGHT];
     gpu_mem_t*  depth_mem;
 
     void*       stage_mapped;
     void*       ubo_mapped[RENDERER_FRAMES_IN_FLIGHT];
+    void*       ssbo_mapped[RENDERER_FRAMES_IN_FLIGHT];
 };
 
 typedef struct renderer_mesh_t renderer_mesh_t;
@@ -104,32 +112,34 @@ struct renderer_pipeline_t
 typedef struct renderer_t renderer_t;
 struct renderer_t
 {
-    gpu_arena_t             gpu_arena;
-    renderer_mesh_t*        mesh_data;
-    arena_t*                host_arena;
-    VkInstance              instance;
-    VkSurfaceKHR            surface;
-    VkPhysicalDevice        physical_device;
-    VkDevice                device;
+    gpu_arena_t          gpu_arena;
+    renderer_mesh_t*     mesh_data;
+    scene_node_t*        nodes;
+    u32_t                node_count;
+    arena_t*             host_arena;
+    VkInstance           instance;
+    VkSurfaceKHR         surface;
+    VkPhysicalDevice     physical_device;
+    VkDevice             device;
     renderer_queue_ids_t queue_ids;
-    VkQueue                 graphics_queue;
-    VkQueue                 present_queue;
-    VkSwapchainKHR          swapchain;
-    VkImage*                swapchain_images;
-    VkImageView*            swapchain_img_views;
-    VkExtent2D              swapchain_extent;
-    VkFormat                swapchain_img_fmt;
-    VkCommandPool           command_pool;
-    VkDescriptorPool        descriptor_pool;
-    VkCommandBuffer         command_buffers[RENDERER_FRAMES_IN_FLIGHT];
-    VkSemaphore             sem_img_avail[RENDERER_FRAMES_IN_FLIGHT];
-    VkSemaphore             sem_render_end[RENDERER_FRAMES_IN_FLIGHT];
-    VkFence                 fence_in_flight[RENDERER_FRAMES_IN_FLIGHT];
+    VkQueue              graphics_queue;
+    VkQueue              present_queue;
+    VkSwapchainKHR       swapchain;
+    VkImage*             swapchain_images;
+    VkImageView*         swapchain_img_views;
+    VkExtent2D           swapchain_extent;
+    VkFormat             swapchain_img_fmt;
+    VkCommandPool        command_pool;
+    VkDescriptorPool     descriptor_pool;
+    VkCommandBuffer      command_buffers[RENDERER_FRAMES_IN_FLIGHT];
+    VkSemaphore          sem_img_avail[RENDERER_FRAMES_IN_FLIGHT];
+    VkSemaphore          sem_render_end[RENDERER_FRAMES_IN_FLIGHT];
+    VkFence              fence_in_flight[RENDERER_FRAMES_IN_FLIGHT];
 
-    renderer_buffers_t      buffers;
+    renderer_buffers_t   buffers;
 
-    renderer_pipeline_t*    pipelines;
-    u64_t                   pipeline_count;
+    renderer_pipeline_t* pipelines;
+    u64_t                pipeline_count;
 };
 
 global renderer_t g_renderer;

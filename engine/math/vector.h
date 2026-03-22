@@ -35,7 +35,7 @@ internal f32_t vec3_length_sqr(vec3_t* vector);
 internal f32_t vec4_length_sqr(vec4_t* vector);
 
 internal vec3_t vec3_cross(vec3_t* lhs, vec3_t* rhs);
-// internal vec3_t vec3_rotate_quat(vec3_t* vector, quat_t* quat);
-// internal vec3_t vec3_rotate_axis(vec3_t* vector, vec3_t* axis, f32_t angle);
+internal vec3_t vec3_rotate_quat(vec3_t* vector, quat_t* quat);
+internal vec3_t vec3_rotate_axis(vec3_t* vector, vec3_t* axis, f32_t angle);
 
 #endif // VECTOR_H

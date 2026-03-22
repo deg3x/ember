@@ -57,6 +57,7 @@ struct gltf_node_t
 {
     mat4_t matrix;
     i32_t* children;
+    c8_t   name[64];
     i32_t  parent;
     b32_t  has_parent;
     u32_t  child_count;

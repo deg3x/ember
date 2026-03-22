@@ -8,12 +8,14 @@ gpu_arena_init(VkPhysicalDevice physical_device, VkDevice device)
     u32_t mem_idx_mesh = U32_MAX;
     u32_t mem_idx_tex  = U32_MAX;
     u32_t mem_idx_stg  = U32_MAX;
+    u32_t mem_idx_ssbo = U32_MAX;
     u32_t mem_idx_ubo  = U32_MAX;
 
     VkMemoryPropertyFlags flags_mesh = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
     VkMemoryPropertyFlags flags_tex  = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
     VkMemoryPropertyFlags flags_stg  = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
     VkMemoryPropertyFlags flags_ubo  = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+    VkMemoryPropertyFlags flags_ssbo = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
 
     for (u32_t i = 0; i < ret.mem_props.memoryTypeCount; i++)
     {
@@ -21,6 +23,7 @@ gpu_arena_init(VkPhysicalDevice physical_device, VkDevice device)
         b32_t flag_check_tex  = (ret.mem_props.memoryTypes[i].propertyFlags & flags_tex) == flags_tex;
         b32_t flag_check_stg  = (ret.mem_props.memoryTypes[i].propertyFlags & flags_stg) == flags_stg;
         b32_t flag_check_ubo  = (ret.mem_props.memoryTypes[i].propertyFlags & flags_ubo) == flags_ubo;
+        b32_t flag_check_ssbo = (ret.mem_props.memoryTypes[i].propertyFlags & flags_ssbo) == flags_ssbo;
 
         if (flag_check_mesh && mem_idx_mesh == U32_MAX)
         {
@@ -42,6 +45,11 @@ gpu_arena_init(VkPhysicalDevice physical_device, VkDevice device)
             mem_idx_ubo = i;
         }
 
+        if (flag_check_ssbo && mem_idx_ssbo == U32_MAX)
+        {
+            mem_idx_ssbo = i;
+        }
+
         if (mem_idx_mesh != U32_MAX && mem_idx_tex != U32_MAX && mem_idx_stg != U32_MAX && mem_idx_ubo != U32_MAX)
         {
             break;
@@ -52,6 +60,7 @@ gpu_arena_init(VkPhysicalDevice physical_device, VkDevice device)
     EMBER_ASSERT(mem_idx_tex != U32_MAX);
     EMBER_ASSERT(mem_idx_stg != U32_MAX);
     EMBER_ASSERT(mem_idx_ubo != U32_MAX);
+    EMBER_ASSERT(mem_idx_ssbo != U32_MAX);
 
     VkMemoryAllocateInfo alloc_info_mesh = {0};
     alloc_info_mesh.sType                = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
@@ -73,6 +82,11 @@ gpu_arena_init(VkPhysicalDevice physical_device, VkDevice device)
     alloc_info_ubo.allocationSize       = GPU_MEM_SIZE_UBO;
     alloc_info_ubo.memoryTypeIndex      = mem_idx_ubo;
 
+    VkMemoryAllocateInfo alloc_info_ssbo = {0};
+    alloc_info_ssbo.sType                = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+    alloc_info_ssbo.allocationSize       = GPU_MEM_SIZE_SSBO;
+    alloc_info_ssbo.memoryTypeIndex      = mem_idx_ssbo;
+
     VkResult vk_result;
 
     vk_result = vkAllocateMemory(device, &alloc_info_mesh, NULL, &ret.blocks[GPU_MEM_TYPE_mesh].memory);
@@ -87,18 +101,24 @@ gpu_arena_init(VkPhysicalDevice physical_device, VkDevice device)
     vk_result = vkAllocateMemory(device, &alloc_info_ubo, NULL, &ret.blocks[GPU_MEM_TYPE_ubo].memory);
     EMBER_ASSERT(vk_result == VK_SUCCESS);
 
+    vk_result = vkAllocateMemory(device, &alloc_info_ssbo, NULL, &ret.blocks[GPU_MEM_TYPE_ssbo].memory);
+    EMBER_ASSERT(vk_result == VK_SUCCESS);
+
     ret.blocks[GPU_MEM_TYPE_mesh].position = 0;
     ret.blocks[GPU_MEM_TYPE_tex].position  = 0;
     ret.blocks[GPU_MEM_TYPE_stg].position  = 0;
     ret.blocks[GPU_MEM_TYPE_ubo].position  = 0;
+    ret.blocks[GPU_MEM_TYPE_ssbo].position = 0;
     ret.blocks[GPU_MEM_TYPE_mesh].size     = GPU_MEM_SIZE_MESH;
     ret.blocks[GPU_MEM_TYPE_tex].size      = GPU_MEM_SIZE_TEX;
     ret.blocks[GPU_MEM_TYPE_stg].size      = GPU_MEM_SIZE_STG;
     ret.blocks[GPU_MEM_TYPE_ubo].size      = GPU_MEM_SIZE_UBO;
+    ret.blocks[GPU_MEM_TYPE_ssbo].size     = GPU_MEM_SIZE_SSBO;
     ret.blocks[GPU_MEM_TYPE_mesh].mem_idx  = mem_idx_mesh;
     ret.blocks[GPU_MEM_TYPE_tex].mem_idx   = mem_idx_tex;
     ret.blocks[GPU_MEM_TYPE_stg].mem_idx   = mem_idx_stg;
     ret.blocks[GPU_MEM_TYPE_ubo].mem_idx   = mem_idx_ubo;
+    ret.blocks[GPU_MEM_TYPE_ssbo].mem_idx  = mem_idx_ssbo;
 
     arena_params_t host_arena_params = { KB(32), KB(32), 0 };
 

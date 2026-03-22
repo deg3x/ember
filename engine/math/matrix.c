@@ -336,10 +336,10 @@ mat4_translation(vec3_t* translation)
 {
     mat4_t result = {
         .m = {
-            { 1.0f, 0.0f, 0.0f, translation->x },
-            { 0.0f, 1.0f, 0.0f, translation->y },
-            { 0.0f, 0.0f, 1.0f, translation->z },
-            { 0.0f, 0.0f, 0.0f, 1.0f }
+            { 1.0f, 0.0f, 0.0f, 0.0f },
+            { 0.0f, 1.0f, 0.0f, 0.0f },
+            { 0.0f, 0.0f, 1.0f, 0.0f },
+            { translation->x, translation->y, translation->z, 1.0f }
         }
     };
 

@@ -64,20 +64,14 @@ renderer_update(platform_handle_t window_handle)
 
     renderer_ubo_t ubo;
 
-    quat_t base_rot  = quat_from_axis_angle(&(vec3_t){1.0f, 0.0f, 0.0f}, (f32_t)MATH_HALF_PI);
-    quat_t rotation  = quat_from_axis_angle(&(vec3_t){0.0f, 0.0f, 1.0f}, (f32_t)platform_timer_since_start(g_program_state.timer));
-    quat_t final_rot = quat_mul(&base_rot, &rotation);
-
-    ubo.model = mat4_model(
-        &(vec3_t){0.0f, 0.0f, 0.0f},
-        &final_rot,
-        &(vec3_t){1.0f, 1.0f, 1.0f}
-    );
+    f32_t time        = (f32_t)platform_timer_since_start(g_program_state.timer);
+    vec3_t camera_pos = {0.0f, 20.0f, 20.0f};
+    camera_pos        = vec3_rotate_axis(&camera_pos, &VEC3_UP, time * 0.3f);
 
     ubo.view = mat4_look_at(
-        &(vec3_t){0.0f, 20.0f, -20.0f},
-        &(vec3_t){0.0f,  0.0f,   0.0f},
-        &(vec3_t){0.0f,  1.0f,   0.0f}
+        &camera_pos,
+        &(vec3_t){0.0f, 0.0f, 0.0f},
+        &(vec3_t){0.0f, 1.0f, 0.0f}
     );
 
     platform_window_size_t client_size = platform_gfx_window_client_get_size(window_handle);
@@ -231,7 +225,7 @@ renderer_create_instance()
     app_info.engineVersion      = VK_MAKE_VERSION(0, 0, 1);
     app_info.apiVersion         = vk_api_version;
 
-    PFN_vkEnumerateInstanceVersion vk_api_version_func = 
+    PFN_vkEnumerateInstanceVersion vk_api_version_func =
         (PFN_vkEnumerateInstanceVersion) vkGetInstanceProcAddr(NULL, "vkEnumerateInstanceVersion");
 
     // TODO(KB): We probably want to notify the user of unsupported/unavailable SDK version
@@ -253,7 +247,7 @@ renderer_create_instance()
     instance_info.pApplicationInfo        = &app_info;
     instance_info.enabledExtensionCount   = ARRAY_COUNT(g_instance_extensions);
     instance_info.ppEnabledExtensionNames = g_instance_extensions;
-    
+
 #if RHI_VK_VALIDATIONS_ENABLED
     if (layers_found)
     {
@@ -557,6 +551,7 @@ renderer_create_resources()
     VkBufferUsageFlags flags_idx  = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
     VkBufferUsageFlags flags_stg  = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
     VkBufferUsageFlags flags_ubo  = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+    VkBufferUsageFlags flags_ssbo = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
 
     renderer_create_buffer(&g_renderer.buffers.vertex_buf, GPU_MEM_SIZE_VERTEX, flags_vert);
     renderer_create_buffer(&g_renderer.buffers.index_buf, GPU_MEM_SIZE_INDEX, flags_idx);
@@ -565,6 +560,7 @@ renderer_create_resources()
     for (u32_t i = 0; i < RENDERER_FRAMES_IN_FLIGHT; i++)
     {
         renderer_create_buffer(&g_renderer.buffers.ubo_buf[i], GPU_MEM_SIZE_UBO / RENDERER_FRAMES_IN_FLIGHT, flags_ubo);
+        renderer_create_buffer(&g_renderer.buffers.ssbo_buf[i], GPU_MEM_SIZE_SSBO / RENDERER_FRAMES_IN_FLIGHT, flags_ssbo);
     }
 
     g_renderer.buffers.vertex_mem = renderer_create_buffer_memory(g_renderer.buffers.vertex_buf, GPU_MEM_TYPE_mesh);
@@ -584,10 +580,8 @@ renderer_create_resources()
 
     for (u32_t i = 0; i < RENDERER_FRAMES_IN_FLIGHT; i++)
     {
-        g_renderer.buffers.ubo_mem[i] = renderer_create_buffer_memory(
-            g_renderer.buffers.ubo_buf[i],
-            GPU_MEM_TYPE_ubo
-        );
+        g_renderer.buffers.ubo_mem[i]  = renderer_create_buffer_memory(g_renderer.buffers.ubo_buf[i], GPU_MEM_TYPE_ubo);
+        g_renderer.buffers.ssbo_mem[i] = renderer_create_buffer_memory(g_renderer.buffers.ssbo_buf[i], GPU_MEM_TYPE_ssbo);
 
         vk_result = vkMapMemory(
             g_renderer.device,
@@ -596,6 +590,17 @@ renderer_create_resources()
             GPU_MEM_SIZE_UBO,
             0,
             &g_renderer.buffers.ubo_mapped[i]
+        );
+
+        EMBER_ASSERT(vk_result == VK_SUCCESS);
+
+        vk_result = vkMapMemory(
+            g_renderer.device,
+            g_renderer.buffers.ssbo_mem[i]->memory,
+            g_renderer.buffers.ssbo_mem[i]->offset,
+            GPU_MEM_SIZE_SSBO,
+            0,
+            &g_renderer.buffers.ssbo_mapped[i]
         );
 
         EMBER_ASSERT(vk_result == VK_SUCCESS);
@@ -890,12 +895,18 @@ renderer_create_image_memory(VkImage image, gpu_mem_type_t mem_type)
 internal void
 renderer_pipeline_create_descriptor_set_layout(renderer_pipeline_t* pipeline)
 {
-    VkDescriptorSetLayoutBinding bindings[1] = {0};
+    VkDescriptorSetLayoutBinding bindings[2] = {0};
     bindings[0].binding                      = 0;
     bindings[0].descriptorCount              = 1;
     bindings[0].descriptorType               = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
     bindings[0].stageFlags                   = VK_SHADER_STAGE_VERTEX_BIT;
     bindings[0].pImmutableSamplers           = NULL;
+
+    bindings[1].binding                      = 1;
+    bindings[1].descriptorCount              = 1;
+    bindings[1].descriptorType               = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+    bindings[1].stageFlags                   = VK_SHADER_STAGE_VERTEX_BIT;
+    bindings[1].pImmutableSamplers           = NULL;
 
     VkDescriptorSetLayoutCreateInfo binding_info = {0};
     binding_info.sType                           = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
@@ -928,9 +939,14 @@ renderer_pipeline_create_descriptor_sets(renderer_pipeline_t* pipeline)
         VkDescriptorBufferInfo ubo_info = {0};
         ubo_info.buffer                 = g_renderer.buffers.ubo_buf[i];
         ubo_info.offset                 = 0;
-        ubo_info.range                  = sizeof(renderer_ubo_t);
+        ubo_info.range                  = GPU_MEM_SIZE_UBO / RENDERER_FRAMES_IN_FLIGHT; //sizeof(renderer_ubo_t);
 
-        VkWriteDescriptorSet write_set[1] = {0};
+        VkDescriptorBufferInfo ssbo_info = {0};
+        ssbo_info.buffer                 = g_renderer.buffers.ssbo_buf[i];
+        ssbo_info.offset                 = 0;
+        ssbo_info.range                  = GPU_MEM_SIZE_SSBO / RENDERER_FRAMES_IN_FLIGHT; //sizeof(renderer_ssbo_t);
+
+        VkWriteDescriptorSet write_set[2] = {0};
         write_set[0].sType                = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
         write_set[0].dstSet               = pipeline->descriptor_sets[i];
         write_set[0].dstBinding           = 0;
@@ -941,6 +957,16 @@ renderer_pipeline_create_descriptor_sets(renderer_pipeline_t* pipeline)
         write_set[0].pBufferInfo          = &ubo_info;
         write_set[0].pTexelBufferView     = NULL;
 
+        write_set[1].sType                = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        write_set[1].dstSet               = pipeline->descriptor_sets[i];
+        write_set[1].dstBinding           = 1;
+        write_set[1].dstArrayElement      = 0;
+        write_set[1].descriptorCount      = 1;
+        write_set[1].descriptorType       = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+        write_set[1].pImageInfo           = NULL;
+        write_set[1].pBufferInfo          = &ssbo_info;
+        write_set[1].pTexelBufferView     = NULL;
+
         vkUpdateDescriptorSets(g_renderer.device, ARRAY_COUNT(write_set), write_set, 0, NULL);
     }
 }
@@ -948,12 +974,17 @@ renderer_pipeline_create_descriptor_sets(renderer_pipeline_t* pipeline)
 internal void
 renderer_pipeline_create_graphics_pipeline_layout(renderer_pipeline_t* pipeline)
 {
+    VkPushConstantRange push_constant_range = {0};
+    push_constant_range.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+    push_constant_range.offset     = 0;
+    push_constant_range.size       = sizeof(renderer_push_constant_t);
+
     VkPipelineLayoutCreateInfo layout_info = {0};
     layout_info.sType                      = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
     layout_info.setLayoutCount             = 1;
     layout_info.pSetLayouts                = &pipeline->descriptor_set_layout;
-    layout_info.pushConstantRangeCount     = 0;
-    layout_info.pPushConstantRanges        = NULL;
+    layout_info.pushConstantRangeCount     = 1;
+    layout_info.pPushConstantRanges        = &push_constant_range;
 
     VkResult create_result = vkCreatePipelineLayout(g_renderer.device, &layout_info, NULL, &pipeline->graphics_pipeline_layout);
     EMBER_ASSERT(create_result == VK_SUCCESS);
@@ -1379,12 +1410,38 @@ renderer_command_buffer_record(renderer_pipeline_t* pipeline, u32_t buffer_id, u
         NULL
     );
 
-    renderer_mesh_t* mesh = g_renderer.mesh_data;
-    while (mesh != NULL)
+    u32_t index = 0;
+    for (i32_t i = 0; i < g_renderer.node_count; i++)
     {
-        vkCmdDrawIndexed(cmd, mesh->index_count, 1, mesh->index_offset, mesh->vertex_offset, 0);
+        renderer_mesh_t* mesh = g_renderer.mesh_data;
 
-        mesh = mesh->next;
+        if (g_renderer.nodes[i].mesh_id < 0)
+        {
+            continue;
+        }
+
+        for (i32_t j = 0; j < g_renderer.nodes[i].mesh_id; j++)
+        {
+            if (mesh->next == NULL)
+            {
+                break;
+            }
+
+            mesh = mesh->next;
+        }
+
+        vkCmdPushConstants(
+            cmd,
+            g_renderer.pipelines->graphics_pipeline_layout,
+            VK_SHADER_STAGE_VERTEX_BIT,
+            0,
+            sizeof(renderer_push_constant_t),
+            &index
+        );
+
+        index += 1;
+
+        vkCmdDrawIndexed(cmd, mesh->index_count, 1, mesh->index_offset, mesh->vertex_offset, 0);
     }
 
     vkCmdEndRendering(cmd);
@@ -1534,11 +1591,10 @@ renderer_device_is_suitable(VkPhysicalDevice device)
     b32_t prop_supported = (props.properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU);
     b32_t feat_supported = feats.features.samplerAnisotropy && feats_13.dynamicRendering && feats_13.synchronization2;
 
-    b32_t result = 
+    b32_t result =
         exts_supported &&
         prop_supported &&
         feat_supported;
 
     return result;
 }
-

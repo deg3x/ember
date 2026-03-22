@@ -72,7 +72,7 @@ gltf_parse_chunk_json(gltf_parser_t* parser, u32_t chunk_length)
         if (buffer_is_equal(&nodes_label, &current->label))
         {
             u32_t node_count  = json_num_of_children(current);
-            result.nodes      = MEMORY_PUSH_ZERO(parser->arena, gltf_node_t, node_count);
+            result.nodes      = MEMORY_PUSH(parser->arena, gltf_node_t, node_count);
             result.node_count = node_count;
 
             json_entry_t* node = current->child;
@@ -88,6 +88,7 @@ gltf_parse_chunk_json(gltf_parser_t* parser, u32_t chunk_length)
 
                 b32_t mesh_is_valid   = json_child_value(parser->arena, node, JSON_VALUE_TYPE_i32, &mesh, "mesh");
                 b32_t matrix_is_valid = json_child_value(parser->arena, node, JSON_VALUE_TYPE_arr_f32, &matrix, "matrix");
+                b32_t name_is_valid   = json_child_value(parser->arena, node, JSON_VALUE_TYPE_str, result.nodes[i].name, "name");
 
                 b32_t children_is_valid = EMBER_FALSE;
                 b32_t trs_is_valid      = EMBER_TRUE;
@@ -116,9 +117,15 @@ gltf_parse_chunk_json(gltf_parser_t* parser, u32_t chunk_length)
 
                 if (!matrix_is_valid)
                 {
-                    trs_is_valid &= json_child_value(parser->arena, node, JSON_VALUE_TYPE_f32, &translation, "translation");
-                    trs_is_valid &= json_child_value(parser->arena, node, JSON_VALUE_TYPE_f32, &rotation, "rotation");
-                    trs_is_valid &= json_child_value(parser->arena, node, JSON_VALUE_TYPE_f32, &scale, "scale");
+                    translation = VEC3_ZERO;
+                    rotation    = QUAT_IDENTITY;
+                    scale       = VEC3_ONE;
+
+                    b8_t pos_is_valid = json_child_value(parser->arena, node, JSON_VALUE_TYPE_arr_f32, &translation, "translation");
+                    b8_t rot_is_valid = json_child_value(parser->arena, node, JSON_VALUE_TYPE_arr_f32, &rotation, "rotation");
+                    b8_t scl_is_valid = json_child_value(parser->arena, node, JSON_VALUE_TYPE_arr_f32, &scale, "scale");
+
+                    trs_is_valid = pos_is_valid || rot_is_valid || scl_is_valid;
                 }
 
                 result.nodes[i].matrix      = matrix_is_valid ? matrix : (trs_is_valid ? mat4_model(&translation, &rotation, &scale) : MAT4_IDENTITY);
@@ -298,12 +305,13 @@ gltf_parse_chunk_binary(gltf_parser_t* parser, u32_t chunk_length, gltf_json_dat
 
     EMBER_ASSERT(json_data != NULL);
 
-    result.nodes      = MEMORY_PUSH(parser->arena, mat4_t, json_data->node_count);
+    result.nodes      = MEMORY_PUSH(parser->arena, scene_node_t, json_data->node_count);
     result.meshes     = MEMORY_PUSH(parser->arena, mesh_t, json_data->mesh_count);
+    result.node_count = json_data->node_count;
     result.mesh_count = json_data->mesh_count;
 
     // NOTE(KB): Convert node data to output format
-    for (u32_t node_idx = 0; node_idx < json_data->mesh_count; node_idx++)
+    for (u32_t node_idx = 0; node_idx < json_data->node_count; node_idx++)
     {
         gltf_node_t* node = &json_data->nodes[node_idx];
 
