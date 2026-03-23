@@ -1,25 +1,25 @@
 #ifndef ENGINE_DEFS_H
 #define ENGINE_DEFS_H
 
-typedef uint8_t  u8_t;
-typedef uint16_t u16_t;
-typedef uint32_t u32_t;
-typedef uint64_t u64_t;
+typedef uint8_t  u8;
+typedef uint16_t u16;
+typedef uint32_t u32;
+typedef uint64_t u64;
 
-typedef int8_t   i8_t;
-typedef int16_t  i16_t;
-typedef int32_t  i32_t;
-typedef int64_t  i64_t;
+typedef int8_t   i8;
+typedef int16_t  i16;
+typedef int32_t  i32;
+typedef int64_t  i64;
 
-typedef i8_t     b8_t;
-typedef i16_t    b16_t;
-typedef i32_t    b32_t;
-typedef i64_t    b64_t;
+typedef i8       b8;
+typedef i16      b16;
+typedef i32      b32;
+typedef i64      b64;
 
-typedef float    f32_t;
-typedef double   f64_t;
+typedef float    f32;
+typedef double   f64;
 
-typedef char     c8_t;
+typedef char     c8;
 
 #define U8_MAX  UINT8_MAX
 #define U16_MAX UINT16_MAX
@@ -41,15 +41,19 @@ typedef char     c8_t;
 #define I32_MIN INT32_MIN
 #define I64_MIN INT64_MIN
 
-#define U32_FROM_U64_CLAMPED(v) (((v) > U32_MAX) ? U32_MAX : (u32_t)(v))
+#define U32_FROM_U64_CLAMPED(v) (((v) > U32_MAX) ? U32_MAX : (u32)(v))
 
 #define EMBER_TRUE  1
 #define EMBER_FALSE 0
 
-#define KB(n) (((u64_t)n) << 10)
-#define MB(n) (((u64_t)n) << 20)
-#define GB(n) (((u64_t)n) << 30)
-#define TB(n) (((u64_t)n) << 40)
+#define KB(n)    (((u64)n) << 10)
+#define MB(n)    (((u64)n) << 20)
+#define GB(n)    (((u64)n) << 30)
+#define TB(n)    (((u64)n) << 40)
+#define TO_KB(n) (((u64)n) >> 10)
+#define TO_MB(n) (((u64)n) >> 20)
+#define TO_GB(n) (((u64)n) >> 30)
+#define TO_TB(n) (((u64)n) >> 40)
 
 #define ARRAY_COUNT(a) (sizeof(a) / sizeof(a[0]))
 
@@ -81,19 +85,19 @@ typedef char     c8_t;
 
 #include <intrin.h>
 
-typedef struct trace_event_t trace_event_t;
-struct trace_event_t
+typedef struct trace_event trace_event;
+struct trace_event
 {
-    f64_t time_diff;
-    u64_t cpu_clock_start;
-    u64_t cpu_clock_end;
-    u64_t cpu_clock_diff;
+    f64 time_diff;
+    u64 cpu_clock_start;
+    u64 cpu_clock_end;
+    u64 cpu_clock_diff;
 };
 
-#define EMBER_TRACE_BEGIN(n)                      \
-        trace_event_t _event_##n;                 \
-        platform_timer_t _timer_##n;              \
-        _timer_##n = platform_timer_init();       \
+#define EMBER_TRACE_BEGIN(n)                    \
+        trace_event _event_##n;                 \
+        platform_timer _timer_##n;              \
+        _timer_##n = platform_timer_init();     \
         _event_##n.cpu_clock_start = __rdtsc()
 
 #define EMBER_TRACE_END(n)                                                  \
@@ -110,14 +114,14 @@ struct trace_event_t
 #endif // EMBER_PROFILING_ENABLED
 
 #if EMBER_ASSERT_ENABLED
-void assert_fail(const char* expression, const char* message, const char* file, i32_t line)
+void assert_fail(const c8* expression, const c8* message, const c8* file, i32 line)
 {
 #if EMBER_BUILD_CONSOLE
     fprintf(stderr, "Assertion failed: (%s)\n\nFile: [%s::%d]\nMessage: %s\n", expression, file, line, message);
 #endif
 
 #if PLATFORM_WINDOWS
-    char assert_buf[4096];
+    c8 assert_buf[4096];
 
     wsprintfA(assert_buf, "Assertion failed: (%s)\n\nFile: [%s::%d]\nMessage: %s\n", expression, file, line, message);
 

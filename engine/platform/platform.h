@@ -1,56 +1,56 @@
 #ifndef PLATFORM_H
 #define PLATFORM_H
 
-typedef struct platform_info_t platform_info_t;
-struct platform_info_t
+typedef struct platform_info platform_info;
+struct platform_info
 {
-    u64_t page_size;
-    u64_t page_size_large;
-    u64_t alloc_granularity;
-    u64_t processor_count;
-    u64_t perf_cnt_freq;
-    f64_t perf_cnt_freq_inv;
-    f64_t inv_freq;
+    u64 page_size;
+    u64 page_size_large;
+    u64 alloc_granularity;
+    u64 processor_count;
+    u64 perf_cnt_freq;
+    f64 perf_cnt_freq_inv;
+    f64 inv_freq;
 };
 
-typedef struct platform_handle_t platform_handle_t;
-struct platform_handle_t
+typedef struct platform_hnd platform_hnd;
+struct platform_hnd
 {
     void* hnd;
 };
 
-typedef struct platform_window_size_t platform_window_size_t;
-struct platform_window_size_t
+typedef struct platform_wnd_size platform_wnd_size;
+struct platform_wnd_size
 {
-    u32_t width;
-    u32_t height;
+    u32 width;
+    u32 height;
 };
 
-typedef struct platform_window_state_t platform_window_state_t;
-struct platform_window_state_t
+typedef struct platform_wnd_state platform_wnd_state;
+struct platform_wnd_state
 {
-    b32_t is_resizing;
+    b32 is_resizing;
 };
 
-typedef struct platform_timer_t platform_timer_t;
-struct platform_timer_t
+typedef struct platform_timer platform_timer;
+struct platform_timer
 {
-    u64_t start;
-    u64_t last;
-    u64_t now;
+    u64 start;
+    u64 last;
+    u64 now;
 };
 
-typedef struct platform_program_state_t platform_program_state_t;
-struct platform_program_state_t
+typedef struct platform_app_state platform_app_state;
+struct platform_app_state
 {
-    platform_handle_t h_stdin;
-    platform_handle_t h_stdout;
-    platform_handle_t h_stderr;
-    platform_timer_t  timer;
-    b32_t             is_running;
+    platform_hnd   h_stdin;
+    platform_hnd   h_stdout;
+    platform_hnd   h_stderr;
+    platform_timer timer;
+    b32            is_running;
 };
 
-typedef u32_t platform_file_flags_t;
+typedef u32 platform_file_flags;
 enum
 {
     PLATFORM_FILE_FLAGS_read    = (1 << 0),
@@ -63,48 +63,48 @@ enum
 
 #define FILE_READ_ALL U64_MAX
 
-typedef struct platform_file_props_t platform_file_props_t;
-struct platform_file_props_t
+typedef struct platform_file_info platform_file_info;
+struct platform_file_info
 {
-    u64_t size;
+    u64 size;
 };
 
-global platform_info_t          g_platform_info;
-global platform_program_state_t g_program_state;
-global platform_window_state_t  g_window_state;
+global platform_info      g_platform_info;
+global platform_app_state g_program_state;
+global platform_wnd_state g_window_state;
 
-internal void platform_info_init();
-internal void platform_abort(i32_t exit_code);
+void platform_info_init();
+void platform_abort(i32 exit_code);
 
-internal void platform_console_init();
+void platform_console_init();
 
-internal platform_timer_t platform_timer_init();
-internal void             platform_timer_update(platform_timer_t* timer);
-internal f64_t            platform_timer_since_start(platform_timer_t timer);
-internal f64_t            platform_timer_delta(platform_timer_t timer);
+platform_timer platform_timer_init();
+void           platform_timer_update(platform_timer* timer);
+f64            platform_timer_since_start(platform_timer timer);
+f64            platform_timer_delta(platform_timer timer);
 
-internal void* platform_mem_reserve(u64_t size);
-internal void* platform_mem_reserve_large(u64_t size);
-internal b32_t platform_mem_commit(void* ptr, u64_t size);
-internal b32_t platform_mem_commit_large(void* ptr, u64_t size);
-internal void  platform_mem_release(void* ptr, u64_t size);
-internal void  platform_mem_decommit(void* ptr, u64_t size);
+void* platform_mem_reserve(u64 size);
+void* platform_mem_reserve_large(u64 size);
+b32   platform_mem_commit(void* ptr, u64 size);
+b32   platform_mem_commit_large(void* ptr, u64 size);
+void  platform_mem_release(void* ptr, u64 size);
+void  platform_mem_decommit(void* ptr, u64 size);
 
-internal platform_handle_t     platform_file_open(const char* file_path, platform_file_flags_t flags);
-internal void                  platform_file_close(platform_handle_t file_handle);
-internal platform_file_props_t platform_file_props(platform_handle_t file_handle);
-internal u64_t                 platform_file_write(platform_handle_t file_handle, void* data, u64_t write_size);
-internal u64_t                 platform_file_read(platform_handle_t file_handle, void* data, u64_t read_size);
-internal u64_t                 platform_file_data(const char* file_path, void* data);
+platform_hnd       platform_file_open(const c8* file_path, platform_file_flags flags);
+void               platform_file_close(platform_hnd file_handle);
+platform_file_info platform_file_info_get(platform_hnd file_handle);
+u64                platform_file_write(platform_hnd file_handle, void* data, u64 write_size);
+u64                platform_file_read(platform_hnd file_handle, void* data, u64 read_size);
+u64                platform_file_data(const c8* file_path, void* data);
 
-internal b32_t             platform_handle_equal(platform_handle_t handle_a, platform_handle_t handle_b);
-internal platform_handle_t platform_get_instance_handle();
+b32          platform_handle_equal(platform_hnd lhs, platform_hnd rhs);
+platform_hnd platform_get_instance_handle();
 
-internal void                   platform_gfx_init();
-internal void                   platform_gfx_process_events();
-internal platform_handle_t      platform_gfx_window_create(const char* title);
-internal platform_window_size_t platform_gfx_window_get_size(platform_handle_t window_handle);
-internal platform_window_size_t platform_gfx_window_client_get_size(platform_handle_t window_handle);
-internal b32_t                  platform_gfx_window_is_minimized(platform_handle_t window_handle);
+void              platform_gfx_init();
+void              platform_gfx_process_events();
+platform_hnd      platform_gfx_wnd_create(const c8* title);
+platform_wnd_size platform_gfx_wnd_get_size(platform_hnd window_handle);
+platform_wnd_size platform_gfx_wnd_client_get_size(platform_hnd window_handle);
+b32               platform_gfx_wnd_is_minimized(platform_hnd window_handle);
 
 #endif // PLATFORM_H

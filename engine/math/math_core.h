@@ -52,108 +52,108 @@
 #pragma warning(push)
 #pragma warning(disable: 4201)
 
-typedef union vec2_t vec2_t;
-union vec2_t
+typedef union vec2 vec2;
+union vec2
 {
     struct
     {
-        f32_t x;
-        f32_t y;
+        f32 x;
+        f32 y;
     };
 
     struct
     {
-        f32_t u;
-        f32_t v;
+        f32 u;
+        f32 v;
     };
 
-    f32_t data[2];
+    f32 data[2];
 };
 
-typedef union vec3_t vec3_t;
-union vec3_t
+typedef union vec3 vec3;
+union vec3
 {
     struct
     {
-        f32_t x;
-        f32_t y;
-        f32_t z;
+        f32 x;
+        f32 y;
+        f32 z;
     };
 
     struct
     {
-        f32_t r;
-        f32_t g;
-        f32_t b;
+        f32 r;
+        f32 g;
+        f32 b;
     };
 
     struct
     {
-        f32_t u;
-        f32_t v;
-        f32_t w;
+        f32 u;
+        f32 v;
+        f32 w;
     };
 
-    f32_t data[3];
+    f32 data[3];
 };
 
-typedef union vec4_t vec4_t;
-union vec4_t
+typedef union vec4 vec4;
+union vec4
 {
     struct
     {
-        f32_t x;
-        f32_t y;
-        f32_t z;
-        f32_t w;
+        f32 x;
+        f32 y;
+        f32 z;
+        f32 w;
     };
 
     struct
     {
-        f32_t r;
-        f32_t g;
-        f32_t b;
-        f32_t a;
+        f32 r;
+        f32 g;
+        f32 b;
+        f32 a;
     };
 
-    f32_t data[4];
+    f32 data[4];
 };
 
-typedef union quat_t quat_t;
-union quat_t
+typedef union quat quat;
+union quat
 {
     struct
     {
-        f32_t x;
-        f32_t y;
-        f32_t z;
-        f32_t w;
+        f32 x;
+        f32 y;
+        f32 z;
+        f32 w;
     };
 
-    f32_t data[4];
+    f32 data[4];
 };
 
 // NOTE(KB): Matrices are stored in a column-first order
-typedef union mat4_t mat4_t;
-union mat4_t
+typedef union mat4 mat4;
+union mat4
 {
     struct
     {
-        vec4_t cols[4];
+        vec4 cols[4];
     };
 
-    f32_t m[4][4];
+    f32 m[4][4];
 };
 
-#define VEC2_ZERO     (vec2_t){0.0f, 0.0f}
-#define VEC3_ZERO     (vec3_t){0.0f, 0.0f, 0.0f}
-#define VEC3_ONE      (vec3_t){1.0f, 1.0f, 1.0f}
-#define VEC3_UP       (vec3_t){0.0f, 1.0f, 0.0f}
-#define VEC3_RIGHT    (vec3_t){1.0f, 0.0f, 0.0f}
-#define VEC3_FORWARD  (vec3_t){0.0f, 0.0f, 1.0f}
-#define VEC4_ZERO     (vec4_t){0.0f, 0.0f, 0.0f, 0.0f}
-#define QUAT_IDENTITY (quat_t){0.0f, 0.0f, 0.0f, 1.0f}
-#define MAT4_IDENTITY (mat4_t)  \
+#define VEC2_ZERO     (vec2){0.0f, 0.0f}
+#define VEC3_ZERO     (vec3){0.0f, 0.0f, 0.0f}
+#define VEC3_ONE      (vec3){1.0f, 1.0f, 1.0f}
+#define VEC3_UP       (vec3){0.0f, 1.0f, 0.0f}
+#define VEC3_RIGHT    (vec3){1.0f, 0.0f, 0.0f}
+#define VEC3_FORWARD  (vec3){0.0f, 0.0f, 1.0f}
+#define VEC4_ZERO     (vec4){0.0f, 0.0f, 0.0f, 0.0f}
+#define QUAT_IDENTITY (quat){0.0f, 0.0f, 0.0f, 1.0f}
+#define MAT4_IDENTITY (mat4)  \
     {                           \
         1.0f, 0.0f, 0.0f, 0.0f, \
         0.0f, 1.0f, 0.0f, 0.0f, \
@@ -166,15 +166,15 @@ union mat4_t
 ///////////////
 // FUNCTIONS
 
-internal b32_t math_approx_zero(f32_t value);
-internal b32_t math_approx_equal(f32_t a, f32_t b, f32_t error);
+b32 math_approx_zero(f32 value);
+b32 math_approx_equal(f32 a, f32 b, f32 error);
 
-internal f32_t math_sign(f32_t value);
-internal f32_t math_angle_wrap(f32_t angle);
-internal f32_t math_saturate(f32_t value);
-internal f32_t math_fast_sin(f32_t angle);
-internal f32_t math_fast_cos(f32_t angle);
-internal f32_t math_fast_cos_zero_to_half_pi(f32_t angle);
-internal f32_t math_fast_inv_sqrt_approx_one(f32_t value);
+f32 math_sign(f32 value);
+f32 math_angle_wrap(f32 angle);
+f32 math_saturate(f32 value);
+f32 math_fast_sin(f32 angle);
+f32 math_fast_cos(f32 angle);
+f32 math_fast_cos_zero_to_half_pi(f32 angle);
+f32 math_fast_inv_sqrt_approx_one(f32 value);
 
 #endif // MATH_CORE_H

@@ -1,5 +1,4 @@
-internal void
-platform_info_init()
+void platform_info_init()
 {
     SYSTEM_INFO system_info;
     GetSystemInfo(&system_info);
@@ -10,17 +9,15 @@ platform_info_init()
     g_platform_info.page_size         = system_info.dwPageSize;
     g_platform_info.processor_count   = system_info.dwNumberOfProcessors;
     g_platform_info.alloc_granularity = system_info.dwAllocationGranularity;
-    g_platform_info.perf_cnt_freq_inv = 1.0 / (f64_t)g_platform_info.perf_cnt_freq;
+    g_platform_info.perf_cnt_freq_inv = 1.0 / (f64)g_platform_info.perf_cnt_freq;
 }
 
-internal void
-platform_abort(i32_t exit_code)
+void platform_abort(i32 exit_code)
 {
     ExitProcess(exit_code);
 }
 
-internal void
-platform_console_init()
+void platform_console_init()
 {
 #if EMBER_BUILD_CONSOLE
     AllocConsole();
@@ -35,10 +32,9 @@ platform_console_init()
 #endif
 }
 
-internal platform_timer_t
-platform_timer_init()
+platform_timer platform_timer_init()
 {
-    platform_timer_t result;
+    platform_timer result;
 
     QueryPerformanceCounter((LARGE_INTEGER *)&result.start);
 
@@ -48,42 +44,37 @@ platform_timer_init()
     return result;
 }
 
-internal void
-platform_timer_update(platform_timer_t* timer)
+void platform_timer_update(platform_timer* timer)
 {
     timer->last = timer->now;
 
     QueryPerformanceCounter((LARGE_INTEGER *)&timer->now);
 }
 
-internal f64_t
-platform_timer_since_start(platform_timer_t timer)
+f64 platform_timer_since_start(platform_timer timer)
 {
-    u64_t time_diff = timer.now - timer.start;
-    f64_t time      = g_platform_info.perf_cnt_freq_inv * (f64_t)time_diff;
+    u64 time_diff = timer.now - timer.start;
+    f64 time      = g_platform_info.perf_cnt_freq_inv * (f64)time_diff;
 
     return time;
 }
 
-internal f64_t
-platform_timer_delta(platform_timer_t timer)
+f64 platform_timer_delta(platform_timer timer)
 {
-    u64_t time_diff  = timer.now - timer.last;
-    f64_t delta_time = g_platform_info.perf_cnt_freq_inv * (f64_t)time_diff;
+    u64 time_diff  = timer.now - timer.last;
+    f64 delta_time = g_platform_info.perf_cnt_freq_inv * (f64)time_diff;
 
     return delta_time;
 }
 
-internal void*
-platform_mem_reserve(u64_t size)
+void* platform_mem_reserve(u64 size)
 {
     void* result = VirtualAlloc(NULL, size, MEM_RESERVE, PAGE_READWRITE);
 
     return result;
 }
 
-internal void*
-platform_mem_reserve_large(u64_t size)
+void* platform_mem_reserve_large(u64 size)
 {
     // NOTE(KB): Windows requires large pages to be committed on reserve
     void* result = VirtualAlloc(NULL, size, MEM_RESERVE | MEM_COMMIT | MEM_LARGE_PAGES, PAGE_READWRITE);
@@ -91,35 +82,30 @@ platform_mem_reserve_large(u64_t size)
     return result;
 }
 
-internal b32_t
-platform_mem_commit(void* ptr, u64_t size)
+b32 platform_mem_commit(void* ptr, u64 size)
 {
-    b32_t result = (b32_t)(VirtualAlloc(ptr, size, MEM_COMMIT, PAGE_READWRITE) != 0);
+    b32 result = (b32)(VirtualAlloc(ptr, size, MEM_COMMIT, PAGE_READWRITE) != 0);
 
     return result;
 }
 
-internal b32_t
-platform_mem_commit_large(void* ptr, u64_t size)
+b32 platform_mem_commit_large(void* ptr, u64 size)
 {
     return EMBER_TRUE;
 }
 
-internal void
-platform_mem_release(void* ptr, u64_t size)
+void platform_mem_release(void* ptr, u64 size)
 {
     // NOTE(KB): Windows requires size to be 0 for release
     VirtualFree(ptr, 0, MEM_RELEASE);
 }
 
-internal void
-platform_mem_decommit(void* ptr, u64_t size)
+void platform_mem_decommit(void* ptr, u64 size)
 {
     VirtualFree(ptr, size, MEM_DECOMMIT);
 }
 
-internal platform_handle_t
-platform_file_open(const char* file_path, platform_file_flags_t flags)
+platform_hnd platform_file_open(const c8* file_path, platform_file_flags flags)
 {
     DWORD access_flags = 0;
     DWORD share_flags  = 0;
@@ -164,7 +150,7 @@ platform_file_open(const char* file_path, platform_file_flags_t flags)
         NULL
     );
 
-    platform_handle_t result = {0};
+    platform_hnd result = {0};
 
     if (file_handle == INVALID_HANDLE_VALUE)
     {
@@ -176,8 +162,7 @@ platform_file_open(const char* file_path, platform_file_flags_t flags)
     return result;
 }
 
-internal void
-platform_file_close(platform_handle_t file_handle)
+void platform_file_close(platform_hnd file_handle)
 {
     if (file_handle.hnd == NULL)
     {
@@ -189,10 +174,9 @@ platform_file_close(platform_handle_t file_handle)
     (void)result;
 }
 
-internal platform_file_props_t
-platform_file_props(platform_handle_t file_handle)
+platform_file_info platform_file_info_get(platform_hnd file_handle)
 {
-    platform_file_props_t result = {0};
+    platform_file_info result = {0};
 
     if (file_handle.hnd == NULL)
     {
@@ -207,26 +191,25 @@ platform_file_props(platform_handle_t file_handle)
         return result;
     }
 
-    result.size |= ((u64_t)file_info.nFileSizeHigh) << 32;
-    result.size |= (u64_t)file_info.nFileSizeLow;
+    result.size |= ((u64)file_info.nFileSizeHigh) << 32;
+    result.size |= (u64)file_info.nFileSizeLow;
 
     return result;
 }
 
-internal u64_t
-platform_file_write(platform_handle_t file_handle, void* data, u64_t write_size)
+u64 platform_file_write(platform_hnd file_handle, void* data, u64 write_size)
 {
     if (file_handle.hnd == NULL)
     {
         return 0;
     }
 
-    u64_t bytes_written_total = 0;
+    u64 bytes_written_total = 0;
 
     while (bytes_written_total < write_size)
     {
-        u64_t bytes_to_write_ttl = write_size - bytes_written_total;
-        DWORD bytes_to_write     = U32_FROM_U64_CLAMPED(bytes_to_write_ttl);
+        u64 bytes_to_write_ttl = write_size - bytes_written_total;
+        DWORD bytes_to_write   = U32_FROM_U64_CLAMPED(bytes_to_write_ttl);
         DWORD bytes_written;
 
         BOOL write_success = WriteFile(file_handle.hnd, data, bytes_to_write, &bytes_written, NULL);
@@ -242,28 +225,27 @@ platform_file_write(platform_handle_t file_handle, void* data, u64_t write_size)
 }
 
 // TODO(KB): Add reading from specified position (OVERLAPPED type)
-internal u64_t
-platform_file_read(platform_handle_t file_handle, void* data, u64_t read_size)
+u64 platform_file_read(platform_hnd file_handle, void* data, u64 read_size)
 {
     if (file_handle.hnd == NULL)
     {
         return 0;
     }
 
-    u64_t file_size;
+    u64 file_size;
     BOOL size_success = GetFileSizeEx(file_handle.hnd, (PLARGE_INTEGER)&file_size);
     if (!size_success)
     {
         return 0;
     }
 
-    u64_t bytes_read_total  = 0;
-    u64_t read_size_clamped = MIN(read_size, file_size);
+    u64 bytes_read_total  = 0;
+    u64 read_size_clamped = MIN(read_size, file_size);
 
     while (bytes_read_total < read_size_clamped)
     {
-        u64_t bytes_to_read_ttl = read_size_clamped - bytes_read_total;
-        DWORD bytes_to_read     = U32_FROM_U64_CLAMPED(bytes_to_read_ttl);
+        u64 bytes_to_read_ttl = read_size_clamped - bytes_read_total;
+        DWORD bytes_to_read   = U32_FROM_U64_CLAMPED(bytes_to_read_ttl);
         DWORD bytes_read;
 
         BOOL read_success = ReadFile(file_handle.hnd, data, bytes_to_read, &bytes_read, NULL);
@@ -283,26 +265,23 @@ platform_file_read(platform_handle_t file_handle, void* data, u64_t read_size)
     return bytes_read_total;
 }
 
-
-internal platform_handle_t
-platform_get_instance_handle()
+platform_hnd platform_get_instance_handle()
 {
-    platform_handle_t handle = {
+    platform_hnd handle = {
         .hnd = GetModuleHandle(NULL)
     };
 
     return handle;
 }
 
-internal void
-platform_gfx_init()
+void platform_gfx_init()
 {
     g_win32_gfx_state.instance = GetModuleHandle(NULL);
 
     WNDCLASSEX window_class    = {0};
     window_class.cbSize        = sizeof(WNDCLASSEX);
     window_class.style         = CS_HREDRAW | CS_VREDRAW | CS_OWNDC;
-    window_class.lpfnWndProc   = win32_window_message_callback;
+    window_class.lpfnWndProc   = win32_wnd_msg_callback;
     window_class.cbClsExtra    = 0;
     window_class.cbWndExtra    = 0;
     window_class.hInstance     = g_win32_gfx_state.instance;
@@ -317,8 +296,7 @@ platform_gfx_init()
     (void)atom;
 }
 
-internal void
-platform_gfx_process_events()
+void platform_gfx_process_events()
 {
     MSG msg = {0};
 
@@ -335,10 +313,9 @@ platform_gfx_process_events()
     }
 }
 
-internal platform_handle_t
-platform_gfx_window_create(const char* window_name)
+platform_hnd platform_gfx_wnd_create(const c8* window_name)
 {
-    win32_window_t window = {0};
+    win32_wnd window = {0};
 
     HWND window_handle = CreateWindowEx(
         0,
@@ -362,15 +339,14 @@ platform_gfx_window_create(const char* window_name)
     window.handle     = window_handle;
     window.device_ctx = GetDC(window_handle);
 
-    platform_handle_t handle = {window_handle};
+    platform_hnd handle = {window_handle};
 
     return handle;
 }
 
-internal platform_window_size_t
-platform_gfx_window_get_size(platform_handle_t window_handle)
+platform_wnd_size platform_gfx_wnd_get_size(platform_hnd window_handle)
 {
-    platform_window_size_t result = {0};
+    platform_wnd_size result = {0};
 
     if (IsWindow(window_handle.hnd))
     {
@@ -385,10 +361,9 @@ platform_gfx_window_get_size(platform_handle_t window_handle)
     return result;
 }
 
-internal platform_window_size_t
-platform_gfx_window_client_get_size(platform_handle_t window_handle)
+platform_wnd_size platform_gfx_wnd_client_get_size(platform_hnd window_handle)
 {
-    platform_window_size_t result = {0};
+    platform_wnd_size result = {0};
 
     if (IsWindow(window_handle.hnd))
     {
@@ -403,10 +378,9 @@ platform_gfx_window_client_get_size(platform_handle_t window_handle)
     return result;
 }
 
-internal b32_t
-platform_gfx_window_is_minimized(platform_handle_t window_handle)
+b32 platform_gfx_wnd_is_minimized(platform_hnd window_handle)
 {
-    b32_t result = EMBER_FALSE;
+    b32 result = EMBER_FALSE;
 
     if (IsWindow(window_handle.hnd))
     {
@@ -416,8 +390,7 @@ platform_gfx_window_is_minimized(platform_handle_t window_handle)
     return result;
 }
 
-internal LRESULT CALLBACK
-win32_window_message_callback(HWND hwnd, UINT msg, WPARAM w_param, LPARAM l_param)
+LRESULT CALLBACK win32_wnd_msg_callback(HWND hwnd, UINT msg, WPARAM w_param, LPARAM l_param)
 {
     switch (msg)
     {
@@ -445,8 +418,7 @@ win32_window_message_callback(HWND hwnd, UINT msg, WPARAM w_param, LPARAM l_para
     return DefWindowProc(hwnd, msg, w_param, l_param);
 }
 
-int WINAPI 
-WinMain(HINSTANCE instance, HINSTANCE prev_instance, LPSTR cmd_line, int show_cmd)
+int WINAPI WinMain(HINSTANCE instance, HINSTANCE prev_instance, LPSTR cmd_line, i32 show_cmd)
 {
     g_program_state.is_running = EMBER_TRUE;
     g_program_state.timer      = platform_timer_init();
@@ -455,7 +427,7 @@ WinMain(HINSTANCE instance, HINSTANCE prev_instance, LPSTR cmd_line, int show_cm
     platform_console_init();
     platform_gfx_init();
 
-    platform_handle_t window_handle = platform_gfx_window_create("Ember Engine");
+    platform_hnd window_handle = platform_gfx_wnd_create("Ember Engine");
 
     renderer_init(window_handle);
 

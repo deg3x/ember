@@ -1,15 +1,14 @@
-internal gpu_arena_t
-gpu_arena_init(VkPhysicalDevice physical_device, VkDevice device)
+gpu_arena gpu_arena_init(VkPhysicalDevice physical_device, VkDevice device)
 {
-    gpu_arena_t ret = {0};
+    gpu_arena ret = {0};
 
     vkGetPhysicalDeviceMemoryProperties(physical_device, &ret.mem_props);
 
-    u32_t mem_idx_mesh = U32_MAX;
-    u32_t mem_idx_tex  = U32_MAX;
-    u32_t mem_idx_stg  = U32_MAX;
-    u32_t mem_idx_ssbo = U32_MAX;
-    u32_t mem_idx_ubo  = U32_MAX;
+    u32 mem_idx_mesh = U32_MAX;
+    u32 mem_idx_tex  = U32_MAX;
+    u32 mem_idx_stg  = U32_MAX;
+    u32 mem_idx_ssbo = U32_MAX;
+    u32 mem_idx_ubo  = U32_MAX;
 
     VkMemoryPropertyFlags flags_mesh = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
     VkMemoryPropertyFlags flags_tex  = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
@@ -17,13 +16,13 @@ gpu_arena_init(VkPhysicalDevice physical_device, VkDevice device)
     VkMemoryPropertyFlags flags_ubo  = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
     VkMemoryPropertyFlags flags_ssbo = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
 
-    for (u32_t i = 0; i < ret.mem_props.memoryTypeCount; i++)
+    for (u32 i = 0; i < ret.mem_props.memoryTypeCount; i++)
     {
-        b32_t flag_check_mesh = (ret.mem_props.memoryTypes[i].propertyFlags & flags_mesh) == flags_mesh;
-        b32_t flag_check_tex  = (ret.mem_props.memoryTypes[i].propertyFlags & flags_tex) == flags_tex;
-        b32_t flag_check_stg  = (ret.mem_props.memoryTypes[i].propertyFlags & flags_stg) == flags_stg;
-        b32_t flag_check_ubo  = (ret.mem_props.memoryTypes[i].propertyFlags & flags_ubo) == flags_ubo;
-        b32_t flag_check_ssbo = (ret.mem_props.memoryTypes[i].propertyFlags & flags_ssbo) == flags_ssbo;
+        b32 flag_check_mesh = (ret.mem_props.memoryTypes[i].propertyFlags & flags_mesh) == flags_mesh;
+        b32 flag_check_tex  = (ret.mem_props.memoryTypes[i].propertyFlags & flags_tex) == flags_tex;
+        b32 flag_check_stg  = (ret.mem_props.memoryTypes[i].propertyFlags & flags_stg) == flags_stg;
+        b32 flag_check_ubo  = (ret.mem_props.memoryTypes[i].propertyFlags & flags_ubo) == flags_ubo;
+        b32 flag_check_ssbo = (ret.mem_props.memoryTypes[i].propertyFlags & flags_ssbo) == flags_ssbo;
 
         if (flag_check_mesh && mem_idx_mesh == U32_MAX)
         {
@@ -120,25 +119,24 @@ gpu_arena_init(VkPhysicalDevice physical_device, VkDevice device)
     ret.blocks[GPU_MEM_TYPE_ubo].mem_idx   = mem_idx_ubo;
     ret.blocks[GPU_MEM_TYPE_ssbo].mem_idx  = mem_idx_ssbo;
 
-    arena_params_t host_arena_params = { KB(32), KB(32), 0 };
+    cpu_arena_params host_arena_params = { KB(32), KB(32), 0 };
 
-    ret.host_arena = arena_init(&host_arena_params);
+    ret.host_arena = cpu_arena_init(&host_arena_params);
 
     return ret;
 }
 
-internal gpu_mem_t*
-gpu_arena_alloc(gpu_arena_t* arena, u64_t size, u64_t alignment, gpu_mem_type_t type)
+gpu_mem* gpu_arena_alloc(gpu_arena* arena, u64 size, u64 alignment, gpu_mem_type type)
 {
     EMBER_ASSERT(arena != NULL);
 
-    u64_t alloc_size = size; //(size + alignment - 1) & !(alignment - 1);
+    u64 alloc_size = size; //(size + alignment - 1) & !(alignment - 1);
 
     VkDeviceSize remaining = arena->blocks[type].size - arena->blocks[type].position;
 
     EMBER_ASSERT(alloc_size <= remaining);
 
-    gpu_mem_t* ret = MEMORY_PUSH(arena->host_arena, gpu_mem_t, 1);
+    gpu_mem* ret = MEMORY_PUSH(arena->host_arena, gpu_mem, 1);
 
     arena->blocks[type].position += alloc_size;
 
@@ -150,7 +148,7 @@ gpu_arena_alloc(gpu_arena_t* arena, u64_t size, u64_t alignment, gpu_mem_type_t 
 
     // TODO(KB): Traverse the free list first
 
-    gpu_mem_t* prev = arena->entries[type];
+    gpu_mem* prev = arena->entries[type];
     if (prev == NULL)
     {
         arena->entries[type] = ret;
@@ -172,13 +170,12 @@ gpu_arena_alloc(gpu_arena_t* arena, u64_t size, u64_t alignment, gpu_mem_type_t 
     return ret;
 }
 
-internal void
-gpu_arena_free(gpu_arena_t* arena, gpu_mem_t* memory)
+void gpu_arena_free(gpu_arena* arena, gpu_mem* memory)
 {
     EMBER_ASSERT(arena != NULL);
     EMBER_ASSERT(memory != NULL);
 
-    gpu_mem_t* prev = arena->entries[memory->type];
+    gpu_mem* prev = arena->entries[memory->type];
     if (prev == memory)
     {
         arena->blocks[memory->type].position = 0;
@@ -211,7 +208,7 @@ gpu_arena_free(gpu_arena_t* arena, gpu_mem_t* memory)
         memory->next = NULL;
     }
 
-    gpu_mem_t* last_free = arena->free_list[memory->type];
+    gpu_mem* last_free = arena->free_list[memory->type];
     if (last_free == NULL)
     {
         arena->free_list[memory->type] = memory;
@@ -227,21 +224,20 @@ gpu_arena_free(gpu_arena_t* arena, gpu_mem_t* memory)
     last_free->next = memory;
 }
 
-internal void
-gpu_arena_release(gpu_arena_t* arena, VkDevice device)
+void gpu_arena_release(gpu_arena* arena, VkDevice device)
 {
     EMBER_ASSERT(arena != NULL);
 
-    for (u32_t i = 0; i < GPU_MEM_TYPE_count; i++)
+    for (u32 i = 0; i < GPU_MEM_TYPE_count; i++)
     {
         vkFreeMemory(device, arena->blocks[i].memory, NULL);
     }
 
-    for (u32_t i = 0; i < GPU_MEM_TYPE_count; i++)
+    for (u32 i = 0; i < GPU_MEM_TYPE_count; i++)
     {
         arena->entries[i] = NULL;
-        arena->blocks[i]  = (gpu_mem_block_t){0};
+        arena->blocks[i]  = (gpu_mem_block){0};
     }
 
-    arena_release(arena->host_arena);
+    cpu_arena_release(arena->host_arena);
 }

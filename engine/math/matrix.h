@@ -1,31 +1,31 @@
 #ifndef MATRIX_H
 #define MATRIX_H
 
-internal f32_t mat4_determinant(mat4_t* matrix);
+f32 mat4_determinant(mat4* matrix);
 
-internal mat4_t mat4_add(mat4_t* lhs, mat4_t* rhs);
-internal mat4_t mat4_sub(mat4_t* lhs, mat4_t* rhs);
-internal mat4_t mat4_mul(mat4_t* lhs, mat4_t* rhs);
-internal mat4_t mat4_mul_s(mat4_t* lhs, f32_t rhs);
+mat4 mat4_add(mat4* lhs, mat4* rhs);
+mat4 mat4_sub(mat4* lhs, mat4* rhs);
+mat4 mat4_mul(mat4* lhs, mat4* rhs);
+mat4 mat4_mul_s(mat4* lhs, f32 rhs);
 
-internal mat4_t mat4_inverse(mat4_t* matrix);
-internal mat4_t mat4_transpose(mat4_t* matrix);
+mat4 mat4_inverse(mat4* matrix);
+mat4 mat4_transpose(mat4* matrix);
 
-internal vec3_t mat4_to_euler(mat4_t* matrix);
-internal mat4_t mat4_from_euler(vec3_t* angles);
-internal mat4_t mat4_from_pitch(f32_t pitch);
-internal mat4_t mat4_from_yaw(f32_t yaw);
-internal mat4_t mat4_from_roll(f32_t roll);
-internal mat4_t mat4_from_diagonal(f32_t diagonal);
-internal mat4_t mat4_from_quaternion(quat_t* quat);
+vec3 mat4_to_euler(mat4* matrix);
+mat4 mat4_from_euler(vec3* angles);
+mat4 mat4_from_pitch(f32 pitch);
+mat4 mat4_from_yaw(f32 yaw);
+mat4 mat4_from_roll(f32 roll);
+mat4 mat4_from_diag(f32 diagonal);
+mat4 mat4_from_quat(quat* quat);
 
-internal mat4_t mat4_translation(vec3_t* translation);
-internal mat4_t mat4_rotation(vec3_t* axis, f32_t angle);
-internal mat4_t mat4_scale(vec3_t* scale);
+mat4 mat4_translation(vec3* translation);
+mat4 mat4_rotation(vec3* axis, f32 angle);
+mat4 mat4_scale(vec3* scale);
 
-internal mat4_t mat4_model(vec3_t* position, quat_t* rotation, vec3_t* scale);
-internal mat4_t mat4_perspective(f32_t fov_x, f32_t aspect_ratio, f32_t clip_near, f32_t clip_far);
-internal mat4_t mat4_orthographic(f32_t clip_left, f32_t clip_right, f32_t clip_bottom, f32_t clip_top, f32_t clip_near, f32_t clip_far);
-internal mat4_t mat4_look_at(vec3_t* eye, vec3_t* target, vec3_t* up);
+mat4 mat4_model(vec3* position, quat* rotation, vec3* scale);
+mat4 mat4_persp(f32 fov_x, f32 aspect_ratio, f32 clip_near, f32 clip_far);
+mat4 mat4_ortho(f32 clip_left, f32 clip_right, f32 clip_bottom, f32 clip_top, f32 clip_near, f32 clip_far);
+mat4 mat4_look_at(vec3* eye, vec3* target, vec3* up);
 
 #endif // MATRIX_H

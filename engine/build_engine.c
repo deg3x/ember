@@ -30,7 +30,7 @@
 #include "math/vector.h"
 #include "math/matrix.h"
 #include "math/quaternion.h"
-#include "memory/arena.h"
+#include "memory/cpu_arena.h"
 #include "containers/buffer.h"
 #include "input/input.h"
 
@@ -54,7 +54,7 @@
 #include "math/vector.c"
 #include "math/matrix.c"
 #include "math/quaternion.c"
-#include "memory/arena.c"
+#include "memory/cpu_arena.c"
 #include "containers/buffer.c"
 #include "input/input.c"
 

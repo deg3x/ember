@@ -1,7 +1,7 @@
 #ifndef PARSER_JSON_H
 #define PARSER_JSON_H
 
-typedef u32_t json_token_type_t;
+typedef u32 json_token_type;
 enum
 {
     JSON_TOKEN_TYPE_brace_open,
@@ -18,7 +18,7 @@ enum
     JSON_TOKEN_TYPE_error,
 };
 
-typedef u32_t json_value_type_t;
+typedef u32 json_value_type;
 enum
 {
     JSON_VALUE_TYPE_i32,
@@ -29,45 +29,45 @@ enum
     JSON_VALUE_TYPE_arr_f32,
 };
 
-typedef struct json_token_t json_token_t;
-struct json_token_t
+typedef struct json_token json_token;
+struct json_token
 {
-    buffer_t          value;
-    json_token_type_t type;
+    buffer          value;
+    json_token_type type;
 };
 
-typedef struct json_entry_t json_entry_t;
-struct json_entry_t
+typedef struct json_entry json_entry;
+struct json_entry
 {
-    buffer_t      label;
-    buffer_t      value;
-    json_entry_t* next;
-    json_entry_t* child;
+    buffer      label;
+    buffer      value;
+    json_entry* next;
+    json_entry* child;
 };
 
-typedef struct json_parser_t json_parser_t;
-struct json_parser_t
+typedef struct json_parser json_parser;
+struct json_parser
 {
-    arena_t* arena;
-    buffer_t source;
-    u64_t    position;
-    b64_t    has_error;
+    cpu_arena* arena;
+    buffer     source;
+    u64        position;
+    b64        has_error;
 };
 
-internal json_entry_t* json_parse(u8_t* data, u64_t size, arena_t* arena);
-internal json_entry_t* json_parse_file(const char* file_path, arena_t* arena);
-internal json_entry_t* json_parse_entry(json_parser_t* parser, buffer_t* label, json_token_t* token);
-internal json_entry_t* json_parse_list(json_parser_t* parser, json_token_type_t end_type, b32_t has_labels);
-internal json_token_t  json_parse_token(json_parser_t* parser);
+json_entry* json_parse(u8* data, u64 size, cpu_arena* arena);
+json_entry* json_parse_file(const c8* file_path, cpu_arena* arena);
+json_entry* json_parse_entry(json_parser* parser, buffer* label, json_token* token);
+json_entry* json_parse_list(json_parser* parser, json_token_type end_type, b32 has_labels);
+json_token  json_parse_token(json_parser* parser);
 
-internal u32_t         json_num_of_children(json_entry_t* entry);
-internal json_entry_t* json_find_child(json_entry_t* entry, buffer_t* child_label);
-internal b32_t         json_child_value(arena_t* arena, json_entry_t* entry, json_value_type_t type, void* dest, const c8_t* child_label);
+u32         json_num_of_children(json_entry* entry);
+json_entry* json_find_child(json_entry* entry, buffer* child_label);
+b32         json_child_value(cpu_arena* arena, json_entry* entry, json_value_type type, void* dest, const c8* child_label);
 
-internal b32_t         json_parser_is_valid(json_parser_t* parser);
-internal void          json_parser_error(json_parser_t* parser);
+b32  json_parser_is_valid(json_parser* parser);
+void json_parser_error(json_parser* parser);
 
-internal b32_t         json_is_whitespace(buffer_t* buffer, u64_t pos);
-internal b32_t         json_is_number(buffer_t* buffer, u64_t pos);
+b32 json_is_whitespace(buffer* buffer, u64 pos);
+b32 json_is_number(buffer* buffer, u64 pos);
 
 #endif //PARSER_JSON_H

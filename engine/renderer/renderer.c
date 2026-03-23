@@ -1,8 +1,8 @@
-internal void
-renderer_init(platform_handle_t window_handle)
+void renderer_init(platform_hnd window_handle)
 {
-    arena_params_t params = { GB(4), GB(4), 0 };
-    g_renderer.host_arena = arena_init(&params);
+    cpu_arena_params params = { GB(4), GB(4), 0 };
+
+    g_renderer.host_arena = cpu_arena_init(&params);
 
     renderer_create_instance();
     renderer_create_surface(window_handle);
@@ -23,20 +23,19 @@ renderer_init(platform_handle_t window_handle)
 
     renderer_create_depth_resources();
 
-    g_renderer.pipelines      = MEMORY_PUSH_ZERO(g_renderer.host_arena, renderer_pipeline_t, 1);
+    g_renderer.pipelines      = MEMORY_PUSH_ZERO(g_renderer.host_arena, renderer_pipeline, 1);
     g_renderer.pipeline_count = 1;
 
     renderer_pipeline_init(g_renderer.pipelines);
 }
 
-internal void
-renderer_update(platform_handle_t window_handle)
+void renderer_update(platform_hnd window_handle)
 {
-    persist u32_t frame_id = 0;
+    persist u32 frame_id = 0;
 
     vkWaitForFences(g_renderer.device, 1, &g_renderer.fence_in_flight[frame_id], VK_TRUE, UINT64_MAX);
 
-    u32_t img_id;
+    u32 img_id;
     VkResult vk_result = vkAcquireNextImageKHR(
         g_renderer.device,
         g_renderer.swapchain,
@@ -62,22 +61,23 @@ renderer_update(platform_handle_t window_handle)
 
     renderer_command_buffer_record(&g_renderer.pipelines[0], frame_id, img_id);
 
-    renderer_ubo_t ubo;
+    renderer_ubo ubo;
 
-    f32_t time        = (f32_t)platform_timer_since_start(g_program_state.timer);
-    vec3_t camera_pos = {0.0f, 20.0f, 20.0f};
-    camera_pos        = vec3_rotate_axis(&camera_pos, &VEC3_UP, time * 0.3f);
+    f32 time        = (f32)platform_timer_since_start(g_program_state.timer);
+    vec3 camera_pos = {0.0f, 80.0f, 80.0f};
+    camera_pos      = vec3_rotate_axis(&camera_pos, &VEC3_UP, time * 0.3f);
 
     ubo.view = mat4_look_at(
         &camera_pos,
-        &(vec3_t){0.0f, 0.0f, 0.0f},
-        &(vec3_t){0.0f, 1.0f, 0.0f}
+        &(vec3){0.0f, 0.0f, 0.0f},
+        &(vec3){0.0f, 1.0f, 0.0f}
     );
 
-    platform_window_size_t client_size = platform_gfx_window_client_get_size(window_handle);
-    f32_t aspect = (f32_t)client_size.width / (f32_t)client_size.height;
+    platform_wnd_size client_size = platform_gfx_wnd_client_get_size(window_handle);
 
-    ubo.proj = mat4_perspective(30.0f, aspect, 0.01f, 1000.0f);
+    f32 aspect = (f32)client_size.width / (f32)client_size.height;
+
+    ubo.proj = mat4_persp(30.0f, aspect, 0.01f, 1000.0f);
 
     memcpy(g_renderer.buffers.ubo_mapped[frame_id], &ubo, sizeof(ubo));
 
@@ -135,12 +135,11 @@ renderer_update(platform_handle_t window_handle)
     frame_id = (frame_id + 1) % RENDERER_FRAMES_IN_FLIGHT;
 }
 
-internal void
-renderer_destroy()
+void renderer_destroy()
 {
     vkDeviceWaitIdle(g_renderer.device);
 
-    for (u32_t i = 0; i < RENDERER_FRAMES_IN_FLIGHT; i++)
+    for (u32 i = 0; i < RENDERER_FRAMES_IN_FLIGHT; i++)
     {
         vkDestroySemaphore(g_renderer.device, g_renderer.sem_img_avail[i], NULL);
         vkDestroySemaphore(g_renderer.device, g_renderer.sem_render_end[i], NULL);
@@ -150,7 +149,7 @@ renderer_destroy()
     vkUnmapMemory(g_renderer.device, g_renderer.buffers.stage_mem->memory);
     vkDestroyBuffer(g_renderer.device, g_renderer.buffers.stage_buf, NULL);
 
-    for (u32_t i = 0; i < RENDERER_FRAMES_IN_FLIGHT; i++)
+    for (u32 i = 0; i < RENDERER_FRAMES_IN_FLIGHT; i++)
     {
         vkUnmapMemory(g_renderer.device, g_renderer.buffers.ubo_mem[i]->memory);
         vkDestroyBuffer(g_renderer.device, g_renderer.buffers.ubo_buf[i], NULL);
@@ -162,7 +161,7 @@ renderer_destroy()
     vkDestroyBuffer(g_renderer.device, g_renderer.buffers.vertex_buf, NULL);
     vkDestroyBuffer(g_renderer.device, g_renderer.buffers.index_buf, NULL);
 
-    for (int i = 0; i < g_renderer.pipeline_count; i++)
+    for (i32 i = 0; i < g_renderer.pipeline_count; i++)
     {
         renderer_pipeline_destroy(g_renderer.pipelines + i);
     }
@@ -170,7 +169,7 @@ renderer_destroy()
     vkDestroyDescriptorPool(g_renderer.device, g_renderer.descriptor_pool, NULL);
     vkDestroyCommandPool(g_renderer.device, g_renderer.command_pool, NULL);
 
-    for (u32_t i = 0; i < RENDERER_SWAP_IMG_COUNT; i++)
+    for (u32 i = 0; i < RENDERER_SWAP_IMG_COUNT; i++)
     {
         vkDestroyImageView(g_renderer.device, g_renderer.swapchain_img_views[i], NULL);
     }
@@ -182,11 +181,10 @@ renderer_destroy()
     vkDestroySurfaceKHR(g_renderer.instance, g_renderer.surface, NULL);
     vkDestroyInstance(g_renderer.instance, NULL);
 
-    arena_release(g_renderer.host_arena);
+    cpu_arena_release(g_renderer.host_arena);
 }
 
-internal void
-renderer_pipeline_init(renderer_pipeline_t* pipeline)
+void renderer_pipeline_init(renderer_pipeline* pipeline)
 {
     renderer_pipeline_create_descriptor_set_layout(pipeline);
     renderer_pipeline_create_descriptor_sets(pipeline);
@@ -194,8 +192,7 @@ renderer_pipeline_init(renderer_pipeline_t* pipeline)
     renderer_pipeline_create_graphics_pipeline(pipeline);
 }
 
-internal void
-renderer_pipeline_destroy(renderer_pipeline_t* pipeline)
+void renderer_pipeline_destroy(renderer_pipeline* pipeline)
 {
     vkDestroyPipeline(g_renderer.device, pipeline->graphics_pipeline, NULL);
     vkDestroyPipelineLayout(g_renderer.device, pipeline->graphics_pipeline_layout, NULL);
@@ -210,10 +207,9 @@ renderer_pipeline_destroy(renderer_pipeline_t* pipeline)
     vkDestroyDescriptorSetLayout(g_renderer.device, pipeline->descriptor_set_layout, NULL);
 }
 
-internal void
-renderer_create_instance()
+void renderer_create_instance()
 {
-    u32_t vk_api_version = VK_API_VERSION_1_4;
+    u32 vk_api_version = VK_API_VERSION_1_4;
 
     // TODO(KB): Provide appropriate names/versions for app/engine
     VkApplicationInfo app_info  = {0};
@@ -230,16 +226,16 @@ renderer_create_instance()
 
     // TODO(KB): We probably want to notify the user of unsupported/unavailable SDK version
     EMBER_ASSERT(vk_api_version_func);
-    u32_t vk_api_version_supported = VK_API_VERSION_1_0;
+    u32 vk_api_version_supported = VK_API_VERSION_1_0;
     vk_api_version_func(&vk_api_version_supported);
 
     EMBER_ASSERT(vk_api_version_supported >= vk_api_version);
 
-    b32_t exts_found = renderer_check_instance_extensions();
+    b32 exts_found = renderer_check_instance_extensions();
     EMBER_ASSERT(exts_found);
 
 #if RHI_VK_VALIDATIONS_ENABLED
-    b32_t layers_found = renderer_check_validation_layers();
+    b32 layers_found = renderer_check_validation_layers();
 #endif
 
     VkInstanceCreateInfo instance_info    = {0};
@@ -264,8 +260,7 @@ renderer_create_instance()
     EMBER_ASSERT(create_result == VK_SUCCESS);
 }
 
-internal void
-renderer_create_surface(platform_handle_t window_handle)
+void renderer_create_surface(platform_hnd window_handle)
 {
 #if PLATFORM_WINDOWS
     VkWin32SurfaceCreateInfoKHR surface_info = {0};
@@ -280,14 +275,13 @@ renderer_create_surface(platform_handle_t window_handle)
 #endif
 }
 
-internal void
-renderer_create_physical_device()
+void renderer_create_physical_device()
 {
     g_renderer.physical_device = VK_NULL_HANDLE;
 
-    scratch_t scratch = arena_scratch_begin(g_renderer.host_arena);
+    cpu_scratch scratch = cpu_scratch_begin(g_renderer.host_arena);
 
-    u32_t device_count = 0;
+    u32 device_count = 0;
     vkEnumeratePhysicalDevices(g_renderer.instance, &device_count, NULL);
 
     EMBER_ASSERT(device_count > 0);
@@ -295,7 +289,7 @@ renderer_create_physical_device()
     VkPhysicalDevice* devices = MEMORY_PUSH(scratch.arena, VkPhysicalDevice, device_count);
     vkEnumeratePhysicalDevices(g_renderer.instance, &device_count, devices);
 
-    for (u32_t i = 0; i < device_count; i++)
+    for (u32 i = 0; i < device_count; i++)
     {
         if (renderer_device_is_suitable(devices[i]))
         {
@@ -306,31 +300,30 @@ renderer_create_physical_device()
 
     EMBER_ASSERT(g_renderer.physical_device != VK_NULL_HANDLE);
 
-    arena_scratch_end(scratch);
+    cpu_scratch_end(scratch);
 }
 
-internal void
-renderer_create_queue_ids()
+void renderer_create_queue_ids()
 {
-    scratch_t scratch = arena_scratch_begin(g_renderer.host_arena);
+    cpu_scratch scratch = cpu_scratch_begin(g_renderer.host_arena);
 
-    u32_t family_count;
+    u32 family_count;
     vkGetPhysicalDeviceQueueFamilyProperties(g_renderer.physical_device, &family_count, NULL);
 
     VkQueueFamilyProperties* family_props = MEMORY_PUSH(scratch.arena, VkQueueFamilyProperties, family_count);
     vkGetPhysicalDeviceQueueFamilyProperties(g_renderer.physical_device, &family_count, family_props);
 
-    b32_t graphics_found = EMBER_FALSE;
-    b32_t present_found  = EMBER_FALSE;
-    u32_t graphics_id    = 0;
-    u32_t present_id     = 0;
+    b32 graphics_found = EMBER_FALSE;
+    b32 present_found  = EMBER_FALSE;
+    u32 graphics_id    = 0;
+    u32 present_id     = 0;
 
-    for (u32_t i = 0; i < family_count; i++)
+    for (u32 i = 0; i < family_count; i++)
     {
         VkBool32 present_support = VK_FALSE;
         vkGetPhysicalDeviceSurfaceSupportKHR(g_renderer.physical_device, i, g_renderer.surface, &present_support);
 
-        b32_t graphics_support = family_props[i].queueFlags & VK_QUEUE_GRAPHICS_BIT;
+        b32 graphics_support = family_props[i].queueFlags & VK_QUEUE_GRAPHICS_BIT;
 
         if (graphics_support && present_support)
         {
@@ -358,26 +351,25 @@ renderer_create_queue_ids()
 
     EMBER_ASSERT(graphics_found && present_found);
 
-    arena_scratch_end(scratch);
+    cpu_scratch_end(scratch);
 
     g_renderer.queue_ids.graphics     = graphics_id;
     g_renderer.queue_ids.presentation = present_id;
 }
 
-internal void
-renderer_create_device()
+void renderer_create_device()
 {
-    scratch_t scratch = arena_scratch_begin(g_renderer.host_arena);
+    cpu_scratch scratch = cpu_scratch_begin(g_renderer.host_arena);
 
-    u32_t queue_count = (g_renderer.queue_ids.graphics == g_renderer.queue_ids.presentation) ? 1 : 2;
+    u32 queue_count = (g_renderer.queue_ids.graphics == g_renderer.queue_ids.presentation) ? 1 : 2;
 
     VkDeviceQueueCreateInfo* queue_infos = MEMORY_PUSH_ZERO(scratch.arena, VkDeviceQueueCreateInfo, queue_count);
 
-    f32_t queue_priority = 1.0f;
-    for (u32_t i = 0; i < queue_count; i++)
+    f32 queue_priority = 1.0f;
+    for (u32 i = 0; i < queue_count; i++)
     {
         queue_infos[i].sType            = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-        queue_infos[i].queueFamilyIndex = *(((u32_t *)(&g_renderer.queue_ids)) + i);
+        queue_infos[i].queueFamilyIndex = *(((u32 *)(&g_renderer.queue_ids)) + i);
         queue_infos[i].queueCount       = 1;
         queue_infos[i].pQueuePriorities = &queue_priority;
     }
@@ -410,11 +402,10 @@ renderer_create_device()
     vkGetDeviceQueue(g_renderer.device, g_renderer.queue_ids.graphics, 0, &g_renderer.graphics_queue);
     vkGetDeviceQueue(g_renderer.device, g_renderer.queue_ids.presentation, 0, &g_renderer.present_queue);
 
-    arena_scratch_end(scratch);
+    cpu_scratch_end(scratch);
 }
 
-internal void
-renderer_create_swapchain(platform_handle_t window_handle)
+void renderer_create_swapchain(platform_hnd window_handle)
 {
     VkSurfaceFormatKHR swap_format = renderer_swapchain_find_format();
     VkPresentModeKHR swap_present  = renderer_swapchain_find_present();
@@ -423,7 +414,7 @@ renderer_create_swapchain(platform_handle_t window_handle)
     VkSurfaceCapabilitiesKHR capabilities;
     vkGetPhysicalDeviceSurfaceCapabilitiesKHR(g_renderer.physical_device, g_renderer.surface, &capabilities);
 
-    u32_t img_count = RENDERER_SWAP_IMG_COUNT;
+    u32 img_count = RENDERER_SWAP_IMG_COUNT;
 
     EMBER_ASSERT(img_count >= capabilities.minImageCount);
     EMBER_ASSERT(img_count <= capabilities.maxImageCount || capabilities.maxImageCount == 0);
@@ -447,7 +438,7 @@ renderer_create_swapchain(platform_handle_t window_handle)
     {
         swap_info.imageSharingMode      = VK_SHARING_MODE_CONCURRENT;
         swap_info.queueFamilyIndexCount = 2;
-        swap_info.pQueueFamilyIndices   = (u32_t *)(&g_renderer.queue_ids);
+        swap_info.pQueueFamilyIndices   = (u32 *)(&g_renderer.queue_ids);
     }
     else
     {
@@ -466,7 +457,7 @@ renderer_create_swapchain(platform_handle_t window_handle)
 
     vkGetSwapchainImagesKHR(g_renderer.device, g_renderer.swapchain, &img_count, g_renderer.swapchain_images);
 
-    for (u32_t i = 0; i < img_count; i++)
+    for (u32 i = 0; i < img_count; i++)
     {
         renderer_create_image_view(
             g_renderer.swapchain_images[i],
@@ -477,8 +468,7 @@ renderer_create_swapchain(platform_handle_t window_handle)
     }
 }
 
-internal void
-renderer_create_command_pool()
+void renderer_create_command_pool()
 {
     VkCommandPoolCreateInfo pool_info = {0};
     pool_info.sType                   = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
@@ -489,8 +479,7 @@ renderer_create_command_pool()
     EMBER_ASSERT(create_result == VK_SUCCESS);
 }
 
-internal void
-renderer_create_command_buffers()
+void renderer_create_command_buffers()
 {
     VkCommandBufferAllocateInfo alloc_info = {0};
     alloc_info.sType                       = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -502,8 +491,7 @@ renderer_create_command_buffers()
     EMBER_ASSERT(alloc_result == VK_SUCCESS);
 }
 
-internal void
-renderer_create_descriptor_pool()
+void renderer_create_descriptor_pool()
 {
     VkDescriptorPoolSize pool_sizes[1] = {0};
     pool_sizes[0].type                 = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -519,8 +507,7 @@ renderer_create_descriptor_pool()
     EMBER_ASSERT(vk_result == VK_SUCCESS);
 }
 
-internal void
-renderer_create_sync_primitives()
+void renderer_create_sync_primitives()
 {
     VkSemaphoreCreateInfo sem_info = {0};
     sem_info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
@@ -529,7 +516,7 @@ renderer_create_sync_primitives()
     fence_info.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
     fence_info.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 
-    for (u32_t i = 0; i < RENDERER_FRAMES_IN_FLIGHT; i++)
+    for (u32 i = 0; i < RENDERER_FRAMES_IN_FLIGHT; i++)
     {
         VkResult create_result;
 
@@ -544,8 +531,7 @@ renderer_create_sync_primitives()
     }
 }
 
-internal void
-renderer_create_resources()
+void renderer_create_resources()
 {
     VkBufferUsageFlags flags_vert = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
     VkBufferUsageFlags flags_idx  = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
@@ -557,7 +543,7 @@ renderer_create_resources()
     renderer_create_buffer(&g_renderer.buffers.index_buf, GPU_MEM_SIZE_INDEX, flags_idx);
     renderer_create_buffer(&g_renderer.buffers.stage_buf, GPU_MEM_SIZE_STG, flags_stg);
 
-    for (u32_t i = 0; i < RENDERER_FRAMES_IN_FLIGHT; i++)
+    for (u32 i = 0; i < RENDERER_FRAMES_IN_FLIGHT; i++)
     {
         renderer_create_buffer(&g_renderer.buffers.ubo_buf[i], GPU_MEM_SIZE_UBO / RENDERER_FRAMES_IN_FLIGHT, flags_ubo);
         renderer_create_buffer(&g_renderer.buffers.ssbo_buf[i], GPU_MEM_SIZE_SSBO / RENDERER_FRAMES_IN_FLIGHT, flags_ssbo);
@@ -578,7 +564,7 @@ renderer_create_resources()
 
     EMBER_ASSERT(vk_result == VK_SUCCESS);
 
-    for (u32_t i = 0; i < RENDERER_FRAMES_IN_FLIGHT; i++)
+    for (u32 i = 0; i < RENDERER_FRAMES_IN_FLIGHT; i++)
     {
         g_renderer.buffers.ubo_mem[i]  = renderer_create_buffer_memory(g_renderer.buffers.ubo_buf[i], GPU_MEM_TYPE_ubo);
         g_renderer.buffers.ssbo_mem[i] = renderer_create_buffer_memory(g_renderer.buffers.ssbo_buf[i], GPU_MEM_TYPE_ssbo);
@@ -607,14 +593,13 @@ renderer_create_resources()
     }
 }
 
-internal void
-renderer_create_mesh(vertex_t* vertices, u32_t vertex_count, u32_t* indices, u32_t index_count)
+void renderer_create_mesh(vertex* vertices, u32 vertex_count, u32* indices, u32 index_count)
 {
-    u32_t vertex_size = vertex_count * RENDERER_SIZE_VERTEX;
-    u32_t index_size  = index_count * RENDERER_SIZE_INDEX;
+    u32 vertex_size = vertex_count * RENDERER_SIZE_VERTEX;
+    u32 index_size  = index_count * RENDERER_SIZE_INDEX;
 
-    renderer_mesh_t* new_mesh = MEMORY_PUSH(g_renderer.host_arena, renderer_mesh_t, 1);
-    renderer_mesh_t* last     = g_renderer.mesh_data;
+    renderer_mesh* new_mesh = MEMORY_PUSH(g_renderer.host_arena, renderer_mesh, 1);
+    renderer_mesh* last     = g_renderer.mesh_data;
 
     if (last == NULL)
     {
@@ -645,7 +630,7 @@ renderer_create_mesh(vertex_t* vertices, u32_t vertex_count, u32_t* indices, u32
         vertex_size
     );
 
-    memcpy((u8_t*)g_renderer.buffers.stage_mapped, indices, index_size);
+    memcpy((u8 *)g_renderer.buffers.stage_mapped, indices, index_size);
     renderer_copy_buffer(
         g_renderer.buffers.stage_buf,
         g_renderer.buffers.index_buf,
@@ -655,8 +640,7 @@ renderer_create_mesh(vertex_t* vertices, u32_t vertex_count, u32_t* indices, u32
     );
 }
 
-internal void
-renderer_create_depth_resources()
+void renderer_create_depth_resources()
 {
     VkFormat formats[] = {
         VK_FORMAT_D32_SFLOAT,
@@ -666,7 +650,7 @@ renderer_create_depth_resources()
 
     VkFormat depth_format = VK_FORMAT_UNDEFINED;
 
-    for (u32_t i = 0; i < ARRAY_COUNT(formats); i++)
+    for (u32 i = 0; i < ARRAY_COUNT(formats); i++)
     {
         VkFormatProperties format_props;
         vkGetPhysicalDeviceFormatProperties(g_renderer.physical_device, formats[i], &format_props);
@@ -756,8 +740,7 @@ renderer_create_depth_resources()
     vkFreeCommandBuffers(g_renderer.device, g_renderer.command_pool, 1, &cmd_buffer);
 }
 
-internal void
-renderer_create_buffer(VkBuffer* buffer, VkDeviceSize size, VkBufferUsageFlags usage)
+void renderer_create_buffer(VkBuffer* buffer, VkDeviceSize size, VkBufferUsageFlags usage)
 {
     VkBufferCreateInfo buffer_info = {0};
     buffer_info.sType              = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -770,8 +753,7 @@ renderer_create_buffer(VkBuffer* buffer, VkDeviceSize size, VkBufferUsageFlags u
     EMBER_ASSERT(vk_result == VK_SUCCESS);
 }
 
-internal void
-renderer_create_image(VkImage* image, u32_t width, u32_t height, VkImageUsageFlags usage, VkImageTiling tiling, VkFormat format)
+void renderer_create_image(VkImage* image, u32 width, u32 height, VkImageUsageFlags usage, VkImageTiling tiling, VkFormat format)
 {
     VkImageCreateInfo image_info     = {0};
     image_info.sType                 = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
@@ -795,8 +777,7 @@ renderer_create_image(VkImage* image, u32_t width, u32_t height, VkImageUsageFla
     EMBER_ASSERT(vk_result == VK_SUCCESS);
 }
 
-internal void
-renderer_create_image_view(VkImage image, VkImageView* view, VkFormat format, VkImageAspectFlags aspect_flags)
+void renderer_create_image_view(VkImage image, VkImageView* view, VkFormat format, VkImageAspectFlags aspect_flags)
 {
     VkImageViewCreateInfo view_info           = {0};
     view_info.sType                           = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -818,8 +799,7 @@ renderer_create_image_view(VkImage image, VkImageView* view, VkFormat format, Vk
     EMBER_ASSERT(vk_result == VK_SUCCESS);
 }
 
-internal void
-renderer_copy_buffer(VkBuffer src, VkBuffer dst, VkDeviceSize offset_src, VkDeviceSize offset_dst, VkDeviceSize size)
+void renderer_copy_buffer(VkBuffer src, VkBuffer dst, VkDeviceSize offset_src, VkDeviceSize offset_dst, VkDeviceSize size)
 {
     VkCommandBufferAllocateInfo alloc_info = {0};
     alloc_info.sType                       = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -862,38 +842,35 @@ renderer_copy_buffer(VkBuffer src, VkBuffer dst, VkDeviceSize offset_src, VkDevi
 }
 
 
-internal gpu_mem_t*
-renderer_create_buffer_memory(VkBuffer buffer, gpu_mem_type_t mem_type)
+gpu_mem* renderer_create_buffer_memory(VkBuffer buffer, gpu_mem_type mem_type)
 {
     VkMemoryRequirements mem_req;
     vkGetBufferMemoryRequirements(g_renderer.device, buffer, &mem_req);
 
     EMBER_ASSERT((mem_req.memoryTypeBits & (1 << g_renderer.gpu_arena.blocks[mem_type].mem_idx)) != 0);
 
-    gpu_mem_t* alloc = gpu_arena_alloc(&g_renderer.gpu_arena, mem_req.size, mem_req.alignment, mem_type);
+    gpu_mem* alloc = gpu_arena_alloc(&g_renderer.gpu_arena, mem_req.size, mem_req.alignment, mem_type);
 
     vkBindBufferMemory(g_renderer.device, buffer, alloc->memory, alloc->offset);
 
     return alloc;
 }
 
-internal gpu_mem_t*
-renderer_create_image_memory(VkImage image, gpu_mem_type_t mem_type)
+gpu_mem* renderer_create_image_memory(VkImage image, gpu_mem_type mem_type)
 {
     VkMemoryRequirements mem_req;
     vkGetImageMemoryRequirements(g_renderer.device, image, &mem_req);
 
     EMBER_ASSERT((mem_req.memoryTypeBits & (1 << g_renderer.gpu_arena.blocks[mem_type].mem_idx)) != 0);
 
-    gpu_mem_t* alloc = gpu_arena_alloc(&g_renderer.gpu_arena, mem_req.size, mem_req.alignment, mem_type);
+    gpu_mem* alloc = gpu_arena_alloc(&g_renderer.gpu_arena, mem_req.size, mem_req.alignment, mem_type);
 
     vkBindImageMemory(g_renderer.device, image, alloc->memory, alloc->offset);
 
     return alloc;
 }
 
-internal void
-renderer_pipeline_create_descriptor_set_layout(renderer_pipeline_t* pipeline)
+void renderer_pipeline_create_descriptor_set_layout(renderer_pipeline* pipeline)
 {
     VkDescriptorSetLayoutBinding bindings[2] = {0};
     bindings[0].binding                      = 0;
@@ -917,8 +894,7 @@ renderer_pipeline_create_descriptor_set_layout(renderer_pipeline_t* pipeline)
     EMBER_ASSERT(create_result == VK_SUCCESS);
 }
 
-internal void
-renderer_pipeline_create_descriptor_sets(renderer_pipeline_t* pipeline)
+void renderer_pipeline_create_descriptor_sets(renderer_pipeline* pipeline)
 {
     VkDescriptorSetLayout layouts[RENDERER_FRAMES_IN_FLIGHT] = {
         pipeline->descriptor_set_layout,
@@ -934,7 +910,7 @@ renderer_pipeline_create_descriptor_sets(renderer_pipeline_t* pipeline)
     VkResult vk_result = vkAllocateDescriptorSets(g_renderer.device, &alloc_info, pipeline->descriptor_sets);
     EMBER_ASSERT(vk_result == VK_SUCCESS);
 
-    for (u32_t i = 0; i < RENDERER_FRAMES_IN_FLIGHT; i++)
+    for (u32 i = 0; i < RENDERER_FRAMES_IN_FLIGHT; i++)
     {
         VkDescriptorBufferInfo ubo_info = {0};
         ubo_info.buffer                 = g_renderer.buffers.ubo_buf[i];
@@ -971,13 +947,12 @@ renderer_pipeline_create_descriptor_sets(renderer_pipeline_t* pipeline)
     }
 }
 
-internal void
-renderer_pipeline_create_graphics_pipeline_layout(renderer_pipeline_t* pipeline)
+void renderer_pipeline_create_graphics_pipeline_layout(renderer_pipeline* pipeline)
 {
     VkPushConstantRange push_constant_range = {0};
     push_constant_range.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
     push_constant_range.offset     = 0;
-    push_constant_range.size       = sizeof(renderer_push_constant_t);
+    push_constant_range.size       = sizeof(renderer_push_constant);
 
     VkPipelineLayoutCreateInfo layout_info = {0};
     layout_info.sType                      = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
@@ -990,15 +965,14 @@ renderer_pipeline_create_graphics_pipeline_layout(renderer_pipeline_t* pipeline)
     EMBER_ASSERT(create_result == VK_SUCCESS);
 }
 
-internal void
-renderer_pipeline_create_graphics_pipeline(renderer_pipeline_t* pipeline)
+void renderer_pipeline_create_graphics_pipeline(renderer_pipeline* pipeline)
 {
-    scratch_t scratch = arena_scratch_begin(g_renderer.host_arena);
-    u8_t* vert        = MEMORY_PUSH(scratch.arena, u8_t, KB(16));
-    u8_t* frag        = MEMORY_PUSH(scratch.arena, u8_t, KB(16));
+    cpu_scratch scratch = cpu_scratch_begin(g_renderer.host_arena);
+    u8* vert            = MEMORY_PUSH(scratch.arena, u8, KB(16));
+    u8* frag            = MEMORY_PUSH(scratch.arena, u8, KB(16));
 
-    u64_t vert_size = platform_file_data("./triangle_vert.spv", vert);
-    u64_t frag_size = platform_file_data("./triangle_frag.spv", frag);
+    u64 vert_size = platform_file_data("./triangle_vert.spv", vert);
+    u64 frag_size = platform_file_data("./triangle_frag.spv", frag);
 
     VkShaderModule vert_module = renderer_pipeline_create_shader_module(vert, vert_size);
     VkShaderModule frag_module = renderer_pipeline_create_shader_module(frag, frag_size);
@@ -1024,22 +998,22 @@ renderer_pipeline_create_graphics_pipeline(renderer_pipeline_t* pipeline)
     VkVertexInputAttributeDescription vertex_attr[VERTEX_ATTR_TYPE_count] = {0};
     vertex_attr[VERTEX_ATTR_TYPE_position].binding                        = 0;
     vertex_attr[VERTEX_ATTR_TYPE_position].location                       = 0;
-    vertex_attr[VERTEX_ATTR_TYPE_position].offset                         = offsetof(vertex_t, position);
+    vertex_attr[VERTEX_ATTR_TYPE_position].offset                         = offsetof(vertex, position);
     vertex_attr[VERTEX_ATTR_TYPE_position].format                         = VK_FORMAT_R32G32B32_SFLOAT;
 
     vertex_attr[VERTEX_ATTR_TYPE_normal].binding                          = 0;
     vertex_attr[VERTEX_ATTR_TYPE_normal].location                         = 1;
-    vertex_attr[VERTEX_ATTR_TYPE_normal].offset                           = offsetof(vertex_t, normal);
+    vertex_attr[VERTEX_ATTR_TYPE_normal].offset                           = offsetof(vertex, normal);
     vertex_attr[VERTEX_ATTR_TYPE_normal].format                           = VK_FORMAT_R32G32B32_SFLOAT;
 
     vertex_attr[VERTEX_ATTR_TYPE_color].binding                           = 0;
     vertex_attr[VERTEX_ATTR_TYPE_color].location                          = 2;
-    vertex_attr[VERTEX_ATTR_TYPE_color].offset                            = offsetof(vertex_t, color);
+    vertex_attr[VERTEX_ATTR_TYPE_color].offset                            = offsetof(vertex, color);
     vertex_attr[VERTEX_ATTR_TYPE_color].format                            = VK_FORMAT_R32G32B32_SFLOAT;
 
     vertex_attr[VERTEX_ATTR_TYPE_uv].binding                              = 0;
     vertex_attr[VERTEX_ATTR_TYPE_uv].location                             = 3;
-    vertex_attr[VERTEX_ATTR_TYPE_uv].offset                               = offsetof(vertex_t, uv);
+    vertex_attr[VERTEX_ATTR_TYPE_uv].offset                               = offsetof(vertex, uv);
     vertex_attr[VERTEX_ATTR_TYPE_uv].format                               = VK_FORMAT_R32G32_SFLOAT;
 
     VkPipelineVertexInputStateCreateInfo vertex_input_info = {0};
@@ -1164,16 +1138,15 @@ renderer_pipeline_create_graphics_pipeline(renderer_pipeline_t* pipeline)
     vkDestroyShaderModule(g_renderer.device, vert_module, NULL);
     vkDestroyShaderModule(g_renderer.device, frag_module, NULL);
 
-    arena_scratch_end(scratch);
+    cpu_scratch_end(scratch);
 }
 
-internal VkShaderModule
-renderer_pipeline_create_shader_module(const u8_t* code, u64_t code_size)
+VkShaderModule renderer_pipeline_create_shader_module(const u8* code, u64 code_size)
 {
     VkShaderModuleCreateInfo module_info = {0};
     module_info.sType                    = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
     module_info.codeSize                 = code_size;
-    module_info.pCode                    = (u32_t *)code;
+    module_info.pCode                    = (u32 *)code;
 
     VkShaderModule result;
 
@@ -1183,17 +1156,16 @@ renderer_pipeline_create_shader_module(const u8_t* code, u64_t code_size)
     return result;
 }
 
-internal void
-renderer_swapchain_recreate(platform_handle_t window_handle)
+void renderer_swapchain_recreate(platform_hnd window_handle)
 {
-    while(platform_gfx_window_is_minimized(window_handle))
+    while(platform_gfx_wnd_is_minimized(window_handle))
     {
         platform_gfx_process_events();
     }
 
     vkDeviceWaitIdle(g_renderer.device);
 
-    for (u32_t i = 0; i < RENDERER_SWAP_IMG_COUNT; i++)
+    for (u32 i = 0; i < RENDERER_SWAP_IMG_COUNT; i++)
     {
         vkDestroyImageView(g_renderer.device, g_renderer.swapchain_img_views[i], NULL);
     }
@@ -1208,12 +1180,11 @@ renderer_swapchain_recreate(platform_handle_t window_handle)
     renderer_create_depth_resources();
 }
 
-internal VkSurfaceFormatKHR
-renderer_swapchain_find_format()
+VkSurfaceFormatKHR renderer_swapchain_find_format()
 {
-    scratch_t scratch = arena_scratch_begin(g_renderer.host_arena);
+    cpu_scratch scratch = cpu_scratch_begin(g_renderer.host_arena);
 
-    u32_t format_count;
+    u32 format_count;
     vkGetPhysicalDeviceSurfaceFormatsKHR(g_renderer.physical_device, g_renderer.surface, &format_count, NULL);
 
     EMBER_ASSERT(format_count > 0);
@@ -1228,16 +1199,16 @@ renderer_swapchain_find_format()
 
     if (format_count == 1 && formats[0].format == VK_FORMAT_UNDEFINED)
     {
-        arena_scratch_end(scratch);
+        cpu_scratch_end(scratch);
 
         return result;
     }
 
-    for (u32_t i = 0; i < format_count; i++)
+    for (u32 i = 0; i < format_count; i++)
     {
         if (formats[i].format == result.format && formats[i].colorSpace == result.colorSpace)
         {
-            arena_scratch_end(scratch);
+            cpu_scratch_end(scratch);
 
             return result;
         }
@@ -1245,38 +1216,36 @@ renderer_swapchain_find_format()
 
     result = formats[0];
 
-    arena_scratch_end(scratch);
+    cpu_scratch_end(scratch);
 
     return result;
 }
 
-internal VkPresentModeKHR
-renderer_swapchain_find_present()
+VkPresentModeKHR renderer_swapchain_find_present()
 {
-    scratch_t scratch = arena_scratch_begin(g_renderer.host_arena);
+    cpu_scratch scratch = cpu_scratch_begin(g_renderer.host_arena);
 
-    u32_t present_count;
+    u32 present_count;
     vkGetPhysicalDeviceSurfacePresentModesKHR(g_renderer.physical_device, g_renderer.surface, &present_count, NULL);
 
     VkPresentModeKHR* present_modes = MEMORY_PUSH(scratch.arena, VkPresentModeKHR, present_count);
     vkGetPhysicalDeviceSurfacePresentModesKHR(g_renderer.physical_device, g_renderer.surface, &present_count, present_modes);
 
-    for (u32_t i = 0; i < present_count; i++)
+    for (u32 i = 0; i < present_count; i++)
     {
         if (present_modes[i] == VK_PRESENT_MODE_MAILBOX_KHR)
         {
-            arena_scratch_end(scratch);
+            cpu_scratch_end(scratch);
             return present_modes[i];
         }
     }
 
     // NOTE(KB): VK_PRESENT_MODE_FIFO_KHR is the only one guaranteed to exist
-    arena_scratch_end(scratch);
+    cpu_scratch_end(scratch);
     return VK_PRESENT_MODE_FIFO_KHR;
 }
 
-internal VkExtent2D
-renderer_swapchain_find_extent(platform_handle_t window_handle)
+VkExtent2D renderer_swapchain_find_extent(platform_hnd window_handle)
 {
     VkSurfaceCapabilitiesKHR capabilities;
     vkGetPhysicalDeviceSurfaceCapabilitiesKHR(g_renderer.physical_device, g_renderer.surface, &capabilities);
@@ -1286,7 +1255,7 @@ renderer_swapchain_find_extent(platform_handle_t window_handle)
         return capabilities.currentExtent;
     }
 
-    platform_window_size_t client_size = platform_gfx_window_client_get_size(window_handle);
+    platform_wnd_size client_size = platform_gfx_wnd_client_get_size(window_handle);
 
     VkExtent2D extent;
 
@@ -1296,8 +1265,7 @@ renderer_swapchain_find_extent(platform_handle_t window_handle)
     return extent;
 }
 
-internal void
-renderer_command_buffer_record(renderer_pipeline_t* pipeline, u32_t buffer_id, u32_t img_id)
+void renderer_command_buffer_record(renderer_pipeline* pipeline, u32 buffer_id, u32 img_id)
 {
     VkCommandBufferBeginInfo begin_info = {0};
     begin_info.sType                    = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -1353,8 +1321,8 @@ renderer_command_buffer_record(renderer_pipeline_t* pipeline, u32_t buffer_id, u
     VkViewport viewport = {0};
     viewport.x          = 0.0f;
     viewport.y          = 0.0f;
-    viewport.width      = (f32_t)g_renderer.swapchain_extent.width;
-    viewport.height     = (f32_t)g_renderer.swapchain_extent.height;
+    viewport.width      = (f32)g_renderer.swapchain_extent.width;
+    viewport.height     = (f32)g_renderer.swapchain_extent.height;
     viewport.minDepth   = 0.0f;
     viewport.maxDepth   = 1.0f;
 
@@ -1410,17 +1378,17 @@ renderer_command_buffer_record(renderer_pipeline_t* pipeline, u32_t buffer_id, u
         NULL
     );
 
-    u32_t index = 0;
-    for (i32_t i = 0; i < g_renderer.node_count; i++)
+    u32 index = 0;
+    for (i32 i = 0; i < g_renderer.node_count; i++)
     {
-        renderer_mesh_t* mesh = g_renderer.mesh_data;
+        renderer_mesh* mesh = g_renderer.mesh_data;
 
         if (g_renderer.nodes[i].mesh_id < 0)
         {
             continue;
         }
 
-        for (i32_t j = 0; j < g_renderer.nodes[i].mesh_id; j++)
+        for (i32 j = 0; j < g_renderer.nodes[i].mesh_id; j++)
         {
             if (mesh->next == NULL)
             {
@@ -1435,7 +1403,7 @@ renderer_command_buffer_record(renderer_pipeline_t* pipeline, u32_t buffer_id, u
             g_renderer.pipelines->graphics_pipeline_layout,
             VK_SHADER_STAGE_VERTEX_BIT,
             0,
-            sizeof(renderer_push_constant_t),
+            sizeof(renderer_push_constant),
             &index
         );
 
@@ -1475,22 +1443,21 @@ renderer_command_buffer_record(renderer_pipeline_t* pipeline, u32_t buffer_id, u
     EMBER_ASSERT(cmd_result == VK_SUCCESS);
 }
 
-internal b32_t
-renderer_check_validation_layers()
+b32 renderer_check_validation_layers()
 {
-    scratch_t scratch = arena_scratch_begin(g_renderer.host_arena);
+    cpu_scratch scratch = cpu_scratch_begin(g_renderer.host_arena);
 
-    u32_t layer_count = 0;
+    u32 layer_count = 0;
     vkEnumerateInstanceLayerProperties(&layer_count, NULL);
 
     VkLayerProperties* layer_props = MEMORY_PUSH(scratch.arena, VkLayerProperties, layer_count);
     vkEnumerateInstanceLayerProperties(&layer_count, layer_props);
 
-    b32_t layers_found = EMBER_TRUE;
-    for (u32_t i = 0; i < ARRAY_COUNT(g_validation_layers); i++)
+    b32 layers_found = EMBER_TRUE;
+    for (u32 i = 0; i < ARRAY_COUNT(g_validation_layers); i++)
     {
-        b32_t layer_found = EMBER_FALSE;
-        for (u32_t j = 0; j < layer_count; j++)
+        b32 layer_found = EMBER_FALSE;
+        for (u32 j = 0; j < layer_count; j++)
         {
             if (strcmp(g_validation_layers[i], layer_props[j].layerName) == 0)
             {
@@ -1502,27 +1469,26 @@ renderer_check_validation_layers()
         layers_found &= layer_found;
     }
 
-    arena_scratch_end(scratch);
+    cpu_scratch_end(scratch);
 
     return layers_found;
 }
 
-internal b32_t
-renderer_check_instance_extensions()
+b32 renderer_check_instance_extensions()
 {
-    scratch_t scratch = arena_scratch_begin(g_renderer.host_arena);
+    cpu_scratch scratch = cpu_scratch_begin(g_renderer.host_arena);
 
-    u32_t ext_count = 0;
+    u32 ext_count = 0;
     vkEnumerateInstanceExtensionProperties(NULL, &ext_count, NULL);
 
     VkExtensionProperties* ext_props = MEMORY_PUSH(scratch.arena, VkExtensionProperties, ext_count);
     vkEnumerateInstanceExtensionProperties(NULL, &ext_count, ext_props);
 
-    b32_t exts_found = EMBER_TRUE;
-    for (u32_t i = 0; i < ARRAY_COUNT(g_instance_extensions); i++)
+    b32 exts_found = EMBER_TRUE;
+    for (u32 i = 0; i < ARRAY_COUNT(g_instance_extensions); i++)
     {
-        b32_t ext_found = EMBER_FALSE;
-        for (u32_t j = 0; j < ext_count; j++)
+        b32 ext_found = EMBER_FALSE;
+        for (u32 j = 0; j < ext_count; j++)
         {
             if (strcmp(g_instance_extensions[i], ext_props[j].extensionName) == 0)
             {
@@ -1534,27 +1500,26 @@ renderer_check_instance_extensions()
         exts_found &= ext_found;
     }
 
-    arena_scratch_end(scratch);
+    cpu_scratch_end(scratch);
 
     return exts_found;
 }
 
-internal b32_t
-renderer_check_device_extensions(VkPhysicalDevice device)
+b32 renderer_check_device_extensions(VkPhysicalDevice device)
 {
-    scratch_t scratch = arena_scratch_begin(g_renderer.host_arena);
+    cpu_scratch scratch = cpu_scratch_begin(g_renderer.host_arena);
 
-    u32_t ext_count = 0;
+    u32 ext_count = 0;
     vkEnumerateDeviceExtensionProperties(device, NULL, &ext_count, NULL);
 
     VkExtensionProperties* ext_props = MEMORY_PUSH(scratch.arena, VkExtensionProperties, ext_count);
     vkEnumerateDeviceExtensionProperties(device, NULL, &ext_count, ext_props);
 
-    b32_t exts_found = EMBER_TRUE;
-    for (u32_t i = 0; i < ARRAY_COUNT(g_device_extensions); i++)
+    b32 exts_found = EMBER_TRUE;
+    for (u32 i = 0; i < ARRAY_COUNT(g_device_extensions); i++)
     {
-        b32_t ext_found = EMBER_FALSE;
-        for (u32_t j = 0; j < ext_count; j++)
+        b32 ext_found = EMBER_FALSE;
+        for (u32 j = 0; j < ext_count; j++)
         {
             if (strcmp(g_device_extensions[i], ext_props[j].extensionName) == 0)
             {
@@ -1566,13 +1531,12 @@ renderer_check_device_extensions(VkPhysicalDevice device)
         exts_found &= ext_found;
     }
 
-    arena_scratch_end(scratch);
+    cpu_scratch_end(scratch);
 
     return exts_found;
 }
 
-internal b32_t
-renderer_device_is_suitable(VkPhysicalDevice device)
+b32 renderer_device_is_suitable(VkPhysicalDevice device)
 {
     VkPhysicalDeviceProperties2 props = {0};
     props.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2;
@@ -1587,11 +1551,11 @@ renderer_device_is_suitable(VkPhysicalDevice device)
     vkGetPhysicalDeviceProperties2(device, &props);
     vkGetPhysicalDeviceFeatures2(device, &feats);
 
-    b32_t exts_supported = renderer_check_device_extensions(device);
-    b32_t prop_supported = (props.properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU);
-    b32_t feat_supported = feats.features.samplerAnisotropy && feats_13.dynamicRendering && feats_13.synchronization2;
+    b32 exts_supported = renderer_check_device_extensions(device);
+    b32 prop_supported = (props.properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU);
+    b32 feat_supported = feats.features.samplerAnisotropy && feats_13.dynamicRendering && feats_13.synchronization2;
 
-    b32_t result =
+    b32 result =
         exts_supported &&
         prop_supported &&
         feat_supported;

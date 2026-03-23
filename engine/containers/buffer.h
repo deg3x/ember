@@ -1,18 +1,18 @@
 #ifndef BUFFER_H
 #define BUFFER_H
 
-typedef struct buffer_t buffer_t;
-struct buffer_t
+typedef struct buffer buffer;
+struct buffer
 {
-    u64_t size;
-    u8_t* data;
+    u64 size;
+    u8* data;
 };
 
-internal b32_t buffer_is_valid(buffer_t* buffer);
-internal b32_t buffer_is_valid_idx(buffer_t* buffer, u64_t idx);
-internal b32_t buffer_is_equal(buffer_t* lhs, buffer_t* rhs);
+b32 buffer_is_valid(buffer* buf);
+b32 buffer_is_valid_idx(buffer* buf, u64 idx);
+b32 buffer_is_equal(buffer* lhs, buffer* rhs);
 
-internal buffer_t buffer_from_cstr(const c8_t* cstr);
-internal void     buffer_to_cstr(buffer_t* buffer, c8_t* dest);
+buffer buffer_from_cstr(const c8* cstr);
+void   buffer_to_cstr(buffer* buf, c8* dest);
 
 #endif //BUFFER_H

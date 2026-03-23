@@ -1,19 +1,18 @@
-internal f32_t
-mat4_determinant(mat4_t* matrix)
+f32 mat4_determinant(mat4* matrix)
 {
-    f32_t det_23 = matrix->m[2][2] * matrix->m[3][3] - matrix->m[2][3] * matrix->m[3][2];
-    f32_t det_13 = matrix->m[1][2] * matrix->m[3][3] - matrix->m[1][3] * matrix->m[3][2];
-    f32_t det_12 = matrix->m[1][2] * matrix->m[2][3] - matrix->m[1][3] * matrix->m[2][2];
-    f32_t det_03 = matrix->m[0][2] * matrix->m[3][3] - matrix->m[0][3] * matrix->m[3][2];
-    f32_t det_02 = matrix->m[0][2] * matrix->m[2][3] - matrix->m[0][3] * matrix->m[2][2];
-    f32_t det_01 = matrix->m[0][2] * matrix->m[1][3] - matrix->m[0][3] * matrix->m[1][2];
+    f32 det_23 = matrix->m[2][2] * matrix->m[3][3] - matrix->m[2][3] * matrix->m[3][2];
+    f32 det_13 = matrix->m[1][2] * matrix->m[3][3] - matrix->m[1][3] * matrix->m[3][2];
+    f32 det_12 = matrix->m[1][2] * matrix->m[2][3] - matrix->m[1][3] * matrix->m[2][2];
+    f32 det_03 = matrix->m[0][2] * matrix->m[3][3] - matrix->m[0][3] * matrix->m[3][2];
+    f32 det_02 = matrix->m[0][2] * matrix->m[2][3] - matrix->m[0][3] * matrix->m[2][2];
+    f32 det_01 = matrix->m[0][2] * matrix->m[1][3] - matrix->m[0][3] * matrix->m[1][2];
 
-    f32_t det_123 = matrix->m[1][1] * det_23 - matrix->m[2][1] * det_13 + matrix->m[3][1] * det_12;
-    f32_t det_023 = matrix->m[0][1] * det_23 - matrix->m[2][1] * det_03 + matrix->m[3][1] * det_02;
-    f32_t det_013 = matrix->m[0][1] * det_13 - matrix->m[1][1] * det_03 + matrix->m[3][1] * det_01;
-    f32_t det_012 = matrix->m[0][1] * det_12 - matrix->m[1][1] * det_02 + matrix->m[2][1] * det_01;
+    f32 det_123 = matrix->m[1][1] * det_23 - matrix->m[2][1] * det_13 + matrix->m[3][1] * det_12;
+    f32 det_023 = matrix->m[0][1] * det_23 - matrix->m[2][1] * det_03 + matrix->m[3][1] * det_02;
+    f32 det_013 = matrix->m[0][1] * det_13 - matrix->m[1][1] * det_03 + matrix->m[3][1] * det_01;
+    f32 det_012 = matrix->m[0][1] * det_12 - matrix->m[1][1] * det_02 + matrix->m[2][1] * det_01;
 
-    f32_t result =
+    f32 result =
         matrix->m[0][0] * det_123 -
         matrix->m[1][0] * det_023 +
         matrix->m[2][0] * det_013 -
@@ -22,10 +21,9 @@ mat4_determinant(mat4_t* matrix)
     return result;
 }
 
-internal mat4_t
-mat4_add(mat4_t* lhs, mat4_t* rhs)
+mat4 mat4_add(mat4* lhs, mat4* rhs)
 {
-    mat4_t result = {{
+    mat4 result = {{
         vec4_add(&lhs->cols[0], &rhs->cols[0]),
         vec4_add(&lhs->cols[1], &rhs->cols[1]),
         vec4_add(&lhs->cols[2], &rhs->cols[2]),
@@ -35,10 +33,9 @@ mat4_add(mat4_t* lhs, mat4_t* rhs)
     return result;
 }
 
-internal mat4_t
-mat4_sub(mat4_t* lhs, mat4_t* rhs)
+mat4 mat4_sub(mat4* lhs, mat4* rhs)
 {
-    mat4_t result = {{
+    mat4 result = {{
         vec4_sub(&lhs->cols[0], &rhs->cols[0]),
         vec4_sub(&lhs->cols[1], &rhs->cols[1]),
         vec4_sub(&lhs->cols[2], &rhs->cols[2]),
@@ -48,12 +45,11 @@ mat4_sub(mat4_t* lhs, mat4_t* rhs)
     return result;
 }
 
-internal mat4_t
-mat4_mul(mat4_t* lhs, mat4_t* rhs)
+mat4 mat4_mul(mat4* lhs, mat4* rhs)
 {
-    mat4_t lhs_tr = mat4_transpose(lhs);
+    mat4 lhs_tr = mat4_transpose(lhs);
 
-    mat4_t result = {
+    mat4 result = {
         .m = {
             {vec4_dot(&lhs_tr.cols[0], &rhs->cols[0]), vec4_dot(&lhs_tr.cols[1], &rhs->cols[0]), vec4_dot(&lhs_tr.cols[2], &rhs->cols[0]), vec4_dot(&lhs_tr.cols[3], &rhs->cols[0])},
             {vec4_dot(&lhs_tr.cols[0], &rhs->cols[1]), vec4_dot(&lhs_tr.cols[1], &rhs->cols[1]), vec4_dot(&lhs_tr.cols[2], &rhs->cols[1]), vec4_dot(&lhs_tr.cols[3], &rhs->cols[1])},
@@ -65,10 +61,9 @@ mat4_mul(mat4_t* lhs, mat4_t* rhs)
     return result;
 }
 
-internal mat4_t
-mat4_mul_s(mat4_t* lhs, f32_t rhs)
+mat4 mat4_mul_s(mat4* lhs, f32 rhs)
 {
-    mat4_t result = {{
+    mat4 result = {{
         vec4_mul_s(&lhs->cols[0], rhs),
         vec4_mul_s(&lhs->cols[1], rhs),
         vec4_mul_s(&lhs->cols[2], rhs),
@@ -78,22 +73,21 @@ mat4_mul_s(mat4_t* lhs, f32_t rhs)
     return result;
 }
 
-internal mat4_t
-mat4_inverse(mat4_t* matrix)
+mat4 mat4_inverse(mat4* matrix)
 {
-    f32_t det_23_23 = matrix->m[2][2] * matrix->m[3][3] - matrix->m[2][3] * matrix->m[3][2];
-    f32_t det_23_13 = matrix->m[1][2] * matrix->m[3][3] - matrix->m[1][3] * matrix->m[3][2];
-    f32_t det_23_12 = matrix->m[1][2] * matrix->m[2][3] - matrix->m[1][3] * matrix->m[2][2];
-    f32_t det_23_03 = matrix->m[0][2] * matrix->m[3][3] - matrix->m[0][3] * matrix->m[3][2];
-    f32_t det_23_02 = matrix->m[0][2] * matrix->m[2][3] - matrix->m[0][3] * matrix->m[2][2];
-    f32_t det_23_01 = matrix->m[0][2] * matrix->m[1][3] - matrix->m[0][3] * matrix->m[1][2];
+    f32 det_23_23 = matrix->m[2][2] * matrix->m[3][3] - matrix->m[2][3] * matrix->m[3][2];
+    f32 det_23_13 = matrix->m[1][2] * matrix->m[3][3] - matrix->m[1][3] * matrix->m[3][2];
+    f32 det_23_12 = matrix->m[1][2] * matrix->m[2][3] - matrix->m[1][3] * matrix->m[2][2];
+    f32 det_23_03 = matrix->m[0][2] * matrix->m[3][3] - matrix->m[0][3] * matrix->m[3][2];
+    f32 det_23_02 = matrix->m[0][2] * matrix->m[2][3] - matrix->m[0][3] * matrix->m[2][2];
+    f32 det_23_01 = matrix->m[0][2] * matrix->m[1][3] - matrix->m[0][3] * matrix->m[1][2];
 
-    f32_t det_123_123 = matrix->m[1][1] * det_23_23 - matrix->m[2][1] * det_23_13 + matrix->m[3][1] * det_23_12;
-    f32_t det_123_023 = matrix->m[0][1] * det_23_23 - matrix->m[2][1] * det_23_03 + matrix->m[3][1] * det_23_02;
-    f32_t det_123_013 = matrix->m[0][1] * det_23_13 - matrix->m[1][1] * det_23_03 + matrix->m[3][1] * det_23_01;
-    f32_t det_123_012 = matrix->m[0][1] * det_23_12 - matrix->m[1][1] * det_23_02 + matrix->m[2][1] * det_23_01;
+    f32 det_123_123 = matrix->m[1][1] * det_23_23 - matrix->m[2][1] * det_23_13 + matrix->m[3][1] * det_23_12;
+    f32 det_123_023 = matrix->m[0][1] * det_23_23 - matrix->m[2][1] * det_23_03 + matrix->m[3][1] * det_23_02;
+    f32 det_123_013 = matrix->m[0][1] * det_23_13 - matrix->m[1][1] * det_23_03 + matrix->m[3][1] * det_23_01;
+    f32 det_123_012 = matrix->m[0][1] * det_23_12 - matrix->m[1][1] * det_23_02 + matrix->m[2][1] * det_23_01;
 
-    f32_t determinant =
+    f32 determinant =
         matrix->m[0][0] * det_123_123 -
         matrix->m[1][0] * det_123_023 +
         matrix->m[2][0] * det_123_013 -
@@ -101,38 +95,38 @@ mat4_inverse(mat4_t* matrix)
 
     EMBER_ASSERT(!math_approx_zero(determinant));
 
-    f32_t det_13_23 = matrix->m[2][1] * matrix->m[3][3] - matrix->m[2][3] * matrix->m[3][1];
-    f32_t det_13_13 = matrix->m[1][1] * matrix->m[3][3] - matrix->m[1][3] * matrix->m[3][1];
-    f32_t det_13_12 = matrix->m[1][1] * matrix->m[2][3] - matrix->m[1][3] * matrix->m[2][1];
-    f32_t det_13_03 = matrix->m[0][1] * matrix->m[3][3] - matrix->m[0][3] * matrix->m[3][1];
-    f32_t det_13_02 = matrix->m[0][1] * matrix->m[2][3] - matrix->m[0][3] * matrix->m[2][1];
-    f32_t det_13_01 = matrix->m[0][1] * matrix->m[1][3] - matrix->m[0][3] * matrix->m[1][1];
+    f32 det_13_23 = matrix->m[2][1] * matrix->m[3][3] - matrix->m[2][3] * matrix->m[3][1];
+    f32 det_13_13 = matrix->m[1][1] * matrix->m[3][3] - matrix->m[1][3] * matrix->m[3][1];
+    f32 det_13_12 = matrix->m[1][1] * matrix->m[2][3] - matrix->m[1][3] * matrix->m[2][1];
+    f32 det_13_03 = matrix->m[0][1] * matrix->m[3][3] - matrix->m[0][3] * matrix->m[3][1];
+    f32 det_13_02 = matrix->m[0][1] * matrix->m[2][3] - matrix->m[0][3] * matrix->m[2][1];
+    f32 det_13_01 = matrix->m[0][1] * matrix->m[1][3] - matrix->m[0][3] * matrix->m[1][1];
 
-    f32_t det_12_23 = matrix->m[2][1] * matrix->m[3][2] - matrix->m[2][2] * matrix->m[3][1];
-    f32_t det_12_13 = matrix->m[1][1] * matrix->m[3][2] - matrix->m[1][2] * matrix->m[3][1];
-    f32_t det_12_12 = matrix->m[1][1] * matrix->m[2][2] - matrix->m[1][2] * matrix->m[2][1];
-    f32_t det_12_03 = matrix->m[0][1] * matrix->m[3][2] - matrix->m[0][2] * matrix->m[3][1];
-    f32_t det_12_02 = matrix->m[0][1] * matrix->m[2][2] - matrix->m[0][2] * matrix->m[2][1];
-    f32_t det_12_01 = matrix->m[0][1] * matrix->m[1][2] - matrix->m[0][2] * matrix->m[1][1];
+    f32 det_12_23 = matrix->m[2][1] * matrix->m[3][2] - matrix->m[2][2] * matrix->m[3][1];
+    f32 det_12_13 = matrix->m[1][1] * matrix->m[3][2] - matrix->m[1][2] * matrix->m[3][1];
+    f32 det_12_12 = matrix->m[1][1] * matrix->m[2][2] - matrix->m[1][2] * matrix->m[2][1];
+    f32 det_12_03 = matrix->m[0][1] * matrix->m[3][2] - matrix->m[0][2] * matrix->m[3][1];
+    f32 det_12_02 = matrix->m[0][1] * matrix->m[2][2] - matrix->m[0][2] * matrix->m[2][1];
+    f32 det_12_01 = matrix->m[0][1] * matrix->m[1][2] - matrix->m[0][2] * matrix->m[1][1];
 
-    f32_t det_023_123 = matrix->m[1][0] * det_23_23 - matrix->m[2][0] * det_23_13 + matrix->m[3][0] * det_23_12;
-    f32_t det_023_023 = matrix->m[0][0] * det_23_23 - matrix->m[2][0] * det_23_03 + matrix->m[3][0] * det_23_02;
-    f32_t det_023_013 = matrix->m[0][0] * det_23_13 - matrix->m[1][0] * det_23_03 + matrix->m[3][0] * det_23_01;
-    f32_t det_023_012 = matrix->m[0][0] * det_23_12 - matrix->m[1][0] * det_23_02 + matrix->m[2][0] * det_23_01;
+    f32 det_023_123 = matrix->m[1][0] * det_23_23 - matrix->m[2][0] * det_23_13 + matrix->m[3][0] * det_23_12;
+    f32 det_023_023 = matrix->m[0][0] * det_23_23 - matrix->m[2][0] * det_23_03 + matrix->m[3][0] * det_23_02;
+    f32 det_023_013 = matrix->m[0][0] * det_23_13 - matrix->m[1][0] * det_23_03 + matrix->m[3][0] * det_23_01;
+    f32 det_023_012 = matrix->m[0][0] * det_23_12 - matrix->m[1][0] * det_23_02 + matrix->m[2][0] * det_23_01;
 
-    f32_t det_013_123 = matrix->m[1][0] * det_13_23 - matrix->m[2][0] * det_13_13 + matrix->m[3][0] * det_13_12;
-    f32_t det_013_023 = matrix->m[0][0] * det_13_23 - matrix->m[2][0] * det_13_03 + matrix->m[3][0] * det_13_02;
-    f32_t det_013_013 = matrix->m[0][0] * det_13_13 - matrix->m[1][0] * det_13_03 + matrix->m[3][0] * det_13_01;
-    f32_t det_013_012 = matrix->m[0][0] * det_13_12 - matrix->m[1][0] * det_13_02 + matrix->m[2][0] * det_13_01;
+    f32 det_013_123 = matrix->m[1][0] * det_13_23 - matrix->m[2][0] * det_13_13 + matrix->m[3][0] * det_13_12;
+    f32 det_013_023 = matrix->m[0][0] * det_13_23 - matrix->m[2][0] * det_13_03 + matrix->m[3][0] * det_13_02;
+    f32 det_013_013 = matrix->m[0][0] * det_13_13 - matrix->m[1][0] * det_13_03 + matrix->m[3][0] * det_13_01;
+    f32 det_013_012 = matrix->m[0][0] * det_13_12 - matrix->m[1][0] * det_13_02 + matrix->m[2][0] * det_13_01;
 
-    f32_t det_012_123 = matrix->m[1][0] * det_12_23 - matrix->m[2][0] * det_12_13 + matrix->m[3][0] * det_12_12;
-    f32_t det_012_023 = matrix->m[0][0] * det_12_23 - matrix->m[2][0] * det_12_03 + matrix->m[3][0] * det_12_02;
-    f32_t det_012_013 = matrix->m[0][0] * det_12_13 - matrix->m[1][0] * det_12_03 + matrix->m[3][0] * det_12_01;
-    f32_t det_012_012 = matrix->m[0][0] * det_12_12 - matrix->m[1][0] * det_12_02 + matrix->m[2][0] * det_12_01;
+    f32 det_012_123 = matrix->m[1][0] * det_12_23 - matrix->m[2][0] * det_12_13 + matrix->m[3][0] * det_12_12;
+    f32 det_012_023 = matrix->m[0][0] * det_12_23 - matrix->m[2][0] * det_12_03 + matrix->m[3][0] * det_12_02;
+    f32 det_012_013 = matrix->m[0][0] * det_12_13 - matrix->m[1][0] * det_12_03 + matrix->m[3][0] * det_12_01;
+    f32 det_012_012 = matrix->m[0][0] * det_12_12 - matrix->m[1][0] * det_12_02 + matrix->m[2][0] * det_12_01;
 
-    f32_t inv_det = 1.0f / determinant;
+    f32 inv_det = 1.0f / determinant;
 
-    mat4_t result;
+    mat4 result;
 
     result.m[0][0] =  det_123_123 * inv_det;
     result.m[0][1] = -det_123_023 * inv_det;
@@ -157,10 +151,9 @@ mat4_inverse(mat4_t* matrix)
     return result;
 }
 
-internal mat4_t
-mat4_transpose(mat4_t* matrix)
+mat4 mat4_transpose(mat4* matrix)
 {
-    mat4_t result;
+    mat4 result;
 
     result.m[0][0] = matrix->m[0][0];
     result.m[0][1] = matrix->m[1][0];
@@ -186,29 +179,27 @@ mat4_transpose(mat4_t* matrix)
 }
 
 
-internal vec3_t
-mat4_to_euler(mat4_t* matrix)
+vec3 mat4_to_euler(mat4* matrix)
 {
-    f32_t pitch =  math_atan2(matrix->m[1][2], matrix->m[2][2]);
-    f32_t roll  =  math_atan2(matrix->m[0][1], matrix->m[0][0]);
-    f32_t yaw   = -math_asin(matrix->m[0][2]);
+    f32 pitch =  math_atan2(matrix->m[1][2], matrix->m[2][2]);
+    f32 roll  =  math_atan2(matrix->m[0][1], matrix->m[0][0]);
+    f32 yaw   = -math_asin(matrix->m[0][2]);
 
-    vec3_t result = { pitch, yaw, roll };
+    vec3 result = { pitch, yaw, roll };
 
     return result;
 }
 
-internal mat4_t
-mat4_from_euler(vec3_t* angles)
+mat4 mat4_from_euler(vec3* angles)
 {
-    f32_t cos_x = math_cos(angles->x);
-    f32_t cos_y = math_cos(angles->y);
-    f32_t cos_z = math_cos(angles->z);
-    f32_t sin_x = math_sin(angles->x);
-    f32_t sin_y = math_sin(angles->y);
-    f32_t sin_z = math_sin(angles->z);
+    f32 cos_x = math_cos(angles->x);
+    f32 cos_y = math_cos(angles->y);
+    f32 cos_z = math_cos(angles->z);
+    f32 sin_x = math_sin(angles->x);
+    f32 sin_y = math_sin(angles->y);
+    f32 sin_z = math_sin(angles->z);
 
-    mat4_t result = {0};
+    mat4 result = {0};
 
     result.m[0][0] =  cos_y * cos_z;
     result.m[0][1] =  sin_z * cos_y;
@@ -227,13 +218,12 @@ mat4_from_euler(vec3_t* angles)
     return result;
 }
 
-internal mat4_t
-mat4_from_pitch(f32_t pitch)
+mat4 mat4_from_pitch(f32 pitch)
 {
-    mat4_t result = {0};
+    mat4 result = {0};
 
-    f32_t angle_cos = math_cos(pitch);
-    f32_t angle_sin = math_sin(pitch);
+    f32 angle_cos = math_cos(pitch);
+    f32 angle_sin = math_sin(pitch);
 
     result.m[1][1] =  angle_cos;
     result.m[1][2] =  angle_sin;
@@ -245,13 +235,12 @@ mat4_from_pitch(f32_t pitch)
     return result;
 }
 
-internal mat4_t
-mat4_from_yaw(f32_t yaw)
+mat4 mat4_from_yaw(f32 yaw)
 {
-    mat4_t result = {0};
+    mat4 result = {0};
 
-    f32_t angle_cos = math_cos(yaw);
-    f32_t angle_sin = math_sin(yaw);
+    f32 angle_cos = math_cos(yaw);
+    f32 angle_sin = math_sin(yaw);
 
     result.m[0][0] =  angle_cos;
     result.m[0][2] = -angle_sin;
@@ -263,13 +252,12 @@ mat4_from_yaw(f32_t yaw)
     return result;
 }
 
-internal mat4_t
-mat4_from_roll(f32_t roll)
+mat4 mat4_from_roll(f32 roll)
 {
-    mat4_t result = {0};
+    mat4 result = {0};
 
-    f32_t angle_cos = math_cos(roll);
-    f32_t angle_sin = math_sin(roll);
+    f32 angle_cos = math_cos(roll);
+    f32 angle_sin = math_sin(roll);
 
     result.m[0][0] =  angle_cos;
     result.m[0][1] =  angle_sin;
@@ -281,10 +269,9 @@ mat4_from_roll(f32_t roll)
     return result;
 }
 
-internal mat4_t
-mat4_from_diagonal(f32_t diagonal)
+mat4 mat4_from_diag(f32 diagonal)
 {
-    mat4_t result = {
+    mat4 result = {
         .m = {
             { diagonal, 0.0f, 0.0f, 0.0f },
             { 0.0f, diagonal, 0.0f, 0.0f },
@@ -296,21 +283,20 @@ mat4_from_diagonal(f32_t diagonal)
     return result;
 }
 
-internal mat4_t
-mat4_from_quaternion(quat_t* quat)
+mat4 mat4_from_quat(quat* quat)
 {
-    mat4_t result;
+    mat4 result;
 
-    f32_t ww = quat->w * quat->w;
-    f32_t wx = quat->w * quat->x;
-    f32_t wy = quat->w * quat->y;
-    f32_t wz = quat->w * quat->z;
-    f32_t xx = quat->x * quat->x;
-    f32_t xy = quat->x * quat->y;
-    f32_t xz = quat->x * quat->z;
-    f32_t yy = quat->y * quat->y;
-    f32_t yz = quat->y * quat->z;
-    f32_t zz = quat->z * quat->z;
+    f32 ww = quat->w * quat->w;
+    f32 wx = quat->w * quat->x;
+    f32 wy = quat->w * quat->y;
+    f32 wz = quat->w * quat->z;
+    f32 xx = quat->x * quat->x;
+    f32 xy = quat->x * quat->y;
+    f32 xz = quat->x * quat->z;
+    f32 yy = quat->y * quat->y;
+    f32 yz = quat->y * quat->z;
+    f32 zz = quat->z * quat->z;
 
     result.m[0][0] = 2.0f * (ww + xx) - 1.0f;
     result.m[0][1] = 2.0f * (xy + wz);
@@ -331,10 +317,9 @@ mat4_from_quaternion(quat_t* quat)
     return result;
 }
 
-internal mat4_t
-mat4_translation(vec3_t* translation)
+mat4 mat4_translation(vec3* translation)
 {
-    mat4_t result = {
+    mat4 result = {
         .m = {
             { 1.0f, 0.0f, 0.0f, 0.0f },
             { 0.0f, 1.0f, 0.0f, 0.0f },
@@ -346,17 +331,16 @@ mat4_translation(vec3_t* translation)
     return result;
 }
 
-internal mat4_t
-mat4_rotation(vec3_t* axis, f32_t angle)
+mat4 mat4_rotation(vec3* axis, f32 angle)
 {
-    f32_t angle_cos   = math_cos(angle);
-    f32_t angle_sin   = math_sin(angle);
-    f32_t angle_sin_x = axis->x * angle_sin;
-    f32_t angle_sin_y = axis->y * angle_sin;
-    f32_t angle_sin_z = axis->z * angle_sin;
-    f32_t one_sub_cos = 1.0f - angle_cos;
+    f32 angle_cos   = math_cos(angle);
+    f32 angle_sin   = math_sin(angle);
+    f32 angle_sin_x = axis->x * angle_sin;
+    f32 angle_sin_y = axis->y * angle_sin;
+    f32 angle_sin_z = axis->z * angle_sin;
+    f32 one_sub_cos = 1.0f - angle_cos;
 
-    mat4_t result;
+    mat4 result;
 
     result.m[0][0] = axis->x * axis->x * one_sub_cos + angle_cos;
     result.m[0][1] = axis->x * axis->y * one_sub_cos + angle_sin_z;
@@ -381,10 +365,9 @@ mat4_rotation(vec3_t* axis, f32_t angle)
     return result;
 }
 
-internal mat4_t
-mat4_scale(vec3_t* scale)
+mat4 mat4_scale(vec3* scale)
 {
-    mat4_t result = {
+    mat4 result = {
         .m = {
             { scale->x, 0.0f, 0.0f, 0.0f },
             { 0.0f, scale->y, 0.0f, 0.0f },
@@ -396,27 +379,25 @@ mat4_scale(vec3_t* scale)
     return result;
 }
 
-internal mat4_t
-mat4_model(vec3_t* position, quat_t* rotation, vec3_t* scale)
+mat4 mat4_model(vec3* position, quat* rotation, vec3* scale)
 {
-    mat4_t rot_matrix = mat4_from_quaternion(rotation);
-    mat4_t scale_matrix = mat4_scale(scale);
+    mat4 rot_matrix = mat4_from_quat(rotation);
+    mat4 scl_matrix = mat4_scale(scale);
 
-    mat4_t result = mat4_translation(position);
-    result        = mat4_mul(&result, &rot_matrix);
-    result        = mat4_mul(&result, &scale_matrix);
+    mat4 result = mat4_translation(position);
+    result      = mat4_mul(&result, &rot_matrix);
+    result      = mat4_mul(&result, &scl_matrix);
 
     return result;
 }
 
-internal mat4_t
-mat4_perspective(f32_t fov_x, f32_t aspect_ratio, f32_t clip_near, f32_t clip_far)
+mat4 mat4_persp(f32 fov_x, f32 aspect_ratio, f32 clip_near, f32 clip_far)
 {
-    f32_t inv_half_fov_tan = 1.0f / math_tan(fov_x * 0.5f);
-    f32_t inv_aspect_ratio = 1.0f / aspect_ratio;
-    f32_t far_minus_near   = clip_far - clip_near;
+    f32 inv_half_fov_tan = 1.0f / math_tan(fov_x * 0.5f);
+    f32 inv_aspect_ratio = 1.0f / aspect_ratio;
+    f32 far_minus_near   = clip_far - clip_near;
 
-    mat4_t result = {0};
+    mat4 result = {0};
 
     result.m[0][0] = inv_half_fov_tan * inv_aspect_ratio;
     result.m[1][1] = inv_half_fov_tan;
@@ -427,14 +408,13 @@ mat4_perspective(f32_t fov_x, f32_t aspect_ratio, f32_t clip_near, f32_t clip_fa
     return result;
 }
 
-internal mat4_t
-mat4_orthographic(f32_t clip_left, f32_t clip_right, f32_t clip_bottom, f32_t clip_top, f32_t clip_near, f32_t clip_far)
+mat4 mat4_ortho(f32 clip_left, f32 clip_right, f32 clip_bottom, f32 clip_top, f32 clip_near, f32 clip_far)
 {
-    mat4_t result = {0};
+    mat4 result = {0};
 
-    f32_t inv_right_minus_left = 1.0f / (clip_right - clip_left);
-    f32_t inv_top_minus_bottom = 1.0f / (clip_top - clip_bottom);
-    f32_t inv_far_minus_near   = 1.0f / (clip_far - clip_near);
+    f32 inv_right_minus_left = 1.0f / (clip_right - clip_left);
+    f32 inv_top_minus_bottom = 1.0f / (clip_top - clip_bottom);
+    f32 inv_far_minus_near   = 1.0f / (clip_far - clip_near);
 
     result.m[0][0] = 2.0f * inv_right_minus_left;
     result.m[1][1] = 2.0f * inv_top_minus_bottom;
@@ -447,17 +427,16 @@ mat4_orthographic(f32_t clip_left, f32_t clip_right, f32_t clip_bottom, f32_t cl
     return result;
 }
 
-internal mat4_t
-mat4_look_at(vec3_t* eye, vec3_t* target, vec3_t* up)
+mat4 mat4_look_at(vec3* eye, vec3* target, vec3* up)
 {
-    vec3_t eye_to_target = vec3_sub(target, eye);
-    vec3_t forward       = vec3_normalize(&eye_to_target);
-    vec3_t up_cross_fw   = vec3_cross(up, &forward);
-    vec3_t right         = vec3_normalize(&up_cross_fw);
-    vec3_t fw_cross_r    = vec3_cross(&forward, &right);
-    vec3_t localUp       = vec3_normalize(&fw_cross_r);
+    vec3 eye_to_target = vec3_sub(target, eye);
+    vec3 forward       = vec3_norm(&eye_to_target);
+    vec3 up_cross_fw   = vec3_cross(up, &forward);
+    vec3 right         = vec3_norm(&up_cross_fw);
+    vec3 fw_cross_r    = vec3_cross(&forward, &right);
+    vec3 localUp       = vec3_norm(&fw_cross_r);
 
-    mat4_t result;
+    mat4 result;
 
     result.m[0][0] = -right.x;
     result.m[0][1] =  localUp.x;

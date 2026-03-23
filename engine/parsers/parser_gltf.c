@@ -1,36 +1,37 @@
-internal gltf_data_t
-gltf_parse_file(const char* file_path, arena_t* arena)
+gltf_data gltf_parse_file(const c8* file_path, cpu_arena* arena)
 {
-    platform_handle_t file_handle    = platform_file_open(file_path, PLATFORM_FILE_FLAGS_read | PLATFORM_FILE_FLAGS_share_r);
-    platform_file_props_t file_props = platform_file_props(file_handle);
+    platform_hnd file_handle     = platform_file_open(file_path, PLATFORM_FILE_FLAGS_read | PLATFORM_FILE_FLAGS_share_r);
+    platform_file_info file_info = platform_file_info_get(file_handle);
 
-    EMBER_ASSERT(file_props.size <= arena_avail(arena));
+    EMBER_ASSERT(file_info.size <= cpu_arena_avail(arena));
 
-    gltf_parser_t parser;
+    gltf_parser parser;
 
     parser.arena       = arena;
-    parser.source.data = MEMORY_PUSH(arena, u8_t, file_props.size);
+    parser.source.data = MEMORY_PUSH(arena, u8, file_info.size);
     parser.source.size = platform_file_read(file_handle, parser.source.data, FILE_READ_ALL);
     parser.position    = 0;
 
-    u32_t magic   = *((u32_t*)(parser.source.data));
-    u32_t version = *((u32_t*)(parser.source.data + 4));
-    u32_t size    = *((u32_t*)(parser.source.data + 8));
+    u32 magic   = *((u32*)(parser.source.data));
+    u32 version = *((u32*)(parser.source.data + 4));
+    u32 size    = *((u32*)(parser.source.data + 8));
+
+    (void)version;
 
     if (magic != GLTF_MAGIC)
     {
-        return;
+        return (gltf_data){0};
     }
 
     parser.position = 12;
 
-    gltf_json_data_t json_data = {0};
-    gltf_data_t result         = {0};
+    gltf_json_data json_data = {0};
+    gltf_data result         = {0};
 
     while (parser.position < size)
     {
-        u32_t chunk_length = *((u32_t*)(parser.source.data + parser.position));
-        u32_t chunk_type   = *((u32_t*)(parser.source.data + parser.position + 4));
+        u32 chunk_length = *((u32*)(parser.source.data + parser.position));
+        u32 chunk_type   = *((u32*)(parser.source.data + parser.position + 4));
 
         parser.position += 8;
 
@@ -53,62 +54,65 @@ gltf_parse_file(const char* file_path, arena_t* arena)
     return result;
 }
 
-internal gltf_json_data_t
-gltf_parse_chunk_json(gltf_parser_t* parser, u32_t chunk_length)
+gltf_json_data gltf_parse_chunk_json(gltf_parser* parser, u32 chunk_length)
 {
-    json_entry_t* json    = json_parse(parser->source.data + parser->position, chunk_length, parser->arena);
-    json_entry_t* current = json->child;
+    (void)chunk_length;
 
-    gltf_json_data_t result = {0};
+    json_entry* json    = json_parse(parser->source.data + parser->position, chunk_length, parser->arena);
+    json_entry* current = json->child;
+
+    gltf_json_data result = {0};
 
     while (current != NULL)
     {
-        buffer_t nodes_label  = buffer_from_cstr("nodes");
-        buffer_t meshes_label = buffer_from_cstr("meshes");
-        buffer_t access_label = buffer_from_cstr("accessors");
-        buffer_t views_label  = buffer_from_cstr("bufferViews");
-        buffer_t buffer_label = buffer_from_cstr("buffers");
+        buffer nodes_label  = buffer_from_cstr("nodes");
+        buffer meshes_label = buffer_from_cstr("meshes");
+        buffer access_label = buffer_from_cstr("accessors");
+        buffer views_label  = buffer_from_cstr("bufferViews");
+        buffer buffer_label = buffer_from_cstr("buffers");
 
         if (buffer_is_equal(&nodes_label, &current->label))
         {
-            u32_t node_count  = json_num_of_children(current);
-            result.nodes      = MEMORY_PUSH(parser->arena, gltf_node_t, node_count);
+            u32 node_count    = json_num_of_children(current);
+            result.nodes      = MEMORY_PUSH(parser->arena, gltf_node, node_count);
             result.node_count = node_count;
 
-            json_entry_t* node = current->child;
-            for (u32_t i = 0; i < node_count && node != NULL; i++)
+            json_entry* node = current->child;
+            for (u32 i = 0; i < node_count && node != NULL; i++)
             {
-                i32_t  mesh;
-                mat4_t matrix;
-                vec3_t translation;
-                quat_t rotation;
-                vec3_t scale;
+                i32  mesh;
+                mat4 matrix;
+                vec3 translation;
+                quat rotation;
+                vec3 scale;
 
                 // TODO(KB): Fill missing info, if necessary
 
-                b32_t mesh_is_valid   = json_child_value(parser->arena, node, JSON_VALUE_TYPE_i32, &mesh, "mesh");
-                b32_t matrix_is_valid = json_child_value(parser->arena, node, JSON_VALUE_TYPE_arr_f32, &matrix, "matrix");
-                b32_t name_is_valid   = json_child_value(parser->arena, node, JSON_VALUE_TYPE_str, result.nodes[i].name, "name");
+                b32 mesh_is_valid   = json_child_value(parser->arena, node, JSON_VALUE_TYPE_i32, &mesh, "mesh");
+                b32 matrix_is_valid = json_child_value(parser->arena, node, JSON_VALUE_TYPE_arr_f32, &matrix, "matrix");
+                b32 name_is_valid   = json_child_value(parser->arena, node, JSON_VALUE_TYPE_str, result.nodes[i].name, "name");
 
-                b32_t children_is_valid = EMBER_FALSE;
-                b32_t trs_is_valid      = EMBER_TRUE;
+                (void)name_is_valid;
 
-                i32_t child_count           = 0;
-                buffer_t children_label     = buffer_from_cstr("children");
-                json_entry_t* children_node = json_find_child(node, &children_label);
+                b32 children_is_valid = EMBER_FALSE;
+                b32 trs_is_valid      = EMBER_TRUE;
 
-                i32_t* children;
+                u32 child_count           = 0;
+                buffer children_label     = buffer_from_cstr("children");
+                json_entry* children_node = json_find_child(node, &children_label);
+
+                i32* children = NULL;
                 if (children_node != NULL)
                 {
                     child_count       = json_num_of_children(children_node);
-                    children          = MEMORY_PUSH(parser->arena, i32_t, child_count);
+                    children          = MEMORY_PUSH(parser->arena, i32, child_count);
                     children_is_valid = json_child_value(parser->arena, node, JSON_VALUE_TYPE_arr_i32, children, "children");
 
                     EMBER_ASSERT(children_is_valid);
 
-                    for (u32_t child = 0; child < child_count; child++)
+                    for (u32 child = 0; child < child_count; child++)
                     {
-                        u32_t child_id = children[child];
+                        u32 child_id = children[child];
 
                         result.nodes[child_id].parent     = i;
                         result.nodes[child_id].has_parent = EMBER_TRUE;
@@ -121,9 +125,9 @@ gltf_parse_chunk_json(gltf_parser_t* parser, u32_t chunk_length)
                     rotation    = QUAT_IDENTITY;
                     scale       = VEC3_ONE;
 
-                    b8_t pos_is_valid = json_child_value(parser->arena, node, JSON_VALUE_TYPE_arr_f32, &translation, "translation");
-                    b8_t rot_is_valid = json_child_value(parser->arena, node, JSON_VALUE_TYPE_arr_f32, &rotation, "rotation");
-                    b8_t scl_is_valid = json_child_value(parser->arena, node, JSON_VALUE_TYPE_arr_f32, &scale, "scale");
+                    b32 pos_is_valid = json_child_value(parser->arena, node, JSON_VALUE_TYPE_arr_f32, &translation, "translation");
+                    b32 rot_is_valid = json_child_value(parser->arena, node, JSON_VALUE_TYPE_arr_f32, &rotation, "rotation");
+                    b32 scl_is_valid = json_child_value(parser->arena, node, JSON_VALUE_TYPE_arr_f32, &scale, "scale");
 
                     trs_is_valid = pos_is_valid || rot_is_valid || scl_is_valid;
                 }
@@ -140,44 +144,44 @@ gltf_parse_chunk_json(gltf_parser_t* parser, u32_t chunk_length)
         }
         else if (buffer_is_equal(&meshes_label, &current->label))
         {
-            u32_t mesh_count  = json_num_of_children(current);
-            result.meshes     = MEMORY_PUSH(parser->arena, gltf_mesh_t, mesh_count);
+            u32 mesh_count    = json_num_of_children(current);
+            result.meshes     = MEMORY_PUSH(parser->arena, gltf_mesh, mesh_count);
             result.mesh_count = mesh_count;
 
-            json_entry_t* mesh = current->child;
-            for (u32_t i = 0; i < mesh_count && mesh != NULL; i++)
+            json_entry* mesh = current->child;
+            for (u32 i = 0; i < mesh_count && mesh != NULL; i++)
             {
-                i32_t position;
-                i32_t normal;
-                i32_t tangent;
-                i32_t texcoord;
-                i32_t color;
-                i32_t joints;
-                i32_t weights;
-                i32_t indices;
-                i32_t material;
-                i32_t mode;
+                i32 position;
+                i32 normal;
+                i32 tangent;
+                i32 texcoord;
+                i32 color;
+                i32 joints;
+                i32 weights;
+                i32 indices;
+                i32 material;
+                i32 mode;
 
                 // TODO(KB): Fill missing info, if necessary
 
-                buffer_t primitives_buffer = buffer_from_cstr("primitives");
-                buffer_t attributes_buffer = buffer_from_cstr("attributes");
+                buffer primitives_buffer = buffer_from_cstr("primitives");
+                buffer attributes_buffer = buffer_from_cstr("attributes");
 
-                json_entry_t* primitives = json_find_child(mesh, &primitives_buffer);
-                primitives               = primitives->child;
+                json_entry* primitives = json_find_child(mesh, &primitives_buffer);
+                primitives             = primitives->child;
 
-                json_entry_t* attributes = json_find_child(primitives, &attributes_buffer);
+                json_entry* attributes = json_find_child(primitives, &attributes_buffer);
 
-                b32_t position_is_valid = json_child_value(parser->arena, attributes, JSON_VALUE_TYPE_i32, &position, "POSITION");
-                b32_t normal_is_valid   = json_child_value(parser->arena, attributes, JSON_VALUE_TYPE_i32, &normal, "NORMAL");
-                b32_t tangent_is_valid  = json_child_value(parser->arena, attributes, JSON_VALUE_TYPE_i32, &tangent, "TANGENT");
-                b32_t texcoord_is_valid = json_child_value(parser->arena, attributes, JSON_VALUE_TYPE_i32, &texcoord, "TEXCOORD_0");
-                b32_t color_is_valid    = json_child_value(parser->arena, attributes, JSON_VALUE_TYPE_i32, &color, "COLOR_0");
-                b32_t joints_is_valid   = json_child_value(parser->arena, attributes, JSON_VALUE_TYPE_i32, &joints, "JOINTS_0");
-                b32_t weights_is_valid  = json_child_value(parser->arena, attributes, JSON_VALUE_TYPE_i32, &weights, "WEIGHTS_0");
-                b32_t indices_is_valid  = json_child_value(parser->arena, primitives, JSON_VALUE_TYPE_i32, &indices, "indices");
-                b32_t material_is_valid = json_child_value(parser->arena, mesh, JSON_VALUE_TYPE_i32, &material, "material");
-                b32_t mode_is_valid     = json_child_value(parser->arena, mesh, JSON_VALUE_TYPE_i32, &mode, "mode");
+                b32 position_is_valid = json_child_value(parser->arena, attributes, JSON_VALUE_TYPE_i32, &position, "POSITION");
+                b32 normal_is_valid   = json_child_value(parser->arena, attributes, JSON_VALUE_TYPE_i32, &normal, "NORMAL");
+                b32 tangent_is_valid  = json_child_value(parser->arena, attributes, JSON_VALUE_TYPE_i32, &tangent, "TANGENT");
+                b32 texcoord_is_valid = json_child_value(parser->arena, attributes, JSON_VALUE_TYPE_i32, &texcoord, "TEXCOORD_0");
+                b32 color_is_valid    = json_child_value(parser->arena, attributes, JSON_VALUE_TYPE_i32, &color, "COLOR_0");
+                b32 joints_is_valid   = json_child_value(parser->arena, attributes, JSON_VALUE_TYPE_i32, &joints, "JOINTS_0");
+                b32 weights_is_valid  = json_child_value(parser->arena, attributes, JSON_VALUE_TYPE_i32, &weights, "WEIGHTS_0");
+                b32 indices_is_valid  = json_child_value(parser->arena, primitives, JSON_VALUE_TYPE_i32, &indices, "indices");
+                b32 material_is_valid = json_child_value(parser->arena, mesh, JSON_VALUE_TYPE_i32, &material, "material");
+                b32 mode_is_valid     = json_child_value(parser->arena, mesh, JSON_VALUE_TYPE_i32, &mode, "mode");
 
                 result.meshes[i].first_primitive.position  = position_is_valid ? position : -1;
                 result.meshes[i].first_primitive.normal    = normal_is_valid ? normal : -1;
@@ -195,26 +199,26 @@ gltf_parse_chunk_json(gltf_parser_t* parser, u32_t chunk_length)
         }
         else if (buffer_is_equal(&access_label, &current->label))
         {
-            u32_t accessor_count  = json_num_of_children(current);
-            result.accessors      = MEMORY_PUSH(parser->arena, gltf_accessor_t, accessor_count);
+            u32 accessor_count    = json_num_of_children(current);
+            result.accessors      = MEMORY_PUSH(parser->arena, gltf_accessor, accessor_count);
             result.accessor_count = accessor_count;
 
-            json_entry_t* accessor = current->child;
-            for (u32_t i = 0; i < accessor_count && accessor != NULL; i++)
+            json_entry* accessor = current->child;
+            for (u32 i = 0; i < accessor_count && accessor != NULL; i++)
             {
-                i32_t buffer_view_id;
-                i32_t byte_offset;
-                i32_t component_type;
-                i32_t count;
-                c8_t type[16];
+                i32 buffer_view_id;
+                i32 byte_offset;
+                i32 component_type;
+                i32 count;
+                c8 type[16];
 
                 // TODO(KB): Fill missing info, if necessary
 
-                b32_t buffer_view_id_is_valid = json_child_value(parser->arena, accessor, JSON_VALUE_TYPE_i32, &buffer_view_id, "bufferView");
-                b32_t byte_offset_is_valid    = json_child_value(parser->arena, accessor, JSON_VALUE_TYPE_i32, &byte_offset, "byteOffset");
-                b32_t component_type_is_valid = json_child_value(parser->arena, accessor, JSON_VALUE_TYPE_i32, &component_type, "componentType");
-                b32_t count_is_valid          = json_child_value(parser->arena, accessor, JSON_VALUE_TYPE_i32, &count, "count");
-                b32_t type_is_valid           = json_child_value(parser->arena, accessor, JSON_VALUE_TYPE_str, &type, "type");
+                b32 buffer_view_id_is_valid = json_child_value(parser->arena, accessor, JSON_VALUE_TYPE_i32, &buffer_view_id, "bufferView");
+                b32 byte_offset_is_valid    = json_child_value(parser->arena, accessor, JSON_VALUE_TYPE_i32, &byte_offset, "byteOffset");
+                b32 component_type_is_valid = json_child_value(parser->arena, accessor, JSON_VALUE_TYPE_i32, &component_type, "componentType");
+                b32 count_is_valid          = json_child_value(parser->arena, accessor, JSON_VALUE_TYPE_i32, &count, "count");
+                b32 type_is_valid           = json_child_value(parser->arena, accessor, JSON_VALUE_TYPE_str, &type, "type");
 
                 result.accessors[i].buffer_view_id = buffer_view_id_is_valid ? buffer_view_id : -1;
                 result.accessors[i].byte_offset    = byte_offset_is_valid ? byte_offset : 0;
@@ -243,24 +247,24 @@ gltf_parse_chunk_json(gltf_parser_t* parser, u32_t chunk_length)
         }
         else if (buffer_is_equal(&views_label, &current->label))
         {
-            u32_t view_count         = json_num_of_children(current);
-            result.buffer_views      = MEMORY_PUSH(parser->arena, gltf_buffer_view_t, view_count);
+            u32 view_count           = json_num_of_children(current);
+            result.buffer_views      = MEMORY_PUSH(parser->arena, gltf_buffer_view, view_count);
             result.buffer_view_count = view_count;
 
-            json_entry_t* view = current->child;
-            for (u32_t i = 0; i < view_count && view != NULL; i++)
+            json_entry* view = current->child;
+            for (u32 i = 0; i < view_count && view != NULL; i++)
             {
-                i32_t buf_id;
-                i32_t offset;
-                i32_t length;
-                i32_t stride;
-                i32_t target;
+                i32 buf_id;
+                i32 offset;
+                i32 length;
+                i32 stride;
+                i32 target;
 
-                b32_t buf_id_is_valid = json_child_value(parser->arena, view, JSON_VALUE_TYPE_i32, &buf_id, "buffer");
-                b32_t offset_is_valid = json_child_value(parser->arena, view, JSON_VALUE_TYPE_i32, &offset, "byteOffset");
-                b32_t length_is_valid = json_child_value(parser->arena, view, JSON_VALUE_TYPE_i32, &length, "byteLength");
-                b32_t stride_is_valid = json_child_value(parser->arena, view, JSON_VALUE_TYPE_i32, &stride, "byteStride");
-                b32_t target_is_valid = json_child_value(parser->arena, view, JSON_VALUE_TYPE_i32, &target, "target");
+                b32 buf_id_is_valid = json_child_value(parser->arena, view, JSON_VALUE_TYPE_i32, &buf_id, "buffer");
+                b32 offset_is_valid = json_child_value(parser->arena, view, JSON_VALUE_TYPE_i32, &offset, "byteOffset");
+                b32 length_is_valid = json_child_value(parser->arena, view, JSON_VALUE_TYPE_i32, &length, "byteLength");
+                b32 stride_is_valid = json_child_value(parser->arena, view, JSON_VALUE_TYPE_i32, &stride, "byteStride");
+                b32 target_is_valid = json_child_value(parser->arena, view, JSON_VALUE_TYPE_i32, &target, "target");
 
                 result.buffer_views[i].buffer_id   = buf_id_is_valid ? buf_id : -1;
                 result.buffer_views[i].byte_offset = offset_is_valid ? offset : 0;
@@ -273,16 +277,16 @@ gltf_parse_chunk_json(gltf_parser_t* parser, u32_t chunk_length)
         }
         else if (buffer_is_equal(&buffer_label, &current->label))
         {
-            u32_t buffer_count  = json_num_of_children(current);
-            result.buffers      = MEMORY_PUSH(parser->arena, gltf_buffer_t, buffer_count);
+            u32 buffer_count    = json_num_of_children(current);
+            result.buffers      = MEMORY_PUSH(parser->arena, gltf_buffer, buffer_count);
             result.buffer_count = buffer_count;
 
-            json_entry_t* buffer = current->child;
-            for (u32_t i = 0; i < buffer_count && buffer != NULL; i++)
+            json_entry* buffer = current->child;
+            for (u32 i = 0; i < buffer_count && buffer != NULL; i++)
             {
-                i32_t length;
+                i32 length;
 
-                b32_t length_is_valid = json_child_value(parser->arena, buffer, JSON_VALUE_TYPE_i32, &length, "byteLength");
+                b32 length_is_valid = json_child_value(parser->arena, buffer, JSON_VALUE_TYPE_i32, &length, "byteLength");
 
                 result.buffers[i].byte_length = length_is_valid ? length : -1;
             }
@@ -296,24 +300,25 @@ gltf_parse_chunk_json(gltf_parser_t* parser, u32_t chunk_length)
     return result;
 }
 
-internal gltf_data_t
-gltf_parse_chunk_binary(gltf_parser_t* parser, u32_t chunk_length, gltf_json_data_t* json_data)
+gltf_data gltf_parse_chunk_binary(gltf_parser* parser, u32 chunk_length, gltf_json_data* json_data)
 {
-    u8_t* data = parser->source.data + parser->position;
+    (void)chunk_length;
 
-    gltf_data_t result = {0};
+    u8* data = parser->source.data + parser->position;
+
+    gltf_data result = {0};
 
     EMBER_ASSERT(json_data != NULL);
 
-    result.nodes      = MEMORY_PUSH(parser->arena, scene_node_t, json_data->node_count);
-    result.meshes     = MEMORY_PUSH(parser->arena, mesh_t, json_data->mesh_count);
+    result.nodes      = MEMORY_PUSH(parser->arena, scene_node, json_data->node_count);
+    result.meshes     = MEMORY_PUSH(parser->arena, mesh, json_data->mesh_count);
     result.node_count = json_data->node_count;
     result.mesh_count = json_data->mesh_count;
 
     // NOTE(KB): Convert node data to output format
-    for (u32_t node_idx = 0; node_idx < json_data->node_count; node_idx++)
+    for (u32 node_idx = 0; node_idx < json_data->node_count; node_idx++)
     {
-        gltf_node_t* node = &json_data->nodes[node_idx];
+        gltf_node* node = &json_data->nodes[node_idx];
 
         result.nodes[node_idx].transform   = node->matrix;
         result.nodes[node_idx].children    = node->children;
@@ -323,23 +328,23 @@ gltf_parse_chunk_binary(gltf_parser_t* parser, u32_t chunk_length, gltf_json_dat
     }
 
     // NOTE(KB): Convert mesh data to output format
-    for (u32_t mesh_idx = 0; mesh_idx < json_data->mesh_count; mesh_idx++)
+    for (u32 mesh_idx = 0; mesh_idx < json_data->mesh_count; mesh_idx++)
     {
-        i32_t acs_pos = json_data->meshes[mesh_idx].first_primitive.position;
-        i32_t acs_nrm = json_data->meshes[mesh_idx].first_primitive.normal;
-        i32_t acs_uvs = json_data->meshes[mesh_idx].first_primitive.texcoord;
-        i32_t acs_ids = json_data->meshes[mesh_idx].first_primitive.indices;
+        i32 acs_pos = json_data->meshes[mesh_idx].first_primitive.position;
+        i32 acs_nrm = json_data->meshes[mesh_idx].first_primitive.normal;
+        i32 acs_uvs = json_data->meshes[mesh_idx].first_primitive.texcoord;
+        i32 acs_ids = json_data->meshes[mesh_idx].first_primitive.indices;
 
-        i32_t data_offset_pos = json_data->buffer_views[json_data->accessors[acs_pos].buffer_view_id].byte_offset
-                              + json_data->accessors[acs_pos].byte_offset;
+        i32 data_offset_pos = json_data->buffer_views[json_data->accessors[acs_pos].buffer_view_id].byte_offset
+                            + json_data->accessors[acs_pos].byte_offset;
 
-        i32_t data_offset_nrm = json_data->buffer_views[json_data->accessors[acs_nrm].buffer_view_id].byte_offset
-                              + json_data->accessors[acs_nrm].byte_offset;
+        i32 data_offset_nrm = json_data->buffer_views[json_data->accessors[acs_nrm].buffer_view_id].byte_offset
+                            + json_data->accessors[acs_nrm].byte_offset;
 
-        i32_t data_offset_uvs = json_data->buffer_views[json_data->accessors[acs_uvs].buffer_view_id].byte_offset
-                              + json_data->accessors[acs_uvs].byte_offset;
+        i32 data_offset_uvs = json_data->buffer_views[json_data->accessors[acs_uvs].buffer_view_id].byte_offset
+                            + json_data->accessors[acs_uvs].byte_offset;
 
-        i32_t data_offset_ids = json_data->buffer_views[json_data->accessors[acs_ids].buffer_view_id].byte_offset
+        i32 data_offset_ids = json_data->buffer_views[json_data->accessors[acs_ids].buffer_view_id].byte_offset
                               + json_data->accessors[acs_ids].byte_offset;
 
         EMBER_ASSERT(
@@ -350,14 +355,14 @@ gltf_parse_chunk_binary(gltf_parser_t* parser, u32_t chunk_length, gltf_json_dat
         result.meshes[mesh_idx].vertex_count = json_data->accessors[acs_pos].count;
         result.meshes[mesh_idx].index_count  = json_data->accessors[acs_ids].count;
 
-        result.meshes[mesh_idx].vertices = MEMORY_PUSH(parser->arena, vertex_t, result.meshes[mesh_idx].vertex_count);
-        result.meshes[mesh_idx].indices  = MEMORY_PUSH(parser->arena, u32_t,  result.meshes[mesh_idx].index_count);
+        result.meshes[mesh_idx].vertices = MEMORY_PUSH(parser->arena, vertex, result.meshes[mesh_idx].vertex_count);
+        result.meshes[mesh_idx].indices  = MEMORY_PUSH(parser->arena, u32,  result.meshes[mesh_idx].index_count);
 
         gltf_parse_components(
             (data + data_offset_ids),
             result.meshes[mesh_idx].index_count,
             0,
-            sizeof(u32_t),
+            sizeof(u32),
             json_data->accessors[acs_ids].component_type,
             json_data->accessors[acs_ids].type,
             result.meshes[mesh_idx].indices
@@ -366,8 +371,8 @@ gltf_parse_chunk_binary(gltf_parser_t* parser, u32_t chunk_length, gltf_json_dat
         gltf_parse_components(
             (data + data_offset_pos),
             result.meshes[mesh_idx].vertex_count,
-            offsetof(vertex_t, position),
-            sizeof(vertex_t),
+            offsetof(vertex, position),
+            sizeof(vertex),
             json_data->accessors[acs_pos].component_type,
             json_data->accessors[acs_pos].type,
             result.meshes[mesh_idx].vertices
@@ -376,8 +381,8 @@ gltf_parse_chunk_binary(gltf_parser_t* parser, u32_t chunk_length, gltf_json_dat
         gltf_parse_components(
             (data + data_offset_nrm),
             result.meshes[mesh_idx].vertex_count,
-            offsetof(vertex_t, normal),
-            sizeof(vertex_t),
+            offsetof(vertex, normal),
+            sizeof(vertex),
             json_data->accessors[acs_nrm].component_type,
             json_data->accessors[acs_nrm].type,
             result.meshes[mesh_idx].vertices
@@ -386,30 +391,29 @@ gltf_parse_chunk_binary(gltf_parser_t* parser, u32_t chunk_length, gltf_json_dat
         gltf_parse_components(
             (data + data_offset_uvs),
             result.meshes[mesh_idx].vertex_count,
-            offsetof(vertex_t, uv),
-            sizeof(vertex_t),
+            offsetof(vertex, uv),
+            sizeof(vertex),
             json_data->accessors[acs_uvs].component_type,
             json_data->accessors[acs_uvs].type,
             result.meshes[mesh_idx].vertices
         );
 
         // NOTE(): Manually write to the color value
-        for (u32_t i = 0; i < result.meshes[mesh_idx].vertex_count; i++)
+        for (u32 i = 0; i < result.meshes[mesh_idx].vertex_count; i++)
         {
-            result.meshes[mesh_idx].vertices[i].color = (vec3_t){1.0f, 1.0f, 1.0f};
+            result.meshes[mesh_idx].vertices[i].color = (vec3){1.0f, 1.0f, 1.0f};
         }
     }
 
     return result;
 }
 
-internal void
-gltf_parse_components(void* source, u32_t count, u32_t offset, u32_t stride, i32_t cmp_type, i32_t data_type, void* dest)
+void gltf_parse_components(void* source, u32 count, u32 offset, u32 stride, i32 cmp_type, i32 data_type, void* dest)
 {
     offset /= 4;
     stride /= 4;
 
-    u8_t data_type_size = 1;
+    u8 data_type_size = 1;
     switch (data_type)
     {
         case GLTF_CUSTOM_TYPE_SCALAR:
@@ -454,11 +458,12 @@ gltf_parse_components(void* source, u32_t count, u32_t offset, u32_t stride, i32
         case GLTF_COMPONENT_TYPE_BYTE:
         case GLTF_COMPONENT_TYPE_UBYTE:
         {
-            u8_t* src_data  = (u8_t *)source;
-            u32_t* dst_data = (u32_t *)dest;
-            for (u32_t i = 0; i < count; i++)
+            u8* src_data  = (u8 *)source;
+            u32* dst_data = (u32 *)dest;
+
+            for (u32 i = 0; i < count; i++)
             {
-                for (u32_t j = 0; j < data_type_size; j++)
+                for (u32 j = 0; j < data_type_size; j++)
                 {
                     *(dst_data + i * stride + offset + j) = *(src_data + i * data_type_size + j);
                 }
@@ -469,11 +474,12 @@ gltf_parse_components(void* source, u32_t count, u32_t offset, u32_t stride, i32
         case GLTF_COMPONENT_TYPE_SHORT:
         case GLTF_COMPONENT_TYPE_USHORT:
         {
-            u16_t* src_data = (u16_t *)source;
-            u32_t* dst_data = (u32_t *)dest;
-            for (u32_t i = 0; i < count; i++)
+            u16* src_data = (u16 *)source;
+            u32* dst_data = (u32 *)dest;
+
+            for (u32 i = 0; i < count; i++)
             {
-                for (u32_t j = 0; j < data_type_size; j++)
+                for (u32 j = 0; j < data_type_size; j++)
                 {
                     *(dst_data + i * stride + offset + j) = *(src_data + i * data_type_size + j);
                 }
@@ -483,11 +489,12 @@ gltf_parse_components(void* source, u32_t count, u32_t offset, u32_t stride, i32
         }
         case GLTF_COMPONENT_TYPE_UINT:
         {
-            u32_t* src_data = (u32_t *)source;
-            u32_t* dst_data = (u32_t *)dest;
-            for (u32_t i = 0; i < count; i++)
+            u32* src_data = (u32 *)source;
+            u32* dst_data = (u32 *)dest;
+
+            for (u32 i = 0; i < count; i++)
             {
-                for (u32_t j = 0; j < data_type_size; j++)
+                for (u32 j = 0; j < data_type_size; j++)
                 {
                     *(dst_data + i * stride + offset + j) = *(src_data + i * data_type_size + j);
                 }
@@ -497,11 +504,12 @@ gltf_parse_components(void* source, u32_t count, u32_t offset, u32_t stride, i32
         }
         case GLTF_COMPONENT_TYPE_FLOAT:
         {
-            f32_t* src_data = (f32_t *)source;
-            f32_t* dst_data = (f32_t *)dest;
-            for (u32_t i = 0; i < count; i++)
+            f32* src_data = (f32 *)source;
+            f32* dst_data = (f32 *)dest;
+
+            for (u32 i = 0; i < count; i++)
             {
-                for (u32_t j = 0; j < data_type_size; j++)
+                for (u32 j = 0; j < data_type_size; j++)
                 {
                     *(dst_data + i * stride + offset + j) = *(src_data + i * data_type_size + j);
                 }

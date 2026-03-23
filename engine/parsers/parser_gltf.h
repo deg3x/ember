@@ -28,105 +28,105 @@
 #define GLTF_CUSTOM_TYPE_MAT3         105
 #define GLTF_CUSTOM_TYPE_MAT4         106
 
-typedef struct gltf_parser_t gltf_parser_t;
-struct gltf_parser_t
+typedef struct gltf_parser gltf_parser;
+struct gltf_parser
 {
-    arena_t* arena;
-    buffer_t source;
-    u64_t    position;
+    cpu_arena* arena;
+    buffer     source;
+    u64        position;
 };
 
-typedef struct gltf_primitive_t gltf_primitive_t;
-struct gltf_primitive_t
+typedef struct gltf_primitive gltf_primitive;
+struct gltf_primitive
 {
-    i32_t             position;
-    i32_t             normal;
-    i32_t             tangent;
-    i32_t             texcoord;
-    i32_t             color;
-    i32_t             joints;
-    i32_t             weights;
-    i32_t             indices;
-    i32_t             material;
-    i32_t             draw_mode;
-    gltf_primitive_t* next;
+    i32             position;
+    i32             normal;
+    i32             tangent;
+    i32             texcoord;
+    i32             color;
+    i32             joints;
+    i32             weights;
+    i32             indices;
+    i32             material;
+    i32             draw_mode;
+    gltf_primitive* next;
 };
 
-typedef struct gltf_node_t gltf_node_t;
-struct gltf_node_t
+typedef struct gltf_node gltf_node;
+struct gltf_node
 {
-    mat4_t matrix;
-    i32_t* children;
-    c8_t   name[64];
-    i32_t  parent;
-    b32_t  has_parent;
-    u32_t  child_count;
-    i32_t  mesh;
+    mat4 matrix;
+    i32* children;
+    c8   name[64];
+    i32  parent;
+    b32  has_parent;
+    u32  child_count;
+    i32  mesh;
 };
 
-typedef struct gltf_mesh_t gltf_mesh_t;
-struct gltf_mesh_t
+typedef struct gltf_mesh gltf_mesh;
+struct gltf_mesh
 {
-    buffer_t         name;
-    gltf_primitive_t first_primitive;
+    buffer         name;
+    gltf_primitive first_primitive;
 };
 
-typedef struct gltf_accessor_t gltf_accessor_t;
-struct gltf_accessor_t
+typedef struct gltf_accessor gltf_accessor;
+struct gltf_accessor
 {
-    i32_t    buffer_view_id;
-    i32_t    byte_offset;
-    i32_t    component_type;
-    i32_t    count;
-    b32_t    normalized;
-    i32_t    type;
-    buffer_t min;
-    buffer_t max;
+    i32    buffer_view_id;
+    i32    byte_offset;
+    i32    component_type;
+    i32    count;
+    b32    normalized;
+    i32    type;
+    buffer min;
+    buffer max;
 };
 
-typedef struct gltf_buffer_view_t gltf_buffer_view_t;
-struct gltf_buffer_view_t
+typedef struct gltf_buffer_view gltf_buffer_view;
+struct gltf_buffer_view
 {
-    i32_t buffer_id;
-    i32_t byte_offset;
-    i32_t byte_length;
-    i32_t byte_stride;
-    i32_t target;
+    i32 buffer_id;
+    i32 byte_offset;
+    i32 byte_length;
+    i32 byte_stride;
+    i32 target;
 };
 
-typedef struct gltf_buffer_t gltf_buffer_t;
-struct gltf_buffer_t
+typedef struct gltf_buffer gltf_buffer;
+struct gltf_buffer
 {
-    i32_t byte_length;
+    i32 byte_length;
 };
 
-typedef struct gltf_json_data_t gltf_json_data_t;
-struct gltf_json_data_t
+typedef struct gltf_json_data gltf_json_data;
+struct gltf_json_data
 {
-    gltf_node_t*        nodes;
-    gltf_mesh_t*        meshes;
-    gltf_accessor_t*    accessors;
-    gltf_buffer_view_t* buffer_views;
-    gltf_buffer_t*      buffers;
-    u32_t               node_count;
-    u32_t               mesh_count;
-    u32_t               accessor_count;
-    u32_t               buffer_view_count;
-    u32_t               buffer_count;
+    gltf_node*        nodes;
+    gltf_mesh*        meshes;
+    gltf_accessor*    accessors;
+    gltf_buffer_view* buffer_views;
+    gltf_buffer*      buffers;
+    u32               node_count;
+    u32               mesh_count;
+    u32               accessor_count;
+    u32               buffer_view_count;
+    u32               buffer_count;
 };
 
-typedef struct gltf_data_t gltf_data_t;
-struct gltf_data_t
+typedef struct gltf_data gltf_data;
+struct gltf_data
 {
-    scene_node_t* nodes;
-    mesh_t*       meshes;
-    u32_t         node_count;
-    u32_t         mesh_count;
+    scene_node* nodes;
+    mesh*       meshes;
+    u32         node_count;
+    u32         mesh_count;
 };
 
-internal gltf_data_t      gltf_parse_file(const char* file_path, arena_t* arena);
-internal gltf_json_data_t gltf_parse_chunk_json(gltf_parser_t* parser, u32_t chunk_length);
-internal gltf_data_t      gltf_parse_chunk_binary(gltf_parser_t* parser, u32_t chunk_length, gltf_json_data_t* json_data);
-internal void             gltf_parse_components(void* source, u32_t count, u32_t offset, u32_t stride, i32_t cmp_type, i32_t data_type, void* dest);
+gltf_data      gltf_parse_file(const c8* file_path, cpu_arena* arena);
+gltf_json_data gltf_parse_chunk_json(gltf_parser* parser, u32 chunk_length);
+gltf_data      gltf_parse_chunk_binary(gltf_parser* parser, u32 chunk_length, gltf_json_data* json_data);
+void           gltf_parse_components(void* source, u32 count, u32 offset, u32 stride, i32 cmp_type, i32 data_type, void* dest);
 
 #endif //PARSER_GLTF_H
