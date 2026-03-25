@@ -971,8 +971,8 @@ void renderer_pipeline_create_graphics_pipeline(renderer_pipeline* pipeline)
     u8* vert            = MEMORY_PUSH(scratch.arena, u8, KB(16));
     u8* frag            = MEMORY_PUSH(scratch.arena, u8, KB(16));
 
-    u64 vert_size = platform_file_data("./triangle_vert.spv", vert);
-    u64 frag_size = platform_file_data("./triangle_frag.spv", frag);
+    u64 vert_size = platform_file_data("../triangle_vert.spv", vert);
+    u64 frag_size = platform_file_data("../triangle_frag.spv", frag);
 
     VkShaderModule vert_module = renderer_pipeline_create_shader_module(vert, vert_size);
     VkShaderModule frag_module = renderer_pipeline_create_shader_module(frag, frag_size);
