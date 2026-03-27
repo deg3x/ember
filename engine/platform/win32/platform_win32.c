@@ -430,6 +430,7 @@ int WINAPI WinMain(HINSTANCE instance, HINSTANCE prev_instance, LPSTR cmd_line, 
     platform_hnd window_handle = platform_gfx_wnd_create("Ember Engine");
 
     renderer_init(window_handle);
+    world_init();
 
     ShowWindow((HWND)window_handle.hnd, SW_SHOW);
 

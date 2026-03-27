@@ -34,11 +34,15 @@
 #include "containers/buffer.h"
 #include "input/input.h"
 
+#include "core/types.h"
+
 #include "renderer/gpu_arena.h"
 #include "renderer/renderer.h"
 
 #include "parsers/parser_json.h"
 #include "parsers/parser_gltf.h"
+
+#include "core/world.h"
 
 /////////////
 // C_FILES
@@ -64,3 +68,4 @@
 #include "parsers/parser_json.c"
 #include "parsers/parser_gltf.c"
 
+#include "core/world.c"

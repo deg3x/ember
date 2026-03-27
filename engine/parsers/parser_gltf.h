@@ -118,10 +118,16 @@ struct gltf_json_data
 typedef struct gltf_data gltf_data;
 struct gltf_data
 {
-    scene_node* nodes;
-    mesh*       meshes;
-    u32         node_count;
-    u32         mesh_count;
+    mat4* transforms;
+    i32** children;
+    u32*  children_count;
+    i32*  parents;
+
+    i32*  mesh_ids;
+    mesh* meshes;
+
+    u32   node_count;
+    u32   mesh_count;
 };
 
 gltf_data      gltf_parse_file(const c8* file_path, cpu_arena* arena);

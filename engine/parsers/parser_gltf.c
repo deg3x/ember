@@ -310,21 +310,25 @@ gltf_data gltf_parse_chunk_binary(gltf_parser* parser, u32 chunk_length, gltf_js
 
     EMBER_ASSERT(json_data != NULL);
 
-    result.nodes      = MEMORY_PUSH(parser->arena, scene_node, json_data->node_count);
-    result.meshes     = MEMORY_PUSH(parser->arena, mesh, json_data->mesh_count);
-    result.node_count = json_data->node_count;
-    result.mesh_count = json_data->mesh_count;
+    result.transforms     = MEMORY_PUSH(parser->arena, mat4, json_data->node_count);
+    result.children       = MEMORY_PUSH(parser->arena, i32*, json_data->node_count);
+    result.children_count = MEMORY_PUSH(parser->arena, u32, json_data->node_count);
+    result.parents        = MEMORY_PUSH(parser->arena, i32, json_data->node_count);
+    result.mesh_ids       = MEMORY_PUSH(parser->arena, i32, json_data->node_count);
+    result.meshes         = MEMORY_PUSH(parser->arena, mesh, json_data->mesh_count);
+    result.node_count     = json_data->node_count;
+    result.mesh_count     = json_data->mesh_count;
 
     // NOTE(KB): Convert node data to output format
     for (u32 node_idx = 0; node_idx < json_data->node_count; node_idx++)
     {
         gltf_node* node = &json_data->nodes[node_idx];
 
-        result.nodes[node_idx].transform   = node->matrix;
-        result.nodes[node_idx].children    = node->children;
-        result.nodes[node_idx].child_count = node->child_count;
-        result.nodes[node_idx].parent      = node->parent;
-        result.nodes[node_idx].mesh_id     = node->mesh;
+        result.transforms[node_idx]     = node->matrix;
+        result.children[node_idx]       = node->children;
+        result.children_count[node_idx] = node->child_count;
+        result.parents[node_idx]        = node->parent;
+        result.mesh_ids[node_idx]       = node->mesh;
     }
 
     // NOTE(KB): Convert mesh data to output format

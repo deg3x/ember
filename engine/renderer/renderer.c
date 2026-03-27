@@ -1,6 +1,6 @@
 void renderer_init(platform_hnd window_handle)
 {
-    cpu_arena_params params = { GB(4), GB(4), 0 };
+    cpu_arena_params params = { GB(1), GB(1), 0 };
 
     g_renderer.host_arena = cpu_arena_init(&params);
 
@@ -19,7 +19,7 @@ void renderer_init(platform_hnd window_handle)
     renderer_create_sync_primitives();
     renderer_create_resources();
 
-    g_renderer.mesh_data = NULL;
+    g_renderer.mesh_data = MEMORY_PUSH_ZERO(g_renderer.host_arena, renderer_mesh, RENDERER_MESH_COUNT_MAX);
 
     renderer_create_depth_resources();
 
@@ -64,7 +64,7 @@ void renderer_update(platform_hnd window_handle)
     renderer_ubo ubo;
 
     f32 time        = (f32)platform_timer_since_start(g_program_state.timer);
-    vec3 camera_pos = {0.0f, 80.0f, 80.0f};
+    vec3 camera_pos = {0.0f, 70.0f, 70.0f};
     camera_pos      = vec3_rotate_axis(&camera_pos, &VEC3_UP, time * 0.3f);
 
     ubo.view = mat4_look_at(
@@ -593,51 +593,41 @@ void renderer_create_resources()
     }
 }
 
-void renderer_create_mesh(vertex* vertices, u32 vertex_count, u32* indices, u32 index_count)
+void renderer_create_meshes(mesh* m, i32 count)
 {
-    u32 vertex_size = vertex_count * RENDERER_SIZE_VERTEX;
-    u32 index_size  = index_count * RENDERER_SIZE_INDEX;
-
-    renderer_mesh* new_mesh = MEMORY_PUSH(g_renderer.host_arena, renderer_mesh, 1);
-    renderer_mesh* last     = g_renderer.mesh_data;
-
-    if (last == NULL)
+    for (i32 i = 0; i < count; i++)
     {
-        g_renderer.mesh_data = new_mesh;
+        u32 vertex_size = m[i].vertex_count * RENDERER_SIZE_VERTEX;
+        u32 index_size  = m[i].index_count * RENDERER_SIZE_INDEX;
+
+        renderer_mesh* new_mesh = g_renderer.mesh_data + g_renderer.mesh_count;
+        renderer_mesh* last     = g_renderer.mesh_data + MAX(g_renderer.mesh_count - 1, 0);
+
+        new_mesh->vertex_offset = last->vertex_offset + last->vertex_count;
+        new_mesh->index_offset  = last->index_offset + last->index_count;
+        new_mesh->vertex_count  = m[i].vertex_count;
+        new_mesh->index_count   = m[i].index_count;
+
+        memcpy(g_renderer.buffers.stage_mapped, m[i].vertices, vertex_size);
+        renderer_copy_buffer(
+            g_renderer.buffers.stage_buf,
+            g_renderer.buffers.vertex_buf,
+            0,
+            new_mesh->vertex_offset * RENDERER_SIZE_VERTEX,
+            vertex_size
+        );
+
+        memcpy((u8 *)g_renderer.buffers.stage_mapped, m[i].indices, index_size);
+        renderer_copy_buffer(
+            g_renderer.buffers.stage_buf,
+            g_renderer.buffers.index_buf,
+            0,
+            new_mesh->index_offset * RENDERER_SIZE_INDEX,
+            index_size
+        );
+
+        g_renderer.mesh_count += 1;
     }
-    else
-    {
-        while (last->next != NULL)
-        {
-            last = last->next;
-        }
-
-        last->next = new_mesh;
-    }
-
-    new_mesh->next          = NULL;
-    new_mesh->vertex_offset = (last != NULL ? last->vertex_offset + last->vertex_count : 0);
-    new_mesh->vertex_count  = vertex_count;
-    new_mesh->index_offset  = (last != NULL ? last->index_offset + last->index_count : 0);
-    new_mesh->index_count   = index_count;
-
-    memcpy(g_renderer.buffers.stage_mapped, vertices, vertex_size);
-    renderer_copy_buffer(
-        g_renderer.buffers.stage_buf,
-        g_renderer.buffers.vertex_buf,
-        0,
-        new_mesh->vertex_offset * RENDERER_SIZE_VERTEX,
-        vertex_size
-    );
-
-    memcpy((u8 *)g_renderer.buffers.stage_mapped, indices, index_size);
-    renderer_copy_buffer(
-        g_renderer.buffers.stage_buf,
-        g_renderer.buffers.index_buf,
-        0,
-        new_mesh->index_offset * RENDERER_SIZE_INDEX,
-        index_size
-    );
 }
 
 void renderer_create_depth_resources()
@@ -1378,25 +1368,11 @@ void renderer_command_buffer_record(renderer_pipeline* pipeline, u32 buffer_id, 
         NULL
     );
 
-    u32 index = 0;
-    for (i32 i = 0; i < g_renderer.node_count; i++)
+    // NOTE(KB): This breaks if multiple instances use the same mesh
+    //           Introduce instance IDs
+    for (i32 i = 0; i < g_renderer.mesh_count; i++)
     {
-        renderer_mesh* mesh = g_renderer.mesh_data;
-
-        if (g_renderer.nodes[i].mesh_id < 0)
-        {
-            continue;
-        }
-
-        for (i32 j = 0; j < g_renderer.nodes[i].mesh_id; j++)
-        {
-            if (mesh->next == NULL)
-            {
-                break;
-            }
-
-            mesh = mesh->next;
-        }
+        renderer_mesh mesh = g_renderer.mesh_data[i];
 
         vkCmdPushConstants(
             cmd,
@@ -1404,12 +1380,10 @@ void renderer_command_buffer_record(renderer_pipeline* pipeline, u32 buffer_id, 
             VK_SHADER_STAGE_VERTEX_BIT,
             0,
             sizeof(renderer_push_constant),
-            &index
+            &i
         );
 
-        index += 1;
-
-        vkCmdDrawIndexed(cmd, mesh->index_count, 1, mesh->index_offset, mesh->vertex_offset, 0);
+        vkCmdDrawIndexed(cmd, mesh.index_count, 1, mesh.index_offset, mesh.vertex_offset, 0);
     }
 
     vkCmdEndRendering(cmd);

@@ -7,6 +7,8 @@
 #define RENDERER_SWAP_IMG_COUNT 2
 #define RENDERER_FRAMES_IN_FLIGHT 2
 
+#define RENDERER_MESH_COUNT_MAX 10000
+
 typedef enum vertex_attr_type vertex_attr_type;
 enum vertex_attr_type
 {
@@ -15,34 +17,6 @@ enum vertex_attr_type
     VERTEX_ATTR_TYPE_color,
     VERTEX_ATTR_TYPE_uv,
     VERTEX_ATTR_TYPE_count
-};
-
-typedef struct vertex vertex;
-struct vertex
-{
-    vec3 position;
-    vec3 normal;
-    vec3 color;
-    vec2 uv;
-};
-
-typedef struct scene_node scene_node;
-struct scene_node
-{
-    mat4 transform;
-    i32* children;
-    u32  child_count;
-    i32  parent;
-    i32  mesh_id;
-};
-
-typedef struct mesh mesh;
-struct mesh
-{
-    vertex* vertices;
-    u32*    indices;
-    u32     vertex_count;
-    u32     index_count;
 };
 
 typedef struct renderer_queue_ids renderer_queue_ids;
@@ -92,12 +66,10 @@ struct renderer_buffers
 typedef struct renderer_mesh renderer_mesh;
 struct renderer_mesh
 {
-    renderer_mesh* next;
-
-    u32            vertex_offset;
-    u32            vertex_count;
-    i32            index_offset;
-    u32            index_count;
+    u32 vertex_offset;
+    u32 vertex_count;
+    i32 index_offset;
+    u32 index_count;
 };
 
 typedef struct renderer_pipeline renderer_pipeline;
@@ -113,9 +85,6 @@ typedef struct renderer renderer;
 struct renderer
 {
     gpu_arena          gpu_arena;
-    renderer_mesh*     mesh_data;
-    scene_node*        nodes;
-    u32                node_count;
     cpu_arena*         host_arena;
     VkInstance         instance;
     VkSurfaceKHR       surface;
@@ -140,9 +109,12 @@ struct renderer
 
     renderer_pipeline* pipelines;
     u64                pipeline_count;
+
+    renderer_mesh*     mesh_data;
+    i32                mesh_count;
 };
 
-global renderer g_renderer;
+global renderer g_renderer = {0};
 
 global const c8* g_validation_layers[] = {
     "VK_LAYER_KHRONOS_validation",
@@ -178,7 +150,7 @@ void renderer_create_descriptor_pool();
 void renderer_create_sync_primitives();
 void renderer_create_resources();
 
-void renderer_create_mesh(vertex* vertices, u32 vertex_count, u32* indices, u32 index_count);
+void renderer_create_mesh(mesh* m);
 void renderer_create_depth_resources();
 void renderer_create_buffer(VkBuffer* buffer, VkDeviceSize size, VkBufferUsageFlags usage);
 void renderer_create_image(VkImage* image, u32 width, u32 height, VkImageUsageFlags usage, VkImageTiling tiling, VkFormat format);
