@@ -150,7 +150,7 @@ void renderer_create_descriptor_pool();
 void renderer_create_sync_primitives();
 void renderer_create_resources();
 
-void renderer_create_mesh(mesh* m);
+void renderer_create_meshes(mesh* m, i32 count);
 void renderer_create_depth_resources();
 void renderer_create_buffer(VkBuffer* buffer, VkDeviceSize size, VkBufferUsageFlags usage);
 void renderer_create_image(VkImage* image, u32 width, u32 height, VkImageUsageFlags usage, VkImageTiling tiling, VkFormat format);
