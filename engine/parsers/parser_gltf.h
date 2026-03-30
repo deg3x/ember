@@ -119,6 +119,8 @@ struct gltf_json_data
 typedef struct gltf_data gltf_data;
 struct gltf_data
 {
+    cpu_arena* arena;
+
     mat4* transforms;
     i32** children;
     u32*  children_count;
@@ -134,9 +136,10 @@ struct gltf_data
     u32   primitive_count;
 };
 
-gltf_data      gltf_parse_file(const c8* file_path, cpu_arena* arena);
+gltf_data      gltf_parse_file(const c8* file_path);
 gltf_json_data gltf_parse_chunk_json(gltf_parser* parser, u32 chunk_length);
 gltf_data      gltf_parse_chunk_binary(gltf_parser* parser, u32 chunk_length, gltf_json_data* json_data);
 void           gltf_parse_components(void* source, u32 count, u32 offset, u32 stride, i32 cmp_type, i32 data_type, void* dest);
+void           gltf_free(gltf_data* gltf);
 
 #endif //PARSER_GLTF_H

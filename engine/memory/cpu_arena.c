@@ -7,8 +7,8 @@ cpu_arena* cpu_arena_init(cpu_arena_params* params)
     b64 lrg_pages = params->flags & CPU_ARENA_FLAGS_large_pages; 
     u64 page_size = lrg_pages ? g_platform_info.page_size_large : g_platform_info.page_size;
 
-    u64 reserve = POW_2_ROUND_UP(params->size_res, page_size);
-    u64 commit  = POW_2_ROUND_UP(params->size_cmt, page_size);
+    u64 reserve = POW_2_ROUND_UP(params->size_res + ARENA_HEADER_SIZE, page_size);
+    u64 commit  = POW_2_ROUND_UP(params->size_cmt + ARENA_HEADER_SIZE, page_size);
 
     void* address = NULL;
     

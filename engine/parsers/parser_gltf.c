@@ -1,14 +1,14 @@
-gltf_data gltf_parse_file(const c8* file_path, cpu_arena* arena)
+gltf_data gltf_parse_file(const c8* file_path)
 {
     platform_hnd file_handle     = platform_file_open(file_path, PLATFORM_FILE_FLAGS_read | PLATFORM_FILE_FLAGS_share_r);
     platform_file_info file_info = platform_file_info_get(file_handle);
 
-    EMBER_ASSERT(file_info.size <= cpu_arena_avail(arena));
-
     gltf_parser parser;
 
-    parser.arena       = arena;
-    parser.source.data = MEMORY_PUSH(arena, u8, file_info.size);
+    cpu_arena_params params = { file_info.size * 2, file_info.size * 2, 0 };
+
+    parser.arena       = cpu_arena_init(&params);
+    parser.source.data = MEMORY_PUSH(parser.arena, u8, file_info.size);
     parser.source.size = platform_file_read(file_handle, parser.source.data, FILE_READ_ALL);
     parser.position    = 0;
 
@@ -50,6 +50,8 @@ gltf_data gltf_parse_file(const c8* file_path, cpu_arena* arena)
 
         parser.position += chunk_length;
     }
+
+    result.arena = parser.arena;
 
     return result;
 }
@@ -555,4 +557,9 @@ void gltf_parse_components(void* source, u32 count, u32 offset, u32 stride, i32 
             EMBER_ASSERT(EMBER_FALSE);
         }
     }
+}
+
+void gltf_free(gltf_data* gltf)
+{
+    cpu_arena_release(gltf->arena);
 }
