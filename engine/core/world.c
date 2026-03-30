@@ -1,6 +1,6 @@
 void world_init()
 {
-    cpu_arena_params params = { GB(1), GB(1), 0 };
+    cpu_arena_params params = { GB(4), GB(4), 0 };
 
     g_world.arena = cpu_arena_init(&params);
 }
@@ -13,7 +13,7 @@ void world_load_model(const c8* file)
 
     EMBER_TRACE_END(gltf_parse);
 
-    renderer_create_meshes(gltf.meshes, gltf.mesh_count);
+    renderer_create_meshes(gltf.meshes, gltf.primitive_count);
 
     g_world.nodes.transforms     = gltf.transforms;
     g_world.nodes.children       = gltf.children;
@@ -23,21 +23,23 @@ void world_load_model(const c8* file)
 
     for (i32 i = 0; i < gltf.node_count; i++)
     {
-        if (gltf.mesh_ids[i] < 0)
+        i32 mesh_id = gltf.mesh_ids[i];
+
+        if (mesh_id < 0)
         {
             continue;
         }
 
-        mat4 transform  = world_node_transform(i, COORD_SPACE_world);
+        renderer_ssbo ssbo = {
+            world_node_transform(i, COORD_SPACE_world)
+        };
 
-        // NOTE(KB): This breaks if we have multiple instances that use the same mesh
-        //           Improve by introducing instance IDs (also in renderer)
-        for (i32 j = 0; j < RENDERER_FRAMES_IN_FLIGHT; j++)
-        {
-            u8* dest = (u8*)g_renderer.buffers.ssbo_mapped[j] + gltf.mesh_ids[i] * sizeof(mat4);
+        renderer_node node = {
+            gltf.mesh_offsets[mesh_id],
+            gltf.mesh_primitives[mesh_id]
+        };
 
-            memcpy(dest, &transform, sizeof(mat4));
-        }
+        renderer_create_nodes(&node, &ssbo, 1);
     }
 
     g_world.nodes.count += gltf.node_count;

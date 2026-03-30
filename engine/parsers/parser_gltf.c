@@ -167,32 +167,47 @@ gltf_json_data gltf_parse_chunk_json(gltf_parser* parser, u32 chunk_length)
                 buffer primitives_buffer = buffer_from_cstr("primitives");
                 buffer attributes_buffer = buffer_from_cstr("attributes");
 
-                json_entry* primitives = json_find_child(mesh, &primitives_buffer);
-                primitives             = primitives->child;
+                json_entry* current = json_find_child(mesh, &primitives_buffer);
+                i32 primitive_count = json_num_of_children(current);
 
-                json_entry* attributes = json_find_child(primitives, &attributes_buffer);
+                result.meshes[i].primitives      = MEMORY_PUSH(parser->arena, gltf_primitive, primitive_count);
+                result.meshes[i].primitive_count = primitive_count;
 
-                b32 position_is_valid = json_child_value(parser->arena, attributes, JSON_VALUE_TYPE_i32, &position, "POSITION");
-                b32 normal_is_valid   = json_child_value(parser->arena, attributes, JSON_VALUE_TYPE_i32, &normal, "NORMAL");
-                b32 tangent_is_valid  = json_child_value(parser->arena, attributes, JSON_VALUE_TYPE_i32, &tangent, "TANGENT");
-                b32 texcoord_is_valid = json_child_value(parser->arena, attributes, JSON_VALUE_TYPE_i32, &texcoord, "TEXCOORD_0");
-                b32 color_is_valid    = json_child_value(parser->arena, attributes, JSON_VALUE_TYPE_i32, &color, "COLOR_0");
-                b32 joints_is_valid   = json_child_value(parser->arena, attributes, JSON_VALUE_TYPE_i32, &joints, "JOINTS_0");
-                b32 weights_is_valid  = json_child_value(parser->arena, attributes, JSON_VALUE_TYPE_i32, &weights, "WEIGHTS_0");
-                b32 indices_is_valid  = json_child_value(parser->arena, primitives, JSON_VALUE_TYPE_i32, &indices, "indices");
-                b32 material_is_valid = json_child_value(parser->arena, mesh, JSON_VALUE_TYPE_i32, &material, "material");
-                b32 mode_is_valid     = json_child_value(parser->arena, mesh, JSON_VALUE_TYPE_i32, &mode, "mode");
+                current = current->child;
 
-                result.meshes[i].first_primitive.position  = position_is_valid ? position : -1;
-                result.meshes[i].first_primitive.normal    = normal_is_valid ? normal : -1;
-                result.meshes[i].first_primitive.tangent   = tangent_is_valid ? tangent : -1;
-                result.meshes[i].first_primitive.texcoord  = texcoord_is_valid ? texcoord : -1;
-                result.meshes[i].first_primitive.color     = color_is_valid ? color : -1;
-                result.meshes[i].first_primitive.joints    = joints_is_valid ? joints : -1;
-                result.meshes[i].first_primitive.weights   = weights_is_valid ? weights : -1;
-                result.meshes[i].first_primitive.indices   = indices_is_valid ? indices : -1;
-                result.meshes[i].first_primitive.material  = material_is_valid ? material : -1;
-                result.meshes[i].first_primitive.draw_mode = mode_is_valid ? mode : -1;
+                for (i32 j = 0; j < primitive_count; j++)
+                {
+                    EMBER_ASSERT(current != NULL);
+
+                    json_entry* attributes = json_find_child(current, &attributes_buffer);
+
+                    b32 position_is_valid = json_child_value(parser->arena, attributes, JSON_VALUE_TYPE_i32, &position, "POSITION");
+                    b32 normal_is_valid   = json_child_value(parser->arena, attributes, JSON_VALUE_TYPE_i32, &normal, "NORMAL");
+                    b32 tangent_is_valid  = json_child_value(parser->arena, attributes, JSON_VALUE_TYPE_i32, &tangent, "TANGENT");
+                    b32 texcoord_is_valid = json_child_value(parser->arena, attributes, JSON_VALUE_TYPE_i32, &texcoord, "TEXCOORD_0");
+                    b32 color_is_valid    = json_child_value(parser->arena, attributes, JSON_VALUE_TYPE_i32, &color, "COLOR_0");
+                    b32 joints_is_valid   = json_child_value(parser->arena, attributes, JSON_VALUE_TYPE_i32, &joints, "JOINTS_0");
+                    b32 weights_is_valid  = json_child_value(parser->arena, attributes, JSON_VALUE_TYPE_i32, &weights, "WEIGHTS_0");
+                    b32 indices_is_valid  = json_child_value(parser->arena, current, JSON_VALUE_TYPE_i32, &indices, "indices");
+                    b32 material_is_valid = json_child_value(parser->arena, current, JSON_VALUE_TYPE_i32, &material, "material");
+                    b32 mode_is_valid     = json_child_value(parser->arena, current, JSON_VALUE_TYPE_i32, &mode, "mode");
+
+                    result.meshes[i].primitives[j].position  = position_is_valid ? position : -1;
+                    result.meshes[i].primitives[j].normal    = normal_is_valid ? normal : -1;
+                    result.meshes[i].primitives[j].tangent   = tangent_is_valid ? tangent : -1;
+                    result.meshes[i].primitives[j].texcoord  = texcoord_is_valid ? texcoord : -1;
+                    result.meshes[i].primitives[j].color     = color_is_valid ? color : -1;
+                    result.meshes[i].primitives[j].joints    = joints_is_valid ? joints : -1;
+                    result.meshes[i].primitives[j].weights   = weights_is_valid ? weights : -1;
+                    result.meshes[i].primitives[j].indices   = indices_is_valid ? indices : -1;
+                    result.meshes[i].primitives[j].material  = material_is_valid ? material : -1;
+                    result.meshes[i].primitives[j].draw_mode = mode_is_valid ? mode : -1;
+
+                    result.primitive_count += 1;
+
+                    current = current->next;
+                }
+
 
                 mesh = mesh->next;
             }
@@ -310,14 +325,17 @@ gltf_data gltf_parse_chunk_binary(gltf_parser* parser, u32 chunk_length, gltf_js
 
     EMBER_ASSERT(json_data != NULL);
 
-    result.transforms     = MEMORY_PUSH(parser->arena, mat4, json_data->node_count);
-    result.children       = MEMORY_PUSH(parser->arena, i32*, json_data->node_count);
-    result.children_count = MEMORY_PUSH(parser->arena, u32, json_data->node_count);
-    result.parents        = MEMORY_PUSH(parser->arena, i32, json_data->node_count);
-    result.mesh_ids       = MEMORY_PUSH(parser->arena, i32, json_data->node_count);
-    result.meshes         = MEMORY_PUSH(parser->arena, mesh, json_data->mesh_count);
-    result.node_count     = json_data->node_count;
-    result.mesh_count     = json_data->mesh_count;
+    result.transforms      = MEMORY_PUSH(parser->arena, mat4, json_data->node_count);
+    result.children        = MEMORY_PUSH(parser->arena, i32*, json_data->node_count);
+    result.children_count  = MEMORY_PUSH(parser->arena, u32, json_data->node_count);
+    result.parents         = MEMORY_PUSH(parser->arena, i32, json_data->node_count);
+    result.mesh_ids        = MEMORY_PUSH(parser->arena, i32, json_data->node_count);
+    result.mesh_offsets    = MEMORY_PUSH(parser->arena, i32, json_data->mesh_count);
+    result.mesh_primitives = MEMORY_PUSH(parser->arena, i32, json_data->mesh_count);
+    result.meshes          = MEMORY_PUSH(parser->arena, mesh, json_data->primitive_count);
+    result.node_count      = json_data->node_count;
+    result.mesh_count      = json_data->mesh_count;
+    result.primitive_count = json_data->primitive_count;
 
     // NOTE(KB): Convert node data to output format
     for (u32 node_idx = 0; node_idx < json_data->node_count; node_idx++)
@@ -331,81 +349,92 @@ gltf_data gltf_parse_chunk_binary(gltf_parser* parser, u32 chunk_length, gltf_js
         result.mesh_ids[node_idx]       = node->mesh;
     }
 
+    // NOTE(KB): This is needed because we consider every unique primitive entry a new mesh
+    u32 mesh_offset = 0;
+
     // NOTE(KB): Convert mesh data to output format
     for (u32 mesh_idx = 0; mesh_idx < json_data->mesh_count; mesh_idx++)
     {
-        i32 acs_pos = json_data->meshes[mesh_idx].first_primitive.position;
-        i32 acs_nrm = json_data->meshes[mesh_idx].first_primitive.normal;
-        i32 acs_uvs = json_data->meshes[mesh_idx].first_primitive.texcoord;
-        i32 acs_ids = json_data->meshes[mesh_idx].first_primitive.indices;
+        result.mesh_offsets[mesh_idx]    = mesh_offset;
+        result.mesh_primitives[mesh_idx] = json_data->meshes[mesh_idx].primitive_count;
 
-        i32 data_offset_pos = json_data->buffer_views[json_data->accessors[acs_pos].buffer_view_id].byte_offset
-                            + json_data->accessors[acs_pos].byte_offset;
-
-        i32 data_offset_nrm = json_data->buffer_views[json_data->accessors[acs_nrm].buffer_view_id].byte_offset
-                            + json_data->accessors[acs_nrm].byte_offset;
-
-        i32 data_offset_uvs = json_data->buffer_views[json_data->accessors[acs_uvs].buffer_view_id].byte_offset
-                            + json_data->accessors[acs_uvs].byte_offset;
-
-        i32 data_offset_ids = json_data->buffer_views[json_data->accessors[acs_ids].buffer_view_id].byte_offset
-                              + json_data->accessors[acs_ids].byte_offset;
-
-        EMBER_ASSERT(
-            (json_data->accessors[acs_pos].count == json_data->accessors[acs_nrm].count) &&
-            (json_data->accessors[acs_pos].count == json_data->accessors[acs_uvs].count)
-        );
-
-        result.meshes[mesh_idx].vertex_count = json_data->accessors[acs_pos].count;
-        result.meshes[mesh_idx].index_count  = json_data->accessors[acs_ids].count;
-
-        result.meshes[mesh_idx].vertices = MEMORY_PUSH(parser->arena, vertex, result.meshes[mesh_idx].vertex_count);
-        result.meshes[mesh_idx].indices  = MEMORY_PUSH(parser->arena, u32,  result.meshes[mesh_idx].index_count);
-
-        gltf_parse_components(
-            (data + data_offset_ids),
-            result.meshes[mesh_idx].index_count,
-            0,
-            sizeof(u32),
-            json_data->accessors[acs_ids].component_type,
-            json_data->accessors[acs_ids].type,
-            result.meshes[mesh_idx].indices
-        );
-
-        gltf_parse_components(
-            (data + data_offset_pos),
-            result.meshes[mesh_idx].vertex_count,
-            offsetof(vertex, position),
-            sizeof(vertex),
-            json_data->accessors[acs_pos].component_type,
-            json_data->accessors[acs_pos].type,
-            result.meshes[mesh_idx].vertices
-        );
-
-        gltf_parse_components(
-            (data + data_offset_nrm),
-            result.meshes[mesh_idx].vertex_count,
-            offsetof(vertex, normal),
-            sizeof(vertex),
-            json_data->accessors[acs_nrm].component_type,
-            json_data->accessors[acs_nrm].type,
-            result.meshes[mesh_idx].vertices
-        );
-
-        gltf_parse_components(
-            (data + data_offset_uvs),
-            result.meshes[mesh_idx].vertex_count,
-            offsetof(vertex, uv),
-            sizeof(vertex),
-            json_data->accessors[acs_uvs].component_type,
-            json_data->accessors[acs_uvs].type,
-            result.meshes[mesh_idx].vertices
-        );
-
-        // NOTE(): Manually write to the color value
-        for (u32 i = 0; i < result.meshes[mesh_idx].vertex_count; i++)
+        for (u32 prim_idx = 0; prim_idx < json_data->meshes[mesh_idx].primitive_count; prim_idx++)
         {
-            result.meshes[mesh_idx].vertices[i].color = (vec3){1.0f, 1.0f, 1.0f};
+            i32 acs_pos = json_data->meshes[mesh_idx].primitives[prim_idx].position;
+            i32 acs_nrm = json_data->meshes[mesh_idx].primitives[prim_idx].normal;
+            i32 acs_uvs = json_data->meshes[mesh_idx].primitives[prim_idx].texcoord;
+            i32 acs_ids = json_data->meshes[mesh_idx].primitives[prim_idx].indices;
+
+            i32 data_offset_pos = json_data->buffer_views[json_data->accessors[acs_pos].buffer_view_id].byte_offset
+                                + json_data->accessors[acs_pos].byte_offset;
+
+            i32 data_offset_nrm = json_data->buffer_views[json_data->accessors[acs_nrm].buffer_view_id].byte_offset
+                                + json_data->accessors[acs_nrm].byte_offset;
+
+            i32 data_offset_uvs = json_data->buffer_views[json_data->accessors[acs_uvs].buffer_view_id].byte_offset
+                                + json_data->accessors[acs_uvs].byte_offset;
+
+            i32 data_offset_ids = json_data->buffer_views[json_data->accessors[acs_ids].buffer_view_id].byte_offset
+                                  + json_data->accessors[acs_ids].byte_offset;
+
+            EMBER_ASSERT(
+                (json_data->accessors[acs_pos].count == json_data->accessors[acs_nrm].count) &&
+                (json_data->accessors[acs_pos].count == json_data->accessors[acs_uvs].count)
+            );
+
+            result.meshes[mesh_offset].vertex_count = json_data->accessors[acs_pos].count;
+            result.meshes[mesh_offset].index_count  = json_data->accessors[acs_ids].count;
+
+            result.meshes[mesh_offset].vertices = MEMORY_PUSH(parser->arena, vertex, result.meshes[mesh_offset].vertex_count);
+            result.meshes[mesh_offset].indices  = MEMORY_PUSH(parser->arena, u32,  result.meshes[mesh_offset].index_count);
+
+            gltf_parse_components(
+                (data + data_offset_ids),
+                result.meshes[mesh_offset].index_count,
+                0,
+                sizeof(u32),
+                json_data->accessors[acs_ids].component_type,
+                json_data->accessors[acs_ids].type,
+                result.meshes[mesh_offset].indices
+            );
+
+            gltf_parse_components(
+                (data + data_offset_pos),
+                result.meshes[mesh_offset].vertex_count,
+                offsetof(vertex, position),
+                sizeof(vertex),
+                json_data->accessors[acs_pos].component_type,
+                json_data->accessors[acs_pos].type,
+                result.meshes[mesh_offset].vertices
+            );
+
+            gltf_parse_components(
+                (data + data_offset_nrm),
+                result.meshes[mesh_offset].vertex_count,
+                offsetof(vertex, normal),
+                sizeof(vertex),
+                json_data->accessors[acs_nrm].component_type,
+                json_data->accessors[acs_nrm].type,
+                result.meshes[mesh_offset].vertices
+            );
+
+            gltf_parse_components(
+                (data + data_offset_uvs),
+                result.meshes[mesh_offset].vertex_count,
+                offsetof(vertex, uv),
+                sizeof(vertex),
+                json_data->accessors[acs_uvs].component_type,
+                json_data->accessors[acs_uvs].type,
+                result.meshes[mesh_offset].vertices
+            );
+
+            // NOTE(): Manually write to the color value
+            for (u32 i = 0; i < result.meshes[mesh_offset].vertex_count; i++)
+            {
+                result.meshes[mesh_offset].vertices[i].color = (vec3){1.0f, 1.0f, 1.0f};
+            }
+
+            mesh_offset += 1;
         }
     }
 

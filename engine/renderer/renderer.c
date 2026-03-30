@@ -20,6 +20,7 @@ void renderer_init(platform_hnd window_handle)
     renderer_create_resources();
 
     g_renderer.mesh_data = MEMORY_PUSH_ZERO(g_renderer.host_arena, renderer_mesh, RENDERER_MESH_COUNT_MAX);
+    g_renderer.node_data = MEMORY_PUSH_ZERO(g_renderer.host_arena, renderer_node, RENDERER_NODE_COUNT_MAX);
 
     renderer_create_depth_resources();
 
@@ -593,6 +594,20 @@ void renderer_create_resources()
     }
 }
 
+void renderer_create_nodes(renderer_node* nodes, renderer_ssbo* node_ssbo, i32 node_count)
+{
+    memcpy(g_renderer.node_data + g_renderer.node_count, nodes, node_count * sizeof(renderer_node));
+
+    for (i32 i = 0; i < RENDERER_FRAMES_IN_FLIGHT; i++)
+    {
+        u8* dst = (u8*)g_renderer.buffers.ssbo_mapped[i] + g_renderer.node_count * sizeof(renderer_ssbo);
+
+        memcpy(dst, node_ssbo, node_count * sizeof(renderer_ssbo));
+    }
+
+    g_renderer.node_count += node_count;
+}
+
 void renderer_create_meshes(mesh* m, i32 count)
 {
     for (i32 i = 0; i < count; i++)
@@ -830,7 +845,6 @@ void renderer_copy_buffer(VkBuffer src, VkBuffer dst, VkDeviceSize offset_src, V
 
     vkFreeCommandBuffers(g_renderer.device, g_renderer.command_pool, 1, &cmd_buffer);
 }
-
 
 gpu_mem* renderer_create_buffer_memory(VkBuffer buffer, gpu_mem_type mem_type)
 {
@@ -1368,22 +1382,25 @@ void renderer_command_buffer_record(renderer_pipeline* pipeline, u32 buffer_id, 
         NULL
     );
 
-    // NOTE(KB): This breaks if multiple instances use the same mesh
-    //           Introduce instance IDs
-    for (i32 i = 0; i < g_renderer.mesh_count; i++)
+    for (i32 i = 0; i < g_renderer.node_count; i++)
     {
-        renderer_mesh mesh = g_renderer.mesh_data[i];
+        renderer_node node = g_renderer.node_data[i];
 
-        vkCmdPushConstants(
-            cmd,
-            g_renderer.pipelines->graphics_pipeline_layout,
-            VK_SHADER_STAGE_VERTEX_BIT,
-            0,
-            sizeof(renderer_push_constant),
-            &i
-        );
+        for (i32 j = 0; j < node.mesh_count; j++)
+        {
+            renderer_mesh mesh = g_renderer.mesh_data[node.mesh_id + j];
 
-        vkCmdDrawIndexed(cmd, mesh.index_count, 1, mesh.index_offset, mesh.vertex_offset, 0);
+            vkCmdPushConstants(
+                cmd,
+                g_renderer.pipelines->graphics_pipeline_layout,
+                VK_SHADER_STAGE_VERTEX_BIT,
+                0,
+                sizeof(renderer_push_constant),
+                &i
+            );
+
+            vkCmdDrawIndexed(cmd, mesh.index_count, 1, mesh.index_offset, mesh.vertex_offset, 0);
+        }
     }
 
     vkCmdEndRendering(cmd);

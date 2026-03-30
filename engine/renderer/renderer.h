@@ -8,6 +8,7 @@
 #define RENDERER_FRAMES_IN_FLIGHT 2
 
 #define RENDERER_MESH_COUNT_MAX 10000
+#define RENDERER_NODE_COUNT_MAX 10000
 
 typedef enum vertex_attr_type vertex_attr_type;
 enum vertex_attr_type
@@ -31,6 +32,12 @@ struct renderer_ubo
 {
     mat4 view;
     mat4 proj;
+};
+
+typedef struct renderer_ssbo renderer_ssbo;
+struct renderer_ssbo
+{
+    mat4 transform;
 };
 
 typedef struct renderer_push_constant renderer_push_constant;
@@ -72,6 +79,13 @@ struct renderer_mesh
     u32 index_count;
 };
 
+typedef struct renderer_node renderer_node;
+struct renderer_node
+{
+    i32 mesh_id;
+    i32 mesh_count;
+};
+
 typedef struct renderer_pipeline renderer_pipeline;
 struct renderer_pipeline
 {
@@ -108,10 +122,12 @@ struct renderer
     renderer_buffers   buffers;
 
     renderer_pipeline* pipelines;
-    u64                pipeline_count;
-
     renderer_mesh*     mesh_data;
+    renderer_node*     node_data;
+
+    i32                pipeline_count;
     i32                mesh_count;
+    i32                node_count;
 };
 
 global renderer g_renderer = {0};
@@ -151,6 +167,8 @@ void renderer_create_sync_primitives();
 void renderer_create_resources();
 
 void renderer_create_meshes(mesh* m, i32 count);
+void renderer_create_nodes(renderer_node* nodes, renderer_ssbo* node_ssbo, i32 node_count);
+
 void renderer_create_depth_resources();
 void renderer_create_buffer(VkBuffer* buffer, VkDeviceSize size, VkBufferUsageFlags usage);
 void renderer_create_image(VkImage* image, u32 width, u32 height, VkImageUsageFlags usage, VkImageTiling tiling, VkFormat format);

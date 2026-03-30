@@ -39,17 +39,16 @@ struct gltf_parser
 typedef struct gltf_primitive gltf_primitive;
 struct gltf_primitive
 {
-    i32             position;
-    i32             normal;
-    i32             tangent;
-    i32             texcoord;
-    i32             color;
-    i32             joints;
-    i32             weights;
-    i32             indices;
-    i32             material;
-    i32             draw_mode;
-    gltf_primitive* next;
+    i32 position;
+    i32 normal;
+    i32 tangent;
+    i32 texcoord;
+    i32 color;
+    i32 joints;
+    i32 weights;
+    i32 indices;
+    i32 material;
+    i32 draw_mode;
 };
 
 typedef struct gltf_node gltf_node;
@@ -67,8 +66,9 @@ struct gltf_node
 typedef struct gltf_mesh gltf_mesh;
 struct gltf_mesh
 {
-    buffer         name;
-    gltf_primitive first_primitive;
+    buffer          name;
+    gltf_primitive* primitives;
+    i32             primitive_count;
 };
 
 typedef struct gltf_accessor gltf_accessor;
@@ -113,6 +113,7 @@ struct gltf_json_data
     u32               accessor_count;
     u32               buffer_view_count;
     u32               buffer_count;
+    u32               primitive_count;
 };
 
 typedef struct gltf_data gltf_data;
@@ -124,10 +125,13 @@ struct gltf_data
     i32*  parents;
 
     i32*  mesh_ids;
+    i32*  mesh_offsets;
+    i32*  mesh_primitives;
     mesh* meshes;
 
     u32   node_count;
     u32   mesh_count;
+    u32   primitive_count;
 };
 
 gltf_data      gltf_parse_file(const c8* file_path, cpu_arena* arena);
