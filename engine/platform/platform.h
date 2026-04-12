@@ -72,11 +72,10 @@ struct platform_file_info
 global platform_info      g_platform_info;
 global platform_app_state g_program_state;
 global platform_wnd_state g_window_state;
+global i32                g_platform_input_map[256];
 
-void platform_info_init();
+void platform_init();
 void platform_abort(i32 exit_code);
-
-void platform_console_init();
 
 platform_timer platform_timer_init();
 void           platform_timer_update(platform_timer* timer);
@@ -100,7 +99,6 @@ u64                platform_file_data(const c8* file_path, void* data);
 b32          platform_handle_equal(platform_hnd lhs, platform_hnd rhs);
 platform_hnd platform_get_instance_handle();
 
-void              platform_gfx_init();
 void              platform_gfx_process_events();
 platform_hnd      platform_gfx_wnd_create(const c8* title);
 platform_wnd_size platform_gfx_wnd_get_size(platform_hnd window_handle);

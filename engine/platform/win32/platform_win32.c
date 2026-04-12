@@ -1,5 +1,7 @@
-void platform_info_init()
+void platform_init()
 {
+    //////////////////////////////////////////
+    // NOTE(KB): Platform info initialization
     SYSTEM_INFO system_info;
     GetSystemInfo(&system_info);
 
@@ -10,15 +12,9 @@ void platform_info_init()
     g_platform_info.processor_count   = system_info.dwNumberOfProcessors;
     g_platform_info.alloc_granularity = system_info.dwAllocationGranularity;
     g_platform_info.perf_cnt_freq_inv = 1.0 / (f64)g_platform_info.perf_cnt_freq;
-}
 
-void platform_abort(i32 exit_code)
-{
-    ExitProcess(exit_code);
-}
-
-void platform_console_init()
-{
+    //////////////////////////////////////////
+    // NOTE(KB): Console initialization
 #if EMBER_BUILD_CONSOLE
     AllocConsole();
 
@@ -30,6 +26,120 @@ void platform_console_init()
     freopen("CONOUT$", "w", stdout);
     freopen("CONOUT$", "w", stderr);
 #endif
+
+    //////////////////////////////////////////
+    // NOTE(KB): GFX initialization
+    g_win32_gfx_state.instance = GetModuleHandle(NULL);
+
+    WNDCLASSEX window_class    = {0};
+    window_class.cbSize        = sizeof(WNDCLASSEX);
+    window_class.style         = CS_HREDRAW | CS_VREDRAW | CS_OWNDC;
+    window_class.lpfnWndProc   = win32_wnd_msg_callback;
+    window_class.cbClsExtra    = 0;
+    window_class.cbWndExtra    = 0;
+    window_class.hInstance     = g_win32_gfx_state.instance;
+    window_class.hIcon         = LoadIcon(NULL, IDI_APPLICATION);
+    window_class.hCursor       = LoadCursor(NULL, IDC_ARROW);
+    window_class.hbrBackground = NULL;
+    window_class.lpszMenuName  = NULL;
+    window_class.lpszClassName = "ember-window-class";
+    window_class.hIconSm       = NULL;
+
+    ATOM atom = RegisterClassEx(&window_class);
+    (void)atom;
+
+    //////////////////////////////////////////
+    // NOTE(KB): Input map initialization
+    g_platform_input_map[VK_LBUTTON]    = INPUT_KEY_lmb;
+    g_platform_input_map[VK_RBUTTON]    = INPUT_KEY_rmb;
+    g_platform_input_map[VK_MBUTTON]    = INPUT_KEY_mmb;
+    g_platform_input_map[VK_XBUTTON1]   = INPUT_KEY_xb1;
+    g_platform_input_map[VK_XBUTTON2]   = INPUT_KEY_xb2;
+    g_platform_input_map[VK_BACK]       = INPUT_KEY_bspace;
+    g_platform_input_map[VK_TAB]        = INPUT_KEY_tab;
+    g_platform_input_map[VK_RETURN]     = INPUT_KEY_enter;
+    g_platform_input_map[VK_SHIFT]      = INPUT_KEY_shift;
+    g_platform_input_map[VK_CONTROL]    = INPUT_KEY_ctrl;
+    g_platform_input_map[VK_MENU]       = INPUT_KEY_alt;
+    g_platform_input_map[VK_PAUSE]      = INPUT_KEY_pause;
+    g_platform_input_map[VK_CAPITAL]    = INPUT_KEY_caps;
+    g_platform_input_map[VK_ESCAPE]     = INPUT_KEY_esc;
+    g_platform_input_map[VK_SPACE]      = INPUT_KEY_space;
+    g_platform_input_map[VK_PRIOR]      = INPUT_KEY_pgup;
+    g_platform_input_map[VK_NEXT]       = INPUT_KEY_pgdn;
+    g_platform_input_map[VK_END]        = INPUT_KEY_end;
+    g_platform_input_map[VK_HOME]       = INPUT_KEY_home;
+    g_platform_input_map[VK_LEFT]       = INPUT_KEY_left;
+    g_platform_input_map[VK_UP]         = INPUT_KEY_up;
+    g_platform_input_map[VK_RIGHT]      = INPUT_KEY_right;
+    g_platform_input_map[VK_DOWN]       = INPUT_KEY_down;
+    g_platform_input_map[VK_INSERT]     = INPUT_KEY_ins;
+    g_platform_input_map[VK_DELETE]     = INPUT_KEY_del;
+    g_platform_input_map[VK_MULTIPLY]   = INPUT_KEY_mul;
+    g_platform_input_map[VK_ADD]        = INPUT_KEY_add;
+    g_platform_input_map[VK_SEPARATOR]  = INPUT_KEY_separator;
+    g_platform_input_map[VK_SUBTRACT]   = INPUT_KEY_sub;
+    g_platform_input_map[VK_DECIMAL]    = INPUT_KEY_decimal;
+    g_platform_input_map[VK_DIVIDE]     = INPUT_KEY_div;
+    g_platform_input_map[VK_NUMLOCK]    = INPUT_KEY_numlck;
+    g_platform_input_map[VK_SCROLL]     = INPUT_KEY_scrlck;
+    g_platform_input_map[VK_LSHIFT]     = INPUT_KEY_lshift;
+    g_platform_input_map[VK_RSHIFT]     = INPUT_KEY_rshift;
+    g_platform_input_map[VK_LCONTROL]   = INPUT_KEY_lctrl;
+    g_platform_input_map[VK_RCONTROL]   = INPUT_KEY_rctrl;
+    g_platform_input_map[VK_LMENU]      = INPUT_KEY_lalt;
+    g_platform_input_map[VK_RMENU]      = INPUT_KEY_ralt;
+    g_platform_input_map[VK_OEM_1]      = INPUT_KEY_colon;
+    g_platform_input_map[VK_OEM_PLUS]   = INPUT_KEY_plus;
+    g_platform_input_map[VK_OEM_COMMA]  = INPUT_KEY_comma;
+    g_platform_input_map[VK_OEM_MINUS]  = INPUT_KEY_minus;
+    g_platform_input_map[VK_OEM_PERIOD] = INPUT_KEY_period;
+    g_platform_input_map[VK_OEM_2]      = INPUT_KEY_fslash;
+    g_platform_input_map[VK_OEM_3]      = INPUT_KEY_tilde;
+    g_platform_input_map[VK_OEM_4]      = INPUT_KEY_lbrace;
+    g_platform_input_map[VK_OEM_5]      = INPUT_KEY_bslash;
+    g_platform_input_map[VK_OEM_6]      = INPUT_KEY_rbrace;
+    g_platform_input_map[VK_OEM_7]      = INPUT_KEY_quote;
+
+    for (i32 i = '0'; i <= '9'; i++)
+    {
+        i32 offset = i - (i32)('0');
+
+        g_platform_input_map[i] = INPUT_KEY_0 + offset;
+    }
+
+    for (i32 i = 'A'; i <= 'Z'; i++)
+    {
+        i32 offset = i - (i32)('A');
+
+        g_platform_input_map[i] = INPUT_KEY_a + offset;
+    }
+
+    for (i32 i = VK_NUMPAD0; i <= VK_NUMPAD9; i++)
+    {
+        i32 offset = i - VK_NUMPAD0;
+
+        g_platform_input_map[i] = INPUT_KEY_numpad_0 + offset;
+    }
+
+    for (i32 i = VK_F1; i <= VK_F24; i++)
+    {
+        i32 offset = i - VK_F1;
+
+        g_platform_input_map[i] = INPUT_KEY_f1 + offset;
+    }
+
+    for (i32 i = VK_F1; i <= VK_F24; i++)
+    {
+        i32 offset = i - VK_F1;
+
+        g_platform_input_map[i] = INPUT_KEY_f1 + offset;
+    }
+}
+
+void platform_abort(i32 exit_code)
+{
+    ExitProcess(exit_code);
 }
 
 platform_timer platform_timer_init()
@@ -274,28 +384,6 @@ platform_hnd platform_get_instance_handle()
     return handle;
 }
 
-void platform_gfx_init()
-{
-    g_win32_gfx_state.instance = GetModuleHandle(NULL);
-
-    WNDCLASSEX window_class    = {0};
-    window_class.cbSize        = sizeof(WNDCLASSEX);
-    window_class.style         = CS_HREDRAW | CS_VREDRAW | CS_OWNDC;
-    window_class.lpfnWndProc   = win32_wnd_msg_callback;
-    window_class.cbClsExtra    = 0;
-    window_class.cbWndExtra    = 0;
-    window_class.hInstance     = g_win32_gfx_state.instance;
-    window_class.hIcon         = LoadIcon(NULL, IDI_APPLICATION);
-    window_class.hCursor       = LoadCursor(NULL, IDC_ARROW);
-    window_class.hbrBackground = NULL;
-    window_class.lpszMenuName  = NULL;
-    window_class.lpszClassName = "ember-window-class";
-    window_class.hIconSm       = NULL;
-
-    ATOM atom = RegisterClassEx(&window_class);
-    (void)atom;
-}
-
 void platform_gfx_process_events()
 {
     MSG msg = {0};
@@ -397,11 +485,13 @@ LRESULT CALLBACK win32_wnd_msg_callback(HWND hwnd, UINT msg, WPARAM w_param, LPA
         case WM_ENTERSIZEMOVE:
         {
             g_window_state.is_resizing = EMBER_TRUE;
+
             return 0;
         }
         case WM_EXITSIZEMOVE:
         {
             g_window_state.is_resizing = EMBER_FALSE;
+
             return 0;
         }
         case WM_ACTIVATEAPP:
@@ -411,6 +501,74 @@ LRESULT CALLBACK win32_wnd_msg_callback(HWND hwnd, UINT msg, WPARAM w_param, LPA
         case WM_DESTROY:
         {
             PostQuitMessage(0);
+
+            return 0;
+        }
+        case WM_LBUTTONUP:
+        {
+            g_input_state.keys[INPUT_KEY_lmb] = 0;
+
+            return 0;
+        }
+        case WM_RBUTTONUP:
+        {
+            g_input_state.keys[INPUT_KEY_rmb] = 0;
+
+            return 0;
+        }
+        case WM_MBUTTONUP:
+        {
+            g_input_state.keys[INPUT_KEY_mmb] = 0;
+
+            return 0;
+        }
+        case WM_LBUTTONDOWN:
+        {
+            g_input_state.keys[INPUT_KEY_lmb] = 1;
+
+            return 0;
+        }
+        case WM_RBUTTONDOWN:
+        {
+            g_input_state.keys[INPUT_KEY_rmb] = 1;
+
+            return 0;
+        }
+        case WM_MBUTTONDOWN:
+        {
+            g_input_state.keys[INPUT_KEY_mmb] = 1;
+
+            return 0;
+        }
+        case WM_MOUSEMOVE:
+        {
+            g_input_state.mouse_pos.x = (f32)GET_X_LPARAM(l_param);
+            g_input_state.mouse_pos.y = (f32)GET_Y_LPARAM(l_param);
+
+            return 0;
+        }
+        case WM_MOUSEWHEEL:
+        {
+            g_input_state.mouse_scroll.y = (f32)GET_WHEEL_DELTA_WPARAM(w_param);
+
+            return 0;
+        }
+        case WM_MOUSEHWHEEL:
+        {
+            g_input_state.mouse_scroll.x = (f32)GET_WHEEL_DELTA_WPARAM(w_param);
+
+            return 0;
+        }
+        //case WM_SYSKEYDOWN:
+        //case WM_SYSKEYUP:
+        case WM_KEYDOWN:
+        case WM_KEYUP:
+        {
+            i32 key_code = g_platform_input_map[w_param];
+            b8 key_state = !(l_param & (1 << 30));
+
+            g_input_state.keys[key_code] = key_state;
+
             return 0;
         }
     }
@@ -423,9 +581,7 @@ int WINAPI WinMain(HINSTANCE instance, HINSTANCE prev_instance, LPSTR cmd_line, 
     g_program_state.is_running = EMBER_TRUE;
     g_program_state.timer      = platform_timer_init();
 
-    platform_info_init();
-    platform_console_init();
-    platform_gfx_init();
+    platform_init();
 
     platform_hnd window_handle = platform_gfx_wnd_create("Ember Engine");
 

@@ -21,6 +21,7 @@
 #include "platform/platform.h"
 #if PLATFORM_WINDOWS
     #include <windows.h>
+    #include <windowsx.h>
     #include "platform/win32/platform_win32.h"
 #else
     #error Platform not supported.
