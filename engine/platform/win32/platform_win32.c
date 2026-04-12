@@ -570,7 +570,7 @@ LRESULT CALLBACK win32_wnd_msg_callback(HWND hwnd, UINT msg, WPARAM w_param, LPA
         case WM_KEYUP:
         {
             i32 key_code = g_platform_input_map[w_param];
-            b8 key_state = !(l_param & (1 << 30));
+            b8 key_state = !(l_param & (1 << 31));
 
             g_input_state.keys[key_code] = key_state;
 
