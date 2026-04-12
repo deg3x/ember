@@ -1,6 +1,5 @@
 cpu_arena* cpu_arena_init(cpu_arena_params* params)
 {
-    EMBER_ASSERT(ARENA_HEADER_SIZE >= sizeof(cpu_arena));
     EMBER_ASSERT(params->size_res >= params->size_cmt);
     EMBER_ASSERT(params->size_cmt >= ARENA_HEADER_SIZE);
 

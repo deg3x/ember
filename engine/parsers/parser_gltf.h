@@ -59,7 +59,7 @@ struct gltf_node
     c8   name[64];
     i32  parent;
     b32  has_parent;
-    u32  child_count;
+    i32  child_count;
     i32  mesh;
 };
 
@@ -108,12 +108,12 @@ struct gltf_json_data
     gltf_accessor*    accessors;
     gltf_buffer_view* buffer_views;
     gltf_buffer*      buffers;
-    u32               node_count;
-    u32               mesh_count;
-    u32               accessor_count;
-    u32               buffer_view_count;
-    u32               buffer_count;
-    u32               primitive_count;
+    i32               node_count;
+    i32               mesh_count;
+    i32               accessor_count;
+    i32               buffer_view_count;
+    i32               buffer_count;
+    i32               primitive_count;
 };
 
 typedef struct gltf_data gltf_data;
@@ -123,7 +123,7 @@ struct gltf_data
 
     mat4* transforms;
     i32** children;
-    u32*  children_count;
+    i32*  children_count;
     i32*  parents;
 
     i32*  mesh_ids;
@@ -131,15 +131,15 @@ struct gltf_data
     i32*  mesh_primitives;
     mesh* meshes;
 
-    u32   node_count;
-    u32   mesh_count;
-    u32   primitive_count;
+    i32   node_count;
+    i32   mesh_count;
+    i32   primitive_count;
 };
 
 gltf_data      gltf_parse_file(const c8* file_path);
 gltf_json_data gltf_parse_chunk_json(gltf_parser* parser, u32 chunk_length);
 gltf_data      gltf_parse_chunk_binary(gltf_parser* parser, u32 chunk_length, gltf_json_data* json_data);
-void           gltf_parse_components(void* source, u32 count, u32 offset, u32 stride, i32 cmp_type, i32 data_type, void* dest);
+void           gltf_parse_components(void* source, i32 count, i32 offset, i32 stride, i32 cmp_type, i32 data_type, void* dest);
 void           gltf_free(gltf_data* gltf);
 
 #endif //PARSER_GLTF_H

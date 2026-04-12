@@ -381,11 +381,11 @@ json_token json_parse_token(json_parser* parser)
     return result;
 }
 
-u32 json_num_of_children(json_entry* entry)
+i32 json_num_of_children(json_entry* entry)
 {
     EMBER_ASSERT(entry != NULL);
 
-    u32 result = 0;
+    i32 result = 0;
 
     json_entry* current = entry->child;
     while (current != NULL)

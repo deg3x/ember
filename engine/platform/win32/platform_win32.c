@@ -201,11 +201,16 @@ b32 platform_mem_commit(void* ptr, u64 size)
 
 b32 platform_mem_commit_large(void* ptr, u64 size)
 {
+    (void)ptr;
+    (void)size;
+
     return EMBER_TRUE;
 }
 
 void platform_mem_release(void* ptr, u64 size)
 {
+    (void)size;
+
     // NOTE(KB): Windows requires size to be 0 for release
     VirtualFree(ptr, 0, MEM_RELEASE);
 }
@@ -578,6 +583,11 @@ LRESULT CALLBACK win32_wnd_msg_callback(HWND hwnd, UINT msg, WPARAM w_param, LPA
 
 int WINAPI WinMain(HINSTANCE instance, HINSTANCE prev_instance, LPSTR cmd_line, i32 show_cmd)
 {
+    (void)instance;
+    (void)prev_instance;
+    (void)cmd_line;
+    (void)show_cmd;
+
     g_program_state.is_running = EMBER_TRUE;
     g_program_state.timer      = platform_timer_init();
 
@@ -588,6 +598,7 @@ int WINAPI WinMain(HINSTANCE instance, HINSTANCE prev_instance, LPSTR cmd_line, 
     renderer_init(window_handle);
 
     world main_world = world_init();
+    (void)main_world;
 
     ShowWindow((HWND)window_handle.hnd, SW_SHOW);
 

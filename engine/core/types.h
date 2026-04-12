@@ -18,7 +18,7 @@ typedef struct mesh mesh;
 struct mesh
 {
     vertex* vertices;
-    u32*    indices;
-    u32     vertex_count;
-    u32     index_count;
+    i32*    indices;
+    i32     vertex_count;
+    i32     index_count;
 };

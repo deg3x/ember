@@ -60,7 +60,7 @@ json_entry* json_parse_entry(json_parser* parser, buffer* label, json_token* tok
 json_entry* json_parse_list(json_parser* parser, json_token_type end_type, b32 has_labels);
 json_token  json_parse_token(json_parser* parser);
 
-u32         json_num_of_children(json_entry* entry);
+i32         json_num_of_children(json_entry* entry);
 json_entry* json_find_child(json_entry* entry, buffer* child_label);
 b32         json_child_value(cpu_arena* arena, json_entry* entry, json_value_type type, void* dest, const c8* child_label);
 
