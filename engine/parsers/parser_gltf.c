@@ -67,13 +67,16 @@ gltf_json_data gltf_parse_chunk_json(gltf_parser* parser, u32 chunk_length)
 
     while (current != NULL)
     {
-        buffer nodes_label  = buffer_from_cstr("nodes");
-        buffer meshes_label = buffer_from_cstr("meshes");
-        buffer access_label = buffer_from_cstr("accessors");
-        buffer views_label  = buffer_from_cstr("bufferViews");
-        buffer buffer_label = buffer_from_cstr("buffers");
+        buffer label_nodes  = buffer_from_cstr("nodes");
+        buffer label_meshes = buffer_from_cstr("meshes");
+        buffer label_access = buffer_from_cstr("accessors");
+        buffer label_views  = buffer_from_cstr("bufferViews");
+        buffer label_buffer = buffer_from_cstr("buffers");
+        buffer label_tex    = buffer_from_cstr("textures");
+        buffer label_img    = buffer_from_cstr("images");
+        buffer label_sample = buffer_from_cstr("samplers");
 
-        if (buffer_is_equal(&nodes_label, &current->label))
+        if (buffer_is_equal(&label_nodes, &current->label))
         {
             i32 node_count    = json_num_of_children(current);
             result.nodes      = MEMORY_PUSH(parser->arena, gltf_node, node_count);
@@ -144,7 +147,7 @@ gltf_json_data gltf_parse_chunk_json(gltf_parser* parser, u32 chunk_length)
             }
 
         }
-        else if (buffer_is_equal(&meshes_label, &current->label))
+        else if (buffer_is_equal(&label_meshes, &current->label))
         {
             i32 mesh_count    = json_num_of_children(current);
             result.meshes     = MEMORY_PUSH(parser->arena, gltf_mesh, mesh_count);
@@ -214,7 +217,7 @@ gltf_json_data gltf_parse_chunk_json(gltf_parser* parser, u32 chunk_length)
                 mesh = mesh->next;
             }
         }
-        else if (buffer_is_equal(&access_label, &current->label))
+        else if (buffer_is_equal(&label_access, &current->label))
         {
             i32 accessor_count    = json_num_of_children(current);
             result.accessors      = MEMORY_PUSH(parser->arena, gltf_accessor, accessor_count);
@@ -262,7 +265,7 @@ gltf_json_data gltf_parse_chunk_json(gltf_parser* parser, u32 chunk_length)
                 accessor = accessor->next;
             }
         }
-        else if (buffer_is_equal(&views_label, &current->label))
+        else if (buffer_is_equal(&label_views, &current->label))
         {
             i32 view_count           = json_num_of_children(current);
             result.buffer_views      = MEMORY_PUSH(parser->arena, gltf_buffer_view, view_count);
@@ -292,7 +295,7 @@ gltf_json_data gltf_parse_chunk_json(gltf_parser* parser, u32 chunk_length)
                 view = view->next;
             }
         }
-        else if (buffer_is_equal(&buffer_label, &current->label))
+        else if (buffer_is_equal(&label_buffer, &current->label))
         {
             i32 buffer_count    = json_num_of_children(current);
             result.buffers      = MEMORY_PUSH(parser->arena, gltf_buffer, buffer_count);
@@ -309,6 +312,90 @@ gltf_json_data gltf_parse_chunk_json(gltf_parser* parser, u32 chunk_length)
             }
 
             buffer = buffer->next;
+        }
+        else if (buffer_is_equal(&label_tex, &current->label))
+        {
+            i32 texture_count    = json_num_of_children(current);
+            result.textures      = MEMORY_PUSH(parser->arena, gltf_texture, texture_count);
+            result.texture_count = texture_count;
+
+            json_entry* tex = current->child;
+            for (i32 i = 0; i < texture_count && tex != NULL; i++)
+            {
+                i32 sampler;
+                i32 source;
+
+                b32 sampler_is_valid = json_child_value(parser->arena, tex, JSON_VALUE_TYPE_i32, &sampler, "sampler");
+                b32 source_is_valid  = json_child_value(parser->arena, tex, JSON_VALUE_TYPE_i32, &source, "source");
+
+                result.textures[i].sampler = sampler_is_valid ? sampler : -1;
+                result.textures[i].image   = source_is_valid ? source : -1;
+            }
+        }
+        else if (buffer_is_equal(&label_img, &current->label))
+        {
+            i32 image_count    = json_num_of_children(current);
+            result.images      = MEMORY_PUSH(parser->arena, gltf_image, image_count);
+            result.image_count = image_count;
+
+            json_entry* image = current->child;
+            for (i32 i = 0; i < image_count && image != NULL; i++)
+            {
+                i32 buf_view;
+                c8 mime_type[16] = {0};
+
+                b32 buf_view_is_valid  = json_child_value(parser->arena, image, JSON_VALUE_TYPE_i32, &buf_view, "bufferView");
+                b32 mime_type_is_valid = json_child_value(parser->arena, image, JSON_VALUE_TYPE_str, &mime_type, "mimeType");
+
+                // NOTE(KB): We do not support external images for now
+                EMBER_ASSERT(buf_view_is_valid);
+
+                result.images[i].buffer_view_id = buf_view_is_valid ? buf_view : -1;
+
+                EMBER_ASSERT(mime_type_is_valid);
+
+                buffer png      = buffer_from_cstr("image/png");
+                buffer jpeg     = buffer_from_cstr("image/jpeg");
+                buffer mime_buf = buffer_from_cstr(mime_type);
+
+                if (buffer_is_equal(&mime_buf, &png))
+                {
+                    result.images[i].mime_type = GLTF_MIME_TYPE_PNG;
+                }
+                else if (buffer_is_equal(&mime_buf, &jpeg))
+                {
+                    result.images[i].mime_type = GLTF_MIME_TYPE_JPEG;
+                }
+                else
+                {
+                    EMBER_ASSERT(EMBER_FALSE);
+                }
+            }
+        }
+        else if (buffer_is_equal(&label_sample, &current->label))
+        {
+            i32 sampler_count    = json_num_of_children(current);
+            result.samplers      = MEMORY_PUSH(parser->arena, gltf_sampler, sampler_count);
+            result.sampler_count = sampler_count;
+
+            json_entry* sampler = current->child;
+            for (i32 i = 0; i < sampler_count && sampler != NULL; i++)
+            {
+                i32 min_filter;
+                i32 mag_filter;
+                i32 wrap_u;
+                i32 wrap_v;
+
+                b32 min_filter_is_valid = json_child_value(parser->arena, sampler, JSON_VALUE_TYPE_i32, &min_filter, "minFilter");
+                b32 mag_filter_is_valid = json_child_value(parser->arena, sampler, JSON_VALUE_TYPE_i32, &mag_filter, "magFilter");
+                b32 wrap_u_is_valid     = json_child_value(parser->arena, sampler, JSON_VALUE_TYPE_i32, &wrap_u, "wrapS");
+                b32 wrap_v_is_valid     = json_child_value(parser->arena, sampler, JSON_VALUE_TYPE_i32, &wrap_v, "wrapV");
+
+                result.samplers[i].min_filter = min_filter_is_valid ? min_filter : -1;
+                result.samplers[i].mag_filter = mag_filter_is_valid ? mag_filter : -1;
+                result.samplers[i].wrap_u     = wrap_u_is_valid ? wrap_u : -1;
+                result.samplers[i].wrap_v     = wrap_v_is_valid ? wrap_v : -1;
+            }
         }
 
         current = current->next;
@@ -327,17 +414,19 @@ gltf_data gltf_parse_chunk_binary(gltf_parser* parser, u32 chunk_length, gltf_js
 
     EMBER_ASSERT(json_data != NULL);
 
-    result.transforms      = MEMORY_PUSH(parser->arena, mat4, json_data->node_count);
-    result.children        = MEMORY_PUSH(parser->arena, i32*, json_data->node_count);
-    result.children_count  = MEMORY_PUSH(parser->arena, i32, json_data->node_count);
-    result.parents         = MEMORY_PUSH(parser->arena, i32, json_data->node_count);
-    result.mesh_ids        = MEMORY_PUSH(parser->arena, i32, json_data->node_count);
-    result.mesh_offsets    = MEMORY_PUSH(parser->arena, i32, json_data->mesh_count);
-    result.mesh_primitives = MEMORY_PUSH(parser->arena, i32, json_data->mesh_count);
-    result.meshes          = MEMORY_PUSH(parser->arena, mesh, json_data->primitive_count);
-    result.node_count      = json_data->node_count;
-    result.mesh_count      = json_data->mesh_count;
-    result.primitive_count = json_data->primitive_count;
+    result.transforms       = MEMORY_PUSH(parser->arena, mat4, json_data->node_count);
+    result.children         = MEMORY_PUSH(parser->arena, i32*, json_data->node_count);
+    result.children_count   = MEMORY_PUSH(parser->arena, i32, json_data->node_count);
+    result.parents          = MEMORY_PUSH(parser->arena, i32, json_data->node_count);
+    result.mesh_ids         = MEMORY_PUSH(parser->arena, i32, json_data->node_count);
+    result.mesh_offsets     = MEMORY_PUSH(parser->arena, i32, json_data->mesh_count);
+    result.mesh_primitives  = MEMORY_PUSH(parser->arena, i32, json_data->mesh_count);
+    result.meshes           = MEMORY_PUSH(parser->arena, mesh, json_data->primitive_count);
+    result.textures         = MEMORY_PUSH(parser->arena, texture, json_data->texture_count);
+    result.node_count       = json_data->node_count;
+    result.mesh_count       = json_data->mesh_count;
+    result.primitive_count  = json_data->primitive_count;
+    result.texture_count    = json_data->texture_count;
 
     // NOTE(KB): Convert node data to output format
     for (i32 node_idx = 0; node_idx < json_data->node_count; node_idx++)
@@ -349,6 +438,73 @@ gltf_data gltf_parse_chunk_binary(gltf_parser* parser, u32 chunk_length, gltf_js
         result.children_count[node_idx] = node->child_count;
         result.parents[node_idx]        = node->parent;
         result.mesh_ids[node_idx]       = node->mesh;
+    }
+
+    // NOTE(KB): Convert image/texture data to output textures
+    for (i32 texture_idx = 0; texture_idx < json_data->texture_count; texture_idx++)
+    {
+        gltf_texture* tex     = &json_data->textures[texture_idx];
+        gltf_sampler* sampler = &json_data->samplers[tex->sampler];
+        gltf_image* image     = &json_data->images[tex->image];
+        gltf_buffer_view view = json_data->buffer_views[image->buffer_view_id];
+
+        result.textures[texture_idx].type = image->mime_type;
+        result.textures[texture_idx].size = view.byte_length;
+
+        if (sampler->min_filter > GLTF_MIN_FILTER_LIN)
+        {
+            result.textures[texture_idx].sampler.min_filter = (i8)(
+                sampler->min_filter
+                - GLTF_MIN_FILTER_NEAR_MIP_NEAR
+                + SAMPLER_MIN_FILTER_NEAR_MIP_NEAR
+            );
+        }
+        else
+        {
+            result.textures[texture_idx].sampler.min_filter = (i8)(sampler->min_filter - GLTF_MIN_FILTER_NEAR);
+        }
+
+        result.textures[texture_idx].sampler.mag_filter = (i8)(sampler->mag_filter - GLTF_MAG_FILTER_NEAR);
+
+        switch(sampler->wrap_u)
+        {
+            case GLTF_WRAP_REPEAT:
+            {
+                result.textures[texture_idx].sampler.wrap_u = SAMPLER_WRAP_REPEAT;
+                break;
+            }
+            case GLTF_WRAP_CLAMP_TO_EDGE:
+            {
+                result.textures[texture_idx].sampler.wrap_u = SAMPLER_WRAP_CLAMP_TO_EDGE;
+                break;
+            }
+            case GLTF_WRAP_MIRRORED_REPEAT:
+            {
+                result.textures[texture_idx].sampler.wrap_u = SAMPLER_WRAP_MIRRORED_REPEAT;
+                break;
+            }
+        }
+
+        switch(sampler->wrap_v)
+        {
+            case GLTF_WRAP_REPEAT:
+            {
+                result.textures[texture_idx].sampler.wrap_v = SAMPLER_WRAP_REPEAT;
+                break;
+            }
+            case GLTF_WRAP_CLAMP_TO_EDGE:
+            {
+                result.textures[texture_idx].sampler.wrap_v = SAMPLER_WRAP_CLAMP_TO_EDGE;
+                break;
+            }
+            case GLTF_WRAP_MIRRORED_REPEAT:
+            {
+                result.textures[texture_idx].sampler.wrap_v = SAMPLER_WRAP_MIRRORED_REPEAT;
+                break;
+            }
+        }
+
+        result.textures[texture_idx].data = (data + view.byte_offset);
     }
 
     // NOTE(KB): This is needed because we consider every unique primitive entry a new mesh
@@ -392,42 +548,42 @@ gltf_data gltf_parse_chunk_binary(gltf_parser* parser, u32 chunk_length, gltf_js
 
             gltf_parse_components(
                 (data + data_offset_ids),
+                result.meshes[mesh_offset].indices,
                 result.meshes[mesh_offset].index_count,
                 0,
                 sizeof(i32),
                 json_data->accessors[acs_ids].component_type,
-                json_data->accessors[acs_ids].type,
-                result.meshes[mesh_offset].indices
+                json_data->accessors[acs_ids].type
             );
 
             gltf_parse_components(
                 (data + data_offset_pos),
+                result.meshes[mesh_offset].vertices,
                 result.meshes[mesh_offset].vertex_count,
                 offsetof(vertex, position),
                 sizeof(vertex),
                 json_data->accessors[acs_pos].component_type,
-                json_data->accessors[acs_pos].type,
-                result.meshes[mesh_offset].vertices
+                json_data->accessors[acs_pos].type
             );
 
             gltf_parse_components(
                 (data + data_offset_nrm),
+                result.meshes[mesh_offset].vertices,
                 result.meshes[mesh_offset].vertex_count,
                 offsetof(vertex, normal),
                 sizeof(vertex),
                 json_data->accessors[acs_nrm].component_type,
-                json_data->accessors[acs_nrm].type,
-                result.meshes[mesh_offset].vertices
+                json_data->accessors[acs_nrm].type
             );
 
             gltf_parse_components(
                 (data + data_offset_uvs),
+                result.meshes[mesh_offset].vertices,
                 result.meshes[mesh_offset].vertex_count,
                 offsetof(vertex, uv),
                 sizeof(vertex),
                 json_data->accessors[acs_uvs].component_type,
-                json_data->accessors[acs_uvs].type,
-                result.meshes[mesh_offset].vertices
+                json_data->accessors[acs_uvs].type
             );
 
             // NOTE(): Manually write to the color value
@@ -443,7 +599,7 @@ gltf_data gltf_parse_chunk_binary(gltf_parser* parser, u32 chunk_length, gltf_js
     return result;
 }
 
-void gltf_parse_components(void* source, i32 count, i32 offset, i32 stride, i32 cmp_type, i32 data_type, void* dest)
+void gltf_parse_components(void* source, void* dest, i32 count, i32 offset, i32 stride, i32 cmp_type, i32 data_type)
 {
     offset /= 4;
     stride /= 4;
