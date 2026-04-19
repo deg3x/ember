@@ -309,9 +309,9 @@ gltf_json_data gltf_parse_chunk_json(gltf_parser* parser, u32 chunk_length)
                 b32 length_is_valid = json_child_value(parser->arena, buffer, JSON_VALUE_TYPE_i32, &length, "byteLength");
 
                 result.buffers[i].byte_length = length_is_valid ? length : -1;
-            }
 
-            buffer = buffer->next;
+                buffer = buffer->next;
+            }
         }
         else if (buffer_is_equal(&label_tex, &current->label))
         {
@@ -330,6 +330,8 @@ gltf_json_data gltf_parse_chunk_json(gltf_parser* parser, u32 chunk_length)
 
                 result.textures[i].sampler = sampler_is_valid ? sampler : -1;
                 result.textures[i].image   = source_is_valid ? source : -1;
+
+                tex = tex->next;
             }
         }
         else if (buffer_is_equal(&label_img, &current->label))
@@ -370,6 +372,8 @@ gltf_json_data gltf_parse_chunk_json(gltf_parser* parser, u32 chunk_length)
                 {
                     EMBER_ASSERT(EMBER_FALSE);
                 }
+
+                image = image->next;
             }
         }
         else if (buffer_is_equal(&label_sample, &current->label))
@@ -395,6 +399,8 @@ gltf_json_data gltf_parse_chunk_json(gltf_parser* parser, u32 chunk_length)
                 result.samplers[i].mag_filter = mag_filter_is_valid ? mag_filter : -1;
                 result.samplers[i].wrap_u     = wrap_u_is_valid ? wrap_u : -1;
                 result.samplers[i].wrap_v     = wrap_v_is_valid ? wrap_v : -1;
+
+                sampler = sampler->next;
             }
         }
         else if (buffer_is_equal(&label_mat, &current->label))
@@ -503,7 +509,7 @@ gltf_json_data gltf_parse_chunk_json(gltf_parser* parser, u32 chunk_length)
                 }
 
                 b32 emissive_is_valid     = json_child_value(parser->arena, mat, JSON_VALUE_TYPE_arr_f32, &emissive, "emissiveFactor");
-                b32 alpha_mode_is_valid   = json_child_value(parser->arena, mat, JSON_VALUE_TYPE_i32, &alpha_mode, "alphaMode");
+                b32 alpha_mode_is_valid   = json_child_value(parser->arena, mat, JSON_VALUE_TYPE_str, &alpha_mode, "alphaMode");
                 b32 alpha_cutoff_is_valid = json_child_value(parser->arena, mat, JSON_VALUE_TYPE_f32, &alpha_cutoff, "alphaCutoff");
                 b32 double_sided_is_valid = json_child_value(parser->arena, mat, JSON_VALUE_TYPE_b32, &double_sided, "doubleSided");
 
@@ -547,7 +553,7 @@ gltf_json_data gltf_parse_chunk_json(gltf_parser* parser, u32 chunk_length)
 
                 if (pbr_clr_is_valid)
                 {
-                    memcpy(result.materials[i].pbr_clr, pbr_clr, 4);
+                    memcpy(result.materials[i].pbr_clr, pbr_clr, 4 * sizeof(f32));
                 }
                 else
                 {
@@ -559,7 +565,7 @@ gltf_json_data gltf_parse_chunk_json(gltf_parser* parser, u32 chunk_length)
 
                 if (emissive_is_valid)
                 {
-                    memcpy(result.materials[i].emissive, emissive, 3);
+                    memcpy(result.materials[i].emissive, emissive, 3 * sizeof(f32));
                 }
                 else
                 {
@@ -567,6 +573,8 @@ gltf_json_data gltf_parse_chunk_json(gltf_parser* parser, u32 chunk_length)
                     result.materials[i].emissive[1] = 0.0f;
                     result.materials[i].emissive[2] = 0.0f;
                 }
+
+                mat = mat->next;
             }
         }
 
