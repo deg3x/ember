@@ -15,6 +15,9 @@
 #define SAMPLER_WRAP_CLAMP_TO_EDGE       1
 #define SAMPLER_WRAP_MIRRORED_REPEAT     2
 
+#define color3 vec3
+#define color4 vec4
+
 typedef u32 coord_space;
 enum
 {
@@ -56,6 +59,33 @@ struct texture
     i32         type;
     i32         size;
     tex_sampler sampler;
+};
+
+typedef struct material material;
+struct material
+{
+    color4 color;
+    color3 color_em;
+
+    f32    metal;
+    f32    rough;
+    f32    ao;
+    i32    alpha_mode;
+    f32    alpha_cutoff;
+    f32    normal_scale;
+    b32    double_sided;
+
+    i32    tex_id_al;
+    i32    tex_id_mr;
+    i32    tex_id_nm;
+    i32    tex_id_ao;
+    i32    tex_id_em;
+
+    i32    tex_uv_al;
+    i32    tex_uv_mr;
+    i32    tex_uv_nm;
+    i32    tex_uv_ao;
+    i32    tex_uv_em;
 };
 
 #endif // TYPES_H

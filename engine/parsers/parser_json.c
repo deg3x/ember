@@ -461,6 +461,26 @@ b32 json_child_value(cpu_arena* arena, json_entry* entry, json_value_type type, 
             
             break;
         }
+        case JSON_VALUE_TYPE_b32:
+        {
+            buffer buf_true  = buffer_from_cstr("tru");
+            buffer buf_false = buffer_from_cstr("fals");
+
+            if (buffer_is_equal(&buf_true, &child->value))
+            {
+                *((b32 *)dest) = EMBER_TRUE;
+            }
+            else if (buffer_is_equal(&buf_false, &child->value))
+            {
+                *((b32 *)dest) = EMBER_FALSE;
+            }
+            else
+            {
+                EMBER_ASSERT(EMBER_FALSE);
+            }
+
+            break;
+        }
         case JSON_VALUE_TYPE_str:
         {
             buffer_to_cstr(&child->value, (c8 *)dest);

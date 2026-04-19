@@ -45,6 +45,10 @@
 #define GLTF_WRAP_CLAMP_TO_EDGE       33071
 #define GLTF_WRAP_MIRRORED_REPEAT     33648
 
+#define GLTF_ALPHA_MODE_OPAQUE 0
+#define GLTF_ALPHA_MODE_MASK   1
+#define GLTF_ALPHA_MODE_BLEND  2
+
 typedef i32 gltf_mime_type;
 enum
 {
@@ -147,6 +151,34 @@ struct gltf_sampler
     i32 wrap_v;
 };
 
+typedef struct gltf_material gltf_material;
+struct gltf_material
+{
+    f32 pbr_clr[4];
+    i32 pbr_tex_clr_id;
+    i32 pbr_tex_clr_uv;
+    f32 pbr_metal;
+    f32 pbr_rough;
+    i32 pbr_tex_mr_id;
+    i32 pbr_tex_mr_uv;
+
+    i32 tex_nm_id;
+    i32 tex_nm_uv;
+    f32 tex_nm_scale;
+
+    i32 tex_ao_id;
+    i32 tex_ao_uv;
+    f32 tex_ao_str;
+
+    i32 tex_em_id;
+    i32 tex_em_uv;
+
+    f32 emissive[3];
+    i32 alpha_mode;
+    f32 alpha_cutoff;
+    b32 double_sided;
+};
+
 typedef struct gltf_json_data gltf_json_data;
 struct gltf_json_data
 {
@@ -158,6 +190,8 @@ struct gltf_json_data
     gltf_texture*     textures;
     gltf_image*       images;
     gltf_sampler*     samplers;
+    gltf_material*    materials;
+
     i32               node_count;
     i32               mesh_count;
     i32               primitive_count;
@@ -167,6 +201,7 @@ struct gltf_json_data
     i32               texture_count;
     i32               image_count;
     i32               sampler_count;
+    i32               material_count;
 };
 
 typedef struct gltf_data gltf_data;
@@ -184,11 +219,13 @@ struct gltf_data
     i32*       mesh_primitives;
     mesh*      meshes;
     texture*   textures;
+    material*  materials;
 
     i32        node_count;
     i32        mesh_count;
     i32        primitive_count;
     i32        texture_count;
+    i32        material_count;
 };
 
 gltf_data      gltf_parse_file(const c8* file_path);

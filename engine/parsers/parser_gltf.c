@@ -75,6 +75,7 @@ gltf_json_data gltf_parse_chunk_json(gltf_parser* parser, u32 chunk_length)
         buffer label_tex    = buffer_from_cstr("textures");
         buffer label_img    = buffer_from_cstr("images");
         buffer label_sample = buffer_from_cstr("samplers");
+        buffer label_mat    = buffer_from_cstr("materials");
 
         if (buffer_is_equal(&label_nodes, &current->label))
         {
@@ -212,7 +213,6 @@ gltf_json_data gltf_parse_chunk_json(gltf_parser* parser, u32 chunk_length)
 
                     current_prim = current_prim->next;
                 }
-
 
                 mesh = mesh->next;
             }
@@ -397,6 +397,178 @@ gltf_json_data gltf_parse_chunk_json(gltf_parser* parser, u32 chunk_length)
                 result.samplers[i].wrap_v     = wrap_v_is_valid ? wrap_v : -1;
             }
         }
+        else if (buffer_is_equal(&label_mat, &current->label))
+        {
+            i32 material_count    = json_num_of_children(current);
+            result.materials      = MEMORY_PUSH(parser->arena, gltf_material, material_count);
+            result.material_count = material_count;
+
+            buffer buffer_pbr     = buffer_from_cstr("pbrMetallicRoughness");
+            buffer buffer_tex_clr = buffer_from_cstr("baseColorTexture");
+            buffer buffer_tex_mr  = buffer_from_cstr("metallicRoughnessTexture");
+            buffer buffer_tex_nm  = buffer_from_cstr("normalTexture");
+            buffer buffer_tex_ao  = buffer_from_cstr("occlusionTexture");
+            buffer buffer_tex_em  = buffer_from_cstr("emissiveTexture");
+
+            json_entry* mat = current->child;
+            for (i32 i = 0; i < material_count && mat != NULL; i++)
+            {
+                f32 pbr_clr[4]     = {1.0f, 1.0f, 1.0f, 1.0f};
+                i32 pbr_tex_clr_id = -1;
+                i32 pbr_tex_clr_uv = 0;
+                f32 pbr_metal      = 1.0f;
+                f32 pbr_rough      = 1.0f;
+                i32 pbr_tex_mr_id  = -1;
+                i32 pbr_tex_mr_uv  = 0;
+                i32 tex_nm_id      = -1;
+                i32 tex_nm_uv      = 0;
+                f32 tex_nm_scale   = 1.0f;
+                i32 tex_ao_id      = -1;
+                i32 tex_ao_uv      = 0;
+                f32 tex_ao_str     = 0;
+                i32 tex_em_id      = -1;
+                i32 tex_em_uv      = 0;
+                f32 emissive[3]    = {0.0f, 0.0f, 0.0f};
+                c8 alpha_mode[8]   = {0};
+                f32 alpha_cutoff   = 0.5f;
+                b32 double_sided   = EMBER_FALSE;
+
+                json_entry* pbr = json_find_child(mat, &buffer_pbr);
+
+                b32 pbr_clr_is_valid        = EMBER_FALSE;
+                b32 pbr_tex_clr_id_is_valid = EMBER_FALSE;
+                b32 pbr_tex_clr_uv_is_valid = EMBER_FALSE;
+                b32 pbr_metal_is_valid      = EMBER_FALSE;
+                b32 pbr_rough_is_valid      = EMBER_FALSE;
+                b32 pbr_tex_mr_id_is_valid  = EMBER_FALSE;
+                b32 pbr_tex_mr_uv_is_valid  = EMBER_FALSE;
+
+                if (pbr != NULL)
+                {
+                    json_entry* tex_clr = json_find_child(pbr, &buffer_tex_clr);
+                    json_entry* tex_mr  = json_find_child(pbr, &buffer_tex_mr);
+
+                    pbr_clr_is_valid   = json_child_value(parser->arena, pbr, JSON_VALUE_TYPE_arr_f32, &pbr_clr, "baseColorFactor");
+                    pbr_metal_is_valid = json_child_value(parser->arena, pbr, JSON_VALUE_TYPE_f32, &pbr_metal, "metallicFactor");
+                    pbr_rough_is_valid = json_child_value(parser->arena, pbr, JSON_VALUE_TYPE_f32, &pbr_rough, "roughnessFactor");
+
+                    if (tex_clr != NULL)
+                    {
+                        pbr_tex_clr_id_is_valid = json_child_value(parser->arena, tex_clr, JSON_VALUE_TYPE_i32, &pbr_tex_clr_id, "index");
+                        pbr_tex_clr_uv_is_valid = json_child_value(parser->arena, tex_clr, JSON_VALUE_TYPE_i32, &pbr_tex_clr_uv, "texCoord");
+                    }
+
+                    if (tex_mr != NULL)
+                    {
+                        pbr_tex_mr_id_is_valid = json_child_value(parser->arena, tex_mr, JSON_VALUE_TYPE_i32, &pbr_tex_mr_id, "index");
+                        pbr_tex_mr_uv_is_valid = json_child_value(parser->arena, tex_mr, JSON_VALUE_TYPE_i32, &pbr_tex_mr_uv, "texCoord");
+                    }
+                }
+
+                json_entry* tex_nm = json_find_child(mat, &buffer_tex_nm);
+
+                b32 tex_nm_id_is_valid    = EMBER_FALSE;
+                b32 tex_nm_uv_is_valid    = EMBER_FALSE;
+                b32 tex_nm_scale_is_valid = EMBER_FALSE;
+
+                if (tex_nm != NULL)
+                {
+                    tex_nm_id_is_valid    = json_child_value(parser->arena, tex_nm, JSON_VALUE_TYPE_i32, &tex_nm_id, "index");
+                    tex_nm_uv_is_valid    = json_child_value(parser->arena, tex_nm, JSON_VALUE_TYPE_i32, &tex_nm_uv, "texCoord");
+                    tex_nm_scale_is_valid = json_child_value(parser->arena, tex_nm, JSON_VALUE_TYPE_f32, &tex_nm_scale, "scale");
+                }
+
+                json_entry* tex_ao = json_find_child(mat, &buffer_tex_ao);
+
+                b32 tex_ao_id_is_valid  = EMBER_FALSE;
+                b32 tex_ao_uv_is_valid  = EMBER_FALSE;
+                b32 tex_ao_str_is_valid = EMBER_FALSE;
+
+                if (tex_ao != NULL)
+                {
+                    tex_ao_id_is_valid  = json_child_value(parser->arena, tex_ao, JSON_VALUE_TYPE_i32, &tex_ao_id, "index");
+                    tex_ao_uv_is_valid  = json_child_value(parser->arena, tex_ao, JSON_VALUE_TYPE_i32, &tex_ao_uv, "texCoord");
+                    tex_ao_str_is_valid = json_child_value(parser->arena, tex_ao, JSON_VALUE_TYPE_f32, &tex_ao_str, "strength");
+                }
+
+                json_entry* tex_em = json_find_child(mat, &buffer_tex_em);
+
+                b32 tex_em_id_is_valid = EMBER_FALSE;
+                b32 tex_em_uv_is_valid = EMBER_FALSE;
+
+                if (tex_em != NULL)
+                {
+                    tex_em_id_is_valid = json_child_value(parser->arena, tex_em, JSON_VALUE_TYPE_i32, &tex_em_id, "index");
+                    tex_em_uv_is_valid = json_child_value(parser->arena, tex_em, JSON_VALUE_TYPE_i32, &tex_em_uv, "texCoord");
+                }
+
+                b32 emissive_is_valid     = json_child_value(parser->arena, mat, JSON_VALUE_TYPE_arr_f32, &emissive, "emissiveFactor");
+                b32 alpha_mode_is_valid   = json_child_value(parser->arena, mat, JSON_VALUE_TYPE_i32, &alpha_mode, "alphaMode");
+                b32 alpha_cutoff_is_valid = json_child_value(parser->arena, mat, JSON_VALUE_TYPE_f32, &alpha_cutoff, "alphaCutoff");
+                b32 double_sided_is_valid = json_child_value(parser->arena, mat, JSON_VALUE_TYPE_b32, &double_sided, "doubleSided");
+
+                result.materials[i].pbr_tex_clr_id = pbr_tex_clr_id_is_valid ? pbr_tex_clr_id : -1;
+                result.materials[i].pbr_tex_clr_uv = pbr_tex_clr_uv_is_valid ? pbr_tex_clr_uv : 0;
+                result.materials[i].pbr_metal      = pbr_metal_is_valid ? pbr_metal : 1.0f;
+                result.materials[i].pbr_rough      = pbr_rough_is_valid ? pbr_rough : 1.0f;
+                result.materials[i].pbr_tex_mr_id  = pbr_tex_mr_id_is_valid ? pbr_tex_mr_id : -1;
+                result.materials[i].pbr_tex_mr_uv  = pbr_tex_mr_uv_is_valid ? pbr_tex_mr_uv : 0;
+                result.materials[i].tex_nm_id      = tex_nm_id_is_valid ? tex_nm_id : -1;
+                result.materials[i].tex_nm_uv      = tex_nm_uv_is_valid ? tex_nm_uv : 0;
+                result.materials[i].tex_nm_scale   = tex_nm_scale_is_valid ? tex_nm_scale : 1.0f;
+                result.materials[i].tex_ao_id      = tex_ao_id_is_valid ? tex_ao_id : -1;
+                result.materials[i].tex_ao_uv      = tex_ao_uv_is_valid ? tex_ao_uv : 0;
+                result.materials[i].tex_ao_str     = tex_ao_str_is_valid ? tex_ao_str : 1.0f;
+                result.materials[i].tex_em_id      = tex_em_id_is_valid ? tex_em_id : -1;
+                result.materials[i].tex_em_uv      = tex_em_uv_is_valid ? tex_em_uv : 0;
+                result.materials[i].alpha_mode     = GLTF_ALPHA_MODE_OPAQUE;
+                result.materials[i].alpha_cutoff   = alpha_cutoff_is_valid ? alpha_cutoff : 0.5f;
+                result.materials[i].double_sided   = double_sided_is_valid ? double_sided : EMBER_FALSE;
+
+                if (alpha_mode_is_valid)
+                {
+                    buffer buf_mask     = buffer_from_cstr("MASK");
+                    buffer buf_blend    = buffer_from_cstr("BLEND");
+                    buffer buf_mode_val = buffer_from_cstr(alpha_mode);
+
+                    if (buffer_is_equal(&buf_mask, &buf_mode_val))
+                    {
+                        result.materials[i].alpha_mode = GLTF_ALPHA_MODE_MASK;
+                    }
+                    else if (buffer_is_equal(&buf_blend, &buf_mode_val))
+                    {
+                        result.materials[i].alpha_mode = GLTF_ALPHA_MODE_BLEND;
+                    }
+                    else
+                    {
+                        EMBER_ASSERT(EMBER_FALSE);
+                    }
+                }
+
+                if (pbr_clr_is_valid)
+                {
+                    memcpy(result.materials[i].pbr_clr, pbr_clr, 4);
+                }
+                else
+                {
+                    result.materials[i].pbr_clr[0] = 1.0f;
+                    result.materials[i].pbr_clr[1] = 1.0f;
+                    result.materials[i].pbr_clr[2] = 1.0f;
+                    result.materials[i].pbr_clr[3] = 1.0f;
+                }
+
+                if (emissive_is_valid)
+                {
+                    memcpy(result.materials[i].emissive, emissive, 3);
+                }
+                else
+                {
+                    result.materials[i].emissive[0] = 0.0f;
+                    result.materials[i].emissive[1] = 0.0f;
+                    result.materials[i].emissive[2] = 0.0f;
+                }
+            }
+        }
 
         current = current->next;
     }
@@ -423,10 +595,12 @@ gltf_data gltf_parse_chunk_binary(gltf_parser* parser, u32 chunk_length, gltf_js
     result.mesh_primitives  = MEMORY_PUSH(parser->arena, i32, json_data->mesh_count);
     result.meshes           = MEMORY_PUSH(parser->arena, mesh, json_data->primitive_count);
     result.textures         = MEMORY_PUSH(parser->arena, texture, json_data->texture_count);
+    result.materials        = MEMORY_PUSH(parser->arena, material, json_data->material_count);
     result.node_count       = json_data->node_count;
     result.mesh_count       = json_data->mesh_count;
     result.primitive_count  = json_data->primitive_count;
     result.texture_count    = json_data->texture_count;
+    result.material_count   = json_data->material_count;
 
     // NOTE(KB): Convert node data to output format
     for (i32 node_idx = 0; node_idx < json_data->node_count; node_idx++)
@@ -440,7 +614,33 @@ gltf_data gltf_parse_chunk_binary(gltf_parser* parser, u32 chunk_length, gltf_js
         result.mesh_ids[node_idx]       = node->mesh;
     }
 
-    // NOTE(KB): Convert image/texture data to output textures
+    // NOTE(KB): Convert material data to output format
+    for (i32 mat_idx = 0; mat_idx < json_data->material_count; mat_idx++)
+    {
+        gltf_material* mat = &json_data->materials[mat_idx];
+
+        result.materials[mat_idx].color        = *((color4*)mat->pbr_clr);
+        result.materials[mat_idx].color_em     = *((color3*)mat->emissive);
+        result.materials[mat_idx].metal        = mat->pbr_metal;
+        result.materials[mat_idx].rough        = mat->pbr_rough;
+        result.materials[mat_idx].ao           = mat->tex_ao_str;
+        result.materials[mat_idx].alpha_mode   = mat->alpha_mode;
+        result.materials[mat_idx].alpha_cutoff = mat->alpha_cutoff;
+        result.materials[mat_idx].normal_scale = mat->tex_nm_scale;
+        result.materials[mat_idx].double_sided = mat->double_sided;
+        result.materials[mat_idx].tex_id_al    = mat->pbr_tex_clr_id;
+        result.materials[mat_idx].tex_id_mr    = mat->pbr_tex_mr_id;
+        result.materials[mat_idx].tex_id_nm    = mat->tex_nm_id;
+        result.materials[mat_idx].tex_id_ao    = mat->tex_ao_id;
+        result.materials[mat_idx].tex_id_em    = mat->tex_em_id;
+        result.materials[mat_idx].tex_uv_al    = mat->pbr_tex_clr_uv;
+        result.materials[mat_idx].tex_uv_mr    = mat->pbr_tex_mr_uv;
+        result.materials[mat_idx].tex_uv_nm    = mat->tex_nm_uv;
+        result.materials[mat_idx].tex_uv_ao    = mat->tex_ao_uv;
+        result.materials[mat_idx].tex_uv_em    = mat->tex_em_uv;
+    }
+
+    // NOTE(KB): Convert image/texture data to output format
     for (i32 texture_idx = 0; texture_idx < json_data->texture_count; texture_idx++)
     {
         gltf_texture* tex     = &json_data->textures[texture_idx];
