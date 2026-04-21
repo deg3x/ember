@@ -33,16 +33,16 @@ struct cpu_scratch
     u64        position;
 };
 
-cpu_arena* cpu_arena_init(cpu_arena_params* params);
-void*      cpu_arena_push(cpu_arena* arena, u64 size, u64 align);
-void       cpu_arena_pop(cpu_arena* arena, u64 size);
-void       cpu_arena_pop_to(cpu_arena* arena, u64 pos);
-u64        cpu_arena_avail(cpu_arena* arena);
-void       cpu_arena_clear(cpu_arena* arena);
-void       cpu_arena_release(cpu_arena* arena);
+internal cpu_arena* cpu_arena_init(cpu_arena_params* params);
+internal void*      cpu_arena_push(cpu_arena* arena, u64 size, u64 align);
+internal void       cpu_arena_pop(cpu_arena* arena, u64 size);
+internal void       cpu_arena_pop_to(cpu_arena* arena, u64 pos);
+internal u64        cpu_arena_avail(cpu_arena* arena);
+internal void       cpu_arena_clear(cpu_arena* arena);
+internal void       cpu_arena_release(cpu_arena* arena);
 
-cpu_scratch cpu_scratch_begin(cpu_arena* arena);
-void        cpu_scratch_end(cpu_scratch scratch);
+internal cpu_scratch cpu_scratch_begin(cpu_arena* arena);
+internal void        cpu_scratch_end(cpu_scratch scratch);
 
 #define MEMORY_PUSH(a, t, c)      (t *)cpu_arena_push((a), sizeof(t) * (c), ALIGN_OF(t))
 #define MEMORY_PUSH_ZERO(a, t, c) (t *)MEMORY_ZERO(MEMORY_PUSH(a, t, c), sizeof(t) * c)

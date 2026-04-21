@@ -1,4 +1,4 @@
-quat quat_norm(quat* q)
+internal quat quat_norm(quat* q)
 {
     f32 inv_len = 1.0f / quat_len(q);
 
@@ -12,7 +12,7 @@ quat quat_norm(quat* q)
     return result;
 }
 
-quat quat_renorm(quat* q)
+internal quat quat_renorm(quat* q)
 {
     f32 inv_len = math_fast_inv_sqrt_approx_one(quat_len_sqr(q));
 
@@ -26,7 +26,7 @@ quat quat_renorm(quat* q)
     return result;
 }
 
-quat quat_add(quat* lhs, quat* rhs)
+internal quat quat_add(quat* lhs, quat* rhs)
 {
     quat result = {
         lhs->x + rhs->x,
@@ -38,7 +38,7 @@ quat quat_add(quat* lhs, quat* rhs)
     return result;
 }
 
-quat quat_sub(quat* lhs, quat* rhs)
+internal quat quat_sub(quat* lhs, quat* rhs)
 {
     quat result = {
         lhs->x - rhs->x,
@@ -50,7 +50,7 @@ quat quat_sub(quat* lhs, quat* rhs)
     return result;
 }
 
-quat quat_mul(quat* lhs, quat* rhs)
+internal quat quat_mul(quat* lhs, quat* rhs)
 {
     f32 x = lhs->w * rhs->x + lhs->x * rhs->w + lhs->y * rhs->z - lhs->z * rhs->y;
     f32 y = lhs->w * rhs->y + lhs->y * rhs->w - lhs->x * rhs->z + lhs->z * rhs->x;
@@ -62,7 +62,7 @@ quat quat_mul(quat* lhs, quat* rhs)
     return result;
 }
 
-quat quat_mul_s(quat* lhs, f32 rhs)
+internal quat quat_mul_s(quat* lhs, f32 rhs)
 {
     quat result = {
         lhs->x * rhs,
@@ -74,7 +74,7 @@ quat quat_mul_s(quat* lhs, f32 rhs)
     return result;
 }
 
-quat quat_inv(quat* q)
+internal quat quat_inv(quat* q)
 {
     f32 inv_len_sqr = 1.0f / quat_len_sqr(q);
 
@@ -88,7 +88,7 @@ quat quat_inv(quat* q)
     return result;
 }
 
-quat quat_conj(quat* q)
+internal quat quat_conj(quat* q)
 {
     quat result = {
        -q->x,
@@ -100,7 +100,7 @@ quat quat_conj(quat* q)
     return result;
 }
 
-f32 quat_dot(quat* lhs, quat* rhs)
+internal f32 quat_dot(quat* lhs, quat* rhs)
 {
     f32 result =
         lhs->x * rhs->x +
@@ -111,7 +111,7 @@ f32 quat_dot(quat* lhs, quat* rhs)
     return result;
 }
 
-f32 quat_len(quat* q)
+internal f32 quat_len(quat* q)
 {
     f32 x_sqr = q->x * q->x;
     f32 y_sqr = q->y * q->y;
@@ -123,7 +123,7 @@ f32 quat_len(quat* q)
     return result;
 }
 
-f32 quat_len_sqr(quat* q)
+internal f32 quat_len_sqr(quat* q)
 {
     f32 result =
         q->x * q->x +
@@ -134,7 +134,7 @@ f32 quat_len_sqr(quat* q)
     return result;
 }
 
-vec3 quat_to_euler(quat* q)
+internal vec3 quat_to_euler(quat* q)
 {
     vec3 result;
     f32 pitch_test = q->w * q->x + q->y * q->z;
@@ -168,7 +168,7 @@ vec3 quat_to_euler(quat* q)
     return result;
 }
 
-quat quat_from_euler(vec3* angles)
+internal quat quat_from_euler(vec3* angles)
 {
     f32 x_half = angles->x;
     f32 y_half = angles->y;
@@ -190,7 +190,7 @@ quat quat_from_euler(vec3* angles)
     return result;
 }
 
-quat quat_from_matrix(mat4* matrix)
+internal quat quat_from_matrix(mat4* matrix)
 {
     f32 m00m11_a = matrix->m[0][0] + matrix->m[1][1];
     f32 m00m11_s = matrix->m[0][0] - matrix->m[1][1];
@@ -239,7 +239,7 @@ quat quat_from_matrix(mat4* matrix)
     return quat_norm(&result);
 }
 
-quat quat_from_axis_angle(vec3* axis, f32 angle)
+internal quat quat_from_axis_angle(vec3* axis, f32 angle)
 {
     f32 half_angle     = angle * 0.5f;
     f32 half_angle_cos = math_cos(half_angle);

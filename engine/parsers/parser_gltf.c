@@ -1,4 +1,4 @@
-gltf_data gltf_parse_file(const c8* file_path)
+internal gltf_data gltf_parse_file(const c8* file_path)
 {
     platform_hnd file_handle     = platform_file_open(file_path, PLATFORM_FILE_FLAGS_read | PLATFORM_FILE_FLAGS_share_r);
     platform_file_info file_info = platform_file_info_get(file_handle);
@@ -56,7 +56,7 @@ gltf_data gltf_parse_file(const c8* file_path)
     return result;
 }
 
-gltf_json_data gltf_parse_chunk_json(gltf_parser* parser, u32 chunk_length)
+internal gltf_json_data gltf_parse_chunk_json(gltf_parser* parser, u32 chunk_length)
 {
     (void)chunk_length;
 
@@ -584,7 +584,7 @@ gltf_json_data gltf_parse_chunk_json(gltf_parser* parser, u32 chunk_length)
     return result;
 }
 
-gltf_data gltf_parse_chunk_binary(gltf_parser* parser, u32 chunk_length, gltf_json_data* json_data)
+internal gltf_data gltf_parse_chunk_binary(gltf_parser* parser, u32 chunk_length, gltf_json_data* json_data)
 {
     (void)chunk_length;
 
@@ -807,7 +807,7 @@ gltf_data gltf_parse_chunk_binary(gltf_parser* parser, u32 chunk_length, gltf_js
     return result;
 }
 
-void gltf_parse_components(void* source, void* dest, i32 count, i32 offset, i32 stride, i32 cmp_type, i32 data_type)
+internal void gltf_parse_components(void* source, void* dest, i32 count, i32 offset, i32 stride, i32 cmp_type, i32 data_type)
 {
     offset /= 4;
     stride /= 4;

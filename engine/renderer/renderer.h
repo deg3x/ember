@@ -147,53 +147,53 @@ global const c8* g_device_extensions[] = {
     VK_KHR_SWAPCHAIN_EXTENSION_NAME,
 };
 
-void renderer_init(platform_hnd window_handle);
-void renderer_update(platform_hnd window_handle);
-void renderer_destroy();
+internal void renderer_init(platform_hnd window_handle);
+internal void renderer_update(platform_hnd window_handle);
+internal void renderer_destroy();
 
-void renderer_pipeline_init(renderer_pipeline* state);
-void renderer_pipeline_destroy(renderer_pipeline* state);
+internal void renderer_pipeline_init(renderer_pipeline* state);
+internal void renderer_pipeline_destroy(renderer_pipeline* state);
 
-void renderer_create_instance();
-void renderer_create_surface(platform_hnd window_handle);
-void renderer_create_physical_device();
-void renderer_create_queue_ids();
-void renderer_create_device();
-void renderer_create_swapchain(platform_hnd window_handle);
-void renderer_create_command_pool();
-void renderer_create_command_buffers();
-void renderer_create_descriptor_pool();
-void renderer_create_sync_primitives();
-void renderer_create_resources();
+internal void renderer_create_instance();
+internal void renderer_create_surface(platform_hnd window_handle);
+internal void renderer_create_physical_device();
+internal void renderer_create_queue_ids();
+internal void renderer_create_device();
+internal void renderer_create_swapchain(platform_hnd window_handle);
+internal void renderer_create_command_pool();
+internal void renderer_create_command_buffers();
+internal void renderer_create_descriptor_pool();
+internal void renderer_create_sync_primitives();
+internal void renderer_create_resources();
 
-void renderer_create_meshes(mesh* m, i32 count);
-void renderer_create_nodes(renderer_node* nodes, renderer_ssbo* node_ssbo, i32 node_count);
+internal void renderer_create_meshes(mesh* m, i32 count);
+internal void renderer_create_nodes(renderer_node* nodes, renderer_ssbo* node_ssbo, i32 node_count);
 
-void renderer_create_depth_resources();
-void renderer_create_buffer(VkBuffer* buffer, VkDeviceSize size, VkBufferUsageFlags usage);
-void renderer_create_image(VkImage* image, u32 width, u32 height, VkImageUsageFlags usage, VkImageTiling tiling, VkFormat format);
-void renderer_create_image_view(VkImage image, VkImageView* view, VkFormat format, VkImageAspectFlags aspect_flags);
-void renderer_copy_buffer(VkBuffer src, VkBuffer dst, VkDeviceSize offset_src, VkDeviceSize offset_dst, VkDeviceSize size);
+internal void renderer_create_depth_resources();
+internal void renderer_create_buffer(VkBuffer* buffer, VkDeviceSize size, VkBufferUsageFlags usage);
+internal void renderer_create_image(VkImage* image, u32 width, u32 height, VkImageUsageFlags usage, VkImageTiling tiling, VkFormat format);
+internal void renderer_create_image_view(VkImage image, VkImageView* view, VkFormat format, VkImageAspectFlags aspect_flags);
+internal void renderer_copy_buffer(VkBuffer src, VkBuffer dst, VkDeviceSize offset_src, VkDeviceSize offset_dst, VkDeviceSize size);
 
-gpu_mem* renderer_create_buffer_memory(VkBuffer buffer, gpu_mem_type mem_type);
-gpu_mem* renderer_create_image_memory(VkImage image, gpu_mem_type mem_type);
+internal gpu_mem* renderer_create_buffer_memory(VkBuffer buffer, gpu_mem_type mem_type);
+internal gpu_mem* renderer_create_image_memory(VkImage image, gpu_mem_type mem_type);
 
-void           renderer_pipeline_create_descriptor_set_layout(renderer_pipeline* pipeline);
-void           renderer_pipeline_create_descriptor_sets(renderer_pipeline* pipeline);
-void           renderer_pipeline_create_graphics_pipeline_layout(renderer_pipeline* pipeline);
-void           renderer_pipeline_create_graphics_pipeline(renderer_pipeline* pipeline);
-VkShaderModule renderer_pipeline_create_shader_module(const u8* code, u64 code_size);
+internal void           renderer_pipeline_create_descriptor_set_layout(renderer_pipeline* pipeline);
+internal void           renderer_pipeline_create_descriptor_sets(renderer_pipeline* pipeline);
+internal void           renderer_pipeline_create_graphics_pipeline_layout(renderer_pipeline* pipeline);
+internal void           renderer_pipeline_create_graphics_pipeline(renderer_pipeline* pipeline);
+internal VkShaderModule renderer_pipeline_create_shader_module(const u8* code, u64 code_size);
 
-void               renderer_swapchain_recreate(platform_hnd window_handle);
-VkSurfaceFormatKHR renderer_swapchain_find_format();
-VkPresentModeKHR   renderer_swapchain_find_present();
-VkExtent2D         renderer_swapchain_find_extent(platform_hnd window_handle);
+internal void               renderer_swapchain_recreate(platform_hnd window_handle);
+internal VkSurfaceFormatKHR renderer_swapchain_find_format();
+internal VkPresentModeKHR   renderer_swapchain_find_present();
+internal VkExtent2D         renderer_swapchain_find_extent(platform_hnd window_handle);
 
-void renderer_command_buffer_record(renderer_pipeline* pipeline, u32 buffer_id, u32 img_id);
+internal void renderer_command_buffer_record(renderer_pipeline* pipeline, u32 buffer_id, u32 img_id);
 
-b32 renderer_check_validation_layers();
-b32 renderer_check_instance_extensions();
-b32 renderer_check_device_extensions(VkPhysicalDevice device);
-b32 renderer_device_is_suitable(VkPhysicalDevice device);
+internal b32 renderer_check_validation_layers();
+internal b32 renderer_check_instance_extensions();
+internal b32 renderer_check_device_extensions(VkPhysicalDevice device);
+internal b32 renderer_device_is_suitable(VkPhysicalDevice device);
 
 #endif // RENDERER_H 

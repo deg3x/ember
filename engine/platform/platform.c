@@ -1,4 +1,4 @@
-u64 platform_file_data(const c8* file_path, void* data)
+internal u64 platform_file_data(const c8* file_path, void* data)
 {
     platform_file_flags read_flags = PLATFORM_FILE_FLAGS_read;
     platform_hnd file_handle       = platform_file_open(file_path, read_flags);
@@ -10,7 +10,7 @@ u64 platform_file_data(const c8* file_path, void* data)
     return result;
 }
 
-b32 platform_handle_equal(platform_hnd lhs, platform_hnd rhs)
+internal b32 platform_handle_equal(platform_hnd lhs, platform_hnd rhs)
 {
     return lhs.hnd == rhs.hnd;
 }

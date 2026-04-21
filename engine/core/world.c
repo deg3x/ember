@@ -1,4 +1,4 @@
-world world_init()
+internal world world_init()
 {
     world result = {0};
 
@@ -11,7 +11,7 @@ world world_init()
     return result;
 }
 
-void world_load_model(world* w, const c8* file)
+internal void world_load_model(world* w, const c8* file)
 {
     EMBER_TRACE_BEGIN(gltf_parse);
 
@@ -58,7 +58,7 @@ void world_load_model(world* w, const c8* file)
     gltf_free(&gltf);
 }
 
-mat4 world_node_transform(world* w, i32 id, coord_space space)
+internal mat4 world_node_transform(world* w, i32 id, coord_space space)
 {
     mat4 result = w->nodes.transforms[id];
 

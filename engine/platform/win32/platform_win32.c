@@ -1,4 +1,4 @@
-void platform_init()
+internal void platform_init()
 {
     //////////////////////////////////////////
     // NOTE(KB): Platform info initialization
@@ -137,12 +137,12 @@ void platform_init()
     }
 }
 
-void platform_abort(i32 exit_code)
+internal void platform_abort(i32 exit_code)
 {
     ExitProcess(exit_code);
 }
 
-platform_timer platform_timer_init()
+internal platform_timer platform_timer_init()
 {
     platform_timer result;
 
@@ -154,14 +154,14 @@ platform_timer platform_timer_init()
     return result;
 }
 
-void platform_timer_update(platform_timer* timer)
+internal void platform_timer_update(platform_timer* timer)
 {
     timer->last = timer->now;
 
     QueryPerformanceCounter((LARGE_INTEGER *)&timer->now);
 }
 
-f64 platform_timer_since_start(platform_timer timer)
+internal f64 platform_timer_since_start(platform_timer timer)
 {
     u64 time_diff = timer.now - timer.start;
     f64 time      = g_platform_info.perf_cnt_freq_inv * (f64)time_diff;
@@ -169,7 +169,7 @@ f64 platform_timer_since_start(platform_timer timer)
     return time;
 }
 
-f64 platform_timer_delta(platform_timer timer)
+internal f64 platform_timer_delta(platform_timer timer)
 {
     u64 time_diff  = timer.now - timer.last;
     f64 delta_time = g_platform_info.perf_cnt_freq_inv * (f64)time_diff;
@@ -177,14 +177,14 @@ f64 platform_timer_delta(platform_timer timer)
     return delta_time;
 }
 
-void* platform_mem_reserve(u64 size)
+internal void* platform_mem_reserve(u64 size)
 {
     void* result = VirtualAlloc(NULL, size, MEM_RESERVE, PAGE_READWRITE);
 
     return result;
 }
 
-void* platform_mem_reserve_large(u64 size)
+internal void* platform_mem_reserve_large(u64 size)
 {
     // NOTE(KB): Windows requires large pages to be committed on reserve
     void* result = VirtualAlloc(NULL, size, MEM_RESERVE | MEM_COMMIT | MEM_LARGE_PAGES, PAGE_READWRITE);
@@ -192,14 +192,14 @@ void* platform_mem_reserve_large(u64 size)
     return result;
 }
 
-b32 platform_mem_commit(void* ptr, u64 size)
+internal b32 platform_mem_commit(void* ptr, u64 size)
 {
     b32 result = (b32)(VirtualAlloc(ptr, size, MEM_COMMIT, PAGE_READWRITE) != 0);
 
     return result;
 }
 
-b32 platform_mem_commit_large(void* ptr, u64 size)
+internal b32 platform_mem_commit_large(void* ptr, u64 size)
 {
     (void)ptr;
     (void)size;
@@ -207,7 +207,7 @@ b32 platform_mem_commit_large(void* ptr, u64 size)
     return EMBER_TRUE;
 }
 
-void platform_mem_release(void* ptr, u64 size)
+internal void platform_mem_release(void* ptr, u64 size)
 {
     (void)size;
 
@@ -215,12 +215,12 @@ void platform_mem_release(void* ptr, u64 size)
     VirtualFree(ptr, 0, MEM_RELEASE);
 }
 
-void platform_mem_decommit(void* ptr, u64 size)
+internal void platform_mem_decommit(void* ptr, u64 size)
 {
     VirtualFree(ptr, size, MEM_DECOMMIT);
 }
 
-platform_hnd platform_file_open(const c8* file_path, platform_file_flags flags)
+internal platform_hnd platform_file_open(const c8* file_path, platform_file_flags flags)
 {
     DWORD access_flags = 0;
     DWORD share_flags  = 0;
@@ -277,7 +277,7 @@ platform_hnd platform_file_open(const c8* file_path, platform_file_flags flags)
     return result;
 }
 
-void platform_file_close(platform_hnd file_handle)
+internal void platform_file_close(platform_hnd file_handle)
 {
     if (file_handle.hnd == NULL)
     {
@@ -289,7 +289,7 @@ void platform_file_close(platform_hnd file_handle)
     (void)result;
 }
 
-platform_file_info platform_file_info_get(platform_hnd file_handle)
+internal platform_file_info platform_file_info_get(platform_hnd file_handle)
 {
     platform_file_info result = {0};
 
@@ -312,7 +312,7 @@ platform_file_info platform_file_info_get(platform_hnd file_handle)
     return result;
 }
 
-u64 platform_file_write(platform_hnd file_handle, void* data, u64 write_size)
+internal u64 platform_file_write(platform_hnd file_handle, void* data, u64 write_size)
 {
     if (file_handle.hnd == NULL)
     {
@@ -340,7 +340,7 @@ u64 platform_file_write(platform_hnd file_handle, void* data, u64 write_size)
 }
 
 // TODO(KB): Add reading from specified position (OVERLAPPED type)
-u64 platform_file_read(platform_hnd file_handle, void* data, u64 read_size)
+internal u64 platform_file_read(platform_hnd file_handle, void* data, u64 read_size)
 {
     if (file_handle.hnd == NULL)
     {
@@ -380,7 +380,7 @@ u64 platform_file_read(platform_hnd file_handle, void* data, u64 read_size)
     return bytes_read_total;
 }
 
-platform_hnd platform_get_instance_handle()
+internal platform_hnd platform_get_instance_handle()
 {
     platform_hnd handle = {
         .hnd = GetModuleHandle(NULL)
@@ -389,7 +389,7 @@ platform_hnd platform_get_instance_handle()
     return handle;
 }
 
-void platform_gfx_process_events()
+internal void platform_gfx_process_events()
 {
     MSG msg = {0};
 
@@ -406,7 +406,7 @@ void platform_gfx_process_events()
     }
 }
 
-platform_hnd platform_gfx_wnd_create(const c8* window_name)
+internal platform_hnd platform_gfx_wnd_create(const c8* window_name)
 {
     win32_wnd window = {0};
 
@@ -437,7 +437,7 @@ platform_hnd platform_gfx_wnd_create(const c8* window_name)
     return handle;
 }
 
-platform_wnd_size platform_gfx_wnd_get_size(platform_hnd window_handle)
+internal platform_wnd_size platform_gfx_wnd_get_size(platform_hnd window_handle)
 {
     platform_wnd_size result = {0};
 
@@ -454,7 +454,7 @@ platform_wnd_size platform_gfx_wnd_get_size(platform_hnd window_handle)
     return result;
 }
 
-platform_wnd_size platform_gfx_wnd_client_get_size(platform_hnd window_handle)
+internal platform_wnd_size platform_gfx_wnd_client_get_size(platform_hnd window_handle)
 {
     platform_wnd_size result = {0};
 
@@ -471,7 +471,7 @@ platform_wnd_size platform_gfx_wnd_client_get_size(platform_hnd window_handle)
     return result;
 }
 
-b32 platform_gfx_wnd_is_minimized(platform_hnd window_handle)
+internal b32 platform_gfx_wnd_is_minimized(platform_hnd window_handle)
 {
     b32 result = EMBER_FALSE;
 
@@ -483,7 +483,7 @@ b32 platform_gfx_wnd_is_minimized(platform_hnd window_handle)
     return result;
 }
 
-LRESULT CALLBACK win32_wnd_msg_callback(HWND hwnd, UINT msg, WPARAM w_param, LPARAM l_param)
+internal LRESULT CALLBACK win32_wnd_msg_callback(HWND hwnd, UINT msg, WPARAM w_param, LPARAM l_param)
 {
     switch (msg)
     {

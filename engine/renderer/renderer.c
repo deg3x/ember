@@ -1,4 +1,4 @@
-void renderer_init(platform_hnd window_handle)
+internal void renderer_init(platform_hnd window_handle)
 {
     cpu_arena_params params = { GB(1), GB(1), 0 };
 
@@ -30,7 +30,7 @@ void renderer_init(platform_hnd window_handle)
     renderer_pipeline_init(g_renderer.pipelines);
 }
 
-void renderer_update(platform_hnd window_handle)
+internal void renderer_update(platform_hnd window_handle)
 {
     persist u32 frame_id = 0;
 
@@ -136,7 +136,7 @@ void renderer_update(platform_hnd window_handle)
     frame_id = (frame_id + 1) % RENDERER_FRAMES_IN_FLIGHT;
 }
 
-void renderer_destroy()
+internal void renderer_destroy()
 {
     vkDeviceWaitIdle(g_renderer.device);
 
@@ -185,7 +185,7 @@ void renderer_destroy()
     cpu_arena_release(g_renderer.host_arena);
 }
 
-void renderer_pipeline_init(renderer_pipeline* pipeline)
+internal void renderer_pipeline_init(renderer_pipeline* pipeline)
 {
     renderer_pipeline_create_descriptor_set_layout(pipeline);
     renderer_pipeline_create_descriptor_sets(pipeline);
@@ -193,7 +193,7 @@ void renderer_pipeline_init(renderer_pipeline* pipeline)
     renderer_pipeline_create_graphics_pipeline(pipeline);
 }
 
-void renderer_pipeline_destroy(renderer_pipeline* pipeline)
+internal void renderer_pipeline_destroy(renderer_pipeline* pipeline)
 {
     vkDestroyPipeline(g_renderer.device, pipeline->graphics_pipeline, NULL);
     vkDestroyPipelineLayout(g_renderer.device, pipeline->graphics_pipeline_layout, NULL);
@@ -208,7 +208,7 @@ void renderer_pipeline_destroy(renderer_pipeline* pipeline)
     vkDestroyDescriptorSetLayout(g_renderer.device, pipeline->descriptor_set_layout, NULL);
 }
 
-void renderer_create_instance()
+internal void renderer_create_instance()
 {
     u32 vk_api_version = VK_API_VERSION_1_4;
 
@@ -261,7 +261,7 @@ void renderer_create_instance()
     EMBER_ASSERT(create_result == VK_SUCCESS);
 }
 
-void renderer_create_surface(platform_hnd window_handle)
+internal void renderer_create_surface(platform_hnd window_handle)
 {
 #if PLATFORM_WINDOWS
     VkWin32SurfaceCreateInfoKHR surface_info = {0};
@@ -276,7 +276,7 @@ void renderer_create_surface(platform_hnd window_handle)
 #endif
 }
 
-void renderer_create_physical_device()
+internal void renderer_create_physical_device()
 {
     g_renderer.physical_device = VK_NULL_HANDLE;
 
@@ -304,7 +304,7 @@ void renderer_create_physical_device()
     cpu_scratch_end(scratch);
 }
 
-void renderer_create_queue_ids()
+internal void renderer_create_queue_ids()
 {
     cpu_scratch scratch = cpu_scratch_begin(g_renderer.host_arena);
 
@@ -358,7 +358,7 @@ void renderer_create_queue_ids()
     g_renderer.queue_ids.presentation = present_id;
 }
 
-void renderer_create_device()
+internal void renderer_create_device()
 {
     cpu_scratch scratch = cpu_scratch_begin(g_renderer.host_arena);
 
@@ -406,7 +406,7 @@ void renderer_create_device()
     cpu_scratch_end(scratch);
 }
 
-void renderer_create_swapchain(platform_hnd window_handle)
+internal void renderer_create_swapchain(platform_hnd window_handle)
 {
     VkSurfaceFormatKHR swap_format = renderer_swapchain_find_format();
     VkPresentModeKHR swap_present  = renderer_swapchain_find_present();
@@ -469,7 +469,7 @@ void renderer_create_swapchain(platform_hnd window_handle)
     }
 }
 
-void renderer_create_command_pool()
+internal void renderer_create_command_pool()
 {
     VkCommandPoolCreateInfo pool_info = {0};
     pool_info.sType                   = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
@@ -480,7 +480,7 @@ void renderer_create_command_pool()
     EMBER_ASSERT(create_result == VK_SUCCESS);
 }
 
-void renderer_create_command_buffers()
+internal void renderer_create_command_buffers()
 {
     VkCommandBufferAllocateInfo alloc_info = {0};
     alloc_info.sType                       = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -492,7 +492,7 @@ void renderer_create_command_buffers()
     EMBER_ASSERT(alloc_result == VK_SUCCESS);
 }
 
-void renderer_create_descriptor_pool()
+internal void renderer_create_descriptor_pool()
 {
     VkDescriptorPoolSize pool_sizes[1] = {0};
     pool_sizes[0].type                 = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -508,7 +508,7 @@ void renderer_create_descriptor_pool()
     EMBER_ASSERT(vk_result == VK_SUCCESS);
 }
 
-void renderer_create_sync_primitives()
+internal void renderer_create_sync_primitives()
 {
     VkSemaphoreCreateInfo sem_info = {0};
     sem_info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
@@ -532,7 +532,7 @@ void renderer_create_sync_primitives()
     }
 }
 
-void renderer_create_resources()
+internal void renderer_create_resources()
 {
     VkBufferUsageFlags flags_vert = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
     VkBufferUsageFlags flags_idx  = VK_BUFFER_USAGE_TRANSFER_DST_BIT | VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
@@ -594,7 +594,7 @@ void renderer_create_resources()
     }
 }
 
-void renderer_create_nodes(renderer_node* nodes, renderer_ssbo* node_ssbo, i32 node_count)
+internal void renderer_create_nodes(renderer_node* nodes, renderer_ssbo* node_ssbo, i32 node_count)
 {
     memcpy(g_renderer.node_data + g_renderer.node_count, nodes, node_count * sizeof(renderer_node));
 
@@ -608,7 +608,7 @@ void renderer_create_nodes(renderer_node* nodes, renderer_ssbo* node_ssbo, i32 n
     g_renderer.node_count += node_count;
 }
 
-void renderer_create_meshes(mesh* m, i32 count)
+internal void renderer_create_meshes(mesh* m, i32 count)
 {
     for (i32 i = 0; i < count; i++)
     {
@@ -645,7 +645,7 @@ void renderer_create_meshes(mesh* m, i32 count)
     }
 }
 
-void renderer_create_depth_resources()
+internal void renderer_create_depth_resources()
 {
     VkFormat formats[] = {
         VK_FORMAT_D32_SFLOAT,
@@ -745,7 +745,7 @@ void renderer_create_depth_resources()
     vkFreeCommandBuffers(g_renderer.device, g_renderer.command_pool, 1, &cmd_buffer);
 }
 
-void renderer_create_buffer(VkBuffer* buffer, VkDeviceSize size, VkBufferUsageFlags usage)
+internal void renderer_create_buffer(VkBuffer* buffer, VkDeviceSize size, VkBufferUsageFlags usage)
 {
     VkBufferCreateInfo buffer_info = {0};
     buffer_info.sType              = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -758,7 +758,7 @@ void renderer_create_buffer(VkBuffer* buffer, VkDeviceSize size, VkBufferUsageFl
     EMBER_ASSERT(vk_result == VK_SUCCESS);
 }
 
-void renderer_create_image(VkImage* image, u32 width, u32 height, VkImageUsageFlags usage, VkImageTiling tiling, VkFormat format)
+internal void renderer_create_image(VkImage* image, u32 width, u32 height, VkImageUsageFlags usage, VkImageTiling tiling, VkFormat format)
 {
     VkImageCreateInfo image_info     = {0};
     image_info.sType                 = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
@@ -782,7 +782,7 @@ void renderer_create_image(VkImage* image, u32 width, u32 height, VkImageUsageFl
     EMBER_ASSERT(vk_result == VK_SUCCESS);
 }
 
-void renderer_create_image_view(VkImage image, VkImageView* view, VkFormat format, VkImageAspectFlags aspect_flags)
+internal void renderer_create_image_view(VkImage image, VkImageView* view, VkFormat format, VkImageAspectFlags aspect_flags)
 {
     VkImageViewCreateInfo view_info           = {0};
     view_info.sType                           = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -804,7 +804,7 @@ void renderer_create_image_view(VkImage image, VkImageView* view, VkFormat forma
     EMBER_ASSERT(vk_result == VK_SUCCESS);
 }
 
-void renderer_copy_buffer(VkBuffer src, VkBuffer dst, VkDeviceSize offset_src, VkDeviceSize offset_dst, VkDeviceSize size)
+internal void renderer_copy_buffer(VkBuffer src, VkBuffer dst, VkDeviceSize offset_src, VkDeviceSize offset_dst, VkDeviceSize size)
 {
     VkCommandBufferAllocateInfo alloc_info = {0};
     alloc_info.sType                       = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -846,7 +846,7 @@ void renderer_copy_buffer(VkBuffer src, VkBuffer dst, VkDeviceSize offset_src, V
     vkFreeCommandBuffers(g_renderer.device, g_renderer.command_pool, 1, &cmd_buffer);
 }
 
-gpu_mem* renderer_create_buffer_memory(VkBuffer buffer, gpu_mem_type mem_type)
+internal gpu_mem* renderer_create_buffer_memory(VkBuffer buffer, gpu_mem_type mem_type)
 {
     VkMemoryRequirements mem_req;
     vkGetBufferMemoryRequirements(g_renderer.device, buffer, &mem_req);
@@ -860,7 +860,7 @@ gpu_mem* renderer_create_buffer_memory(VkBuffer buffer, gpu_mem_type mem_type)
     return alloc;
 }
 
-gpu_mem* renderer_create_image_memory(VkImage image, gpu_mem_type mem_type)
+internal gpu_mem* renderer_create_image_memory(VkImage image, gpu_mem_type mem_type)
 {
     VkMemoryRequirements mem_req;
     vkGetImageMemoryRequirements(g_renderer.device, image, &mem_req);
@@ -874,7 +874,7 @@ gpu_mem* renderer_create_image_memory(VkImage image, gpu_mem_type mem_type)
     return alloc;
 }
 
-void renderer_pipeline_create_descriptor_set_layout(renderer_pipeline* pipeline)
+internal void renderer_pipeline_create_descriptor_set_layout(renderer_pipeline* pipeline)
 {
     VkDescriptorSetLayoutBinding bindings[2] = {0};
     bindings[0].binding                      = 0;
@@ -898,7 +898,7 @@ void renderer_pipeline_create_descriptor_set_layout(renderer_pipeline* pipeline)
     EMBER_ASSERT(create_result == VK_SUCCESS);
 }
 
-void renderer_pipeline_create_descriptor_sets(renderer_pipeline* pipeline)
+internal void renderer_pipeline_create_descriptor_sets(renderer_pipeline* pipeline)
 {
     VkDescriptorSetLayout layouts[RENDERER_FRAMES_IN_FLIGHT] = {
         pipeline->descriptor_set_layout,
@@ -951,7 +951,7 @@ void renderer_pipeline_create_descriptor_sets(renderer_pipeline* pipeline)
     }
 }
 
-void renderer_pipeline_create_graphics_pipeline_layout(renderer_pipeline* pipeline)
+internal void renderer_pipeline_create_graphics_pipeline_layout(renderer_pipeline* pipeline)
 {
     VkPushConstantRange push_constant_range = {0};
     push_constant_range.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
@@ -969,7 +969,7 @@ void renderer_pipeline_create_graphics_pipeline_layout(renderer_pipeline* pipeli
     EMBER_ASSERT(create_result == VK_SUCCESS);
 }
 
-void renderer_pipeline_create_graphics_pipeline(renderer_pipeline* pipeline)
+internal void renderer_pipeline_create_graphics_pipeline(renderer_pipeline* pipeline)
 {
     cpu_scratch scratch = cpu_scratch_begin(g_renderer.host_arena);
     u8* vert            = MEMORY_PUSH(scratch.arena, u8, KB(16));
@@ -1145,7 +1145,7 @@ void renderer_pipeline_create_graphics_pipeline(renderer_pipeline* pipeline)
     cpu_scratch_end(scratch);
 }
 
-VkShaderModule renderer_pipeline_create_shader_module(const u8* code, u64 code_size)
+internal VkShaderModule renderer_pipeline_create_shader_module(const u8* code, u64 code_size)
 {
     VkShaderModuleCreateInfo module_info = {0};
     module_info.sType                    = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
@@ -1160,7 +1160,7 @@ VkShaderModule renderer_pipeline_create_shader_module(const u8* code, u64 code_s
     return result;
 }
 
-void renderer_swapchain_recreate(platform_hnd window_handle)
+internal void renderer_swapchain_recreate(platform_hnd window_handle)
 {
     while(platform_gfx_wnd_is_minimized(window_handle))
     {
@@ -1184,7 +1184,7 @@ void renderer_swapchain_recreate(platform_hnd window_handle)
     renderer_create_depth_resources();
 }
 
-VkSurfaceFormatKHR renderer_swapchain_find_format()
+internal VkSurfaceFormatKHR renderer_swapchain_find_format()
 {
     cpu_scratch scratch = cpu_scratch_begin(g_renderer.host_arena);
 
@@ -1225,7 +1225,7 @@ VkSurfaceFormatKHR renderer_swapchain_find_format()
     return result;
 }
 
-VkPresentModeKHR renderer_swapchain_find_present()
+internal VkPresentModeKHR renderer_swapchain_find_present()
 {
     cpu_scratch scratch = cpu_scratch_begin(g_renderer.host_arena);
 
@@ -1249,7 +1249,7 @@ VkPresentModeKHR renderer_swapchain_find_present()
     return VK_PRESENT_MODE_FIFO_KHR;
 }
 
-VkExtent2D renderer_swapchain_find_extent(platform_hnd window_handle)
+internal VkExtent2D renderer_swapchain_find_extent(platform_hnd window_handle)
 {
     VkSurfaceCapabilitiesKHR capabilities;
     vkGetPhysicalDeviceSurfaceCapabilitiesKHR(g_renderer.physical_device, g_renderer.surface, &capabilities);
@@ -1269,7 +1269,7 @@ VkExtent2D renderer_swapchain_find_extent(platform_hnd window_handle)
     return extent;
 }
 
-void renderer_command_buffer_record(renderer_pipeline* pipeline, u32 buffer_id, u32 img_id)
+internal void renderer_command_buffer_record(renderer_pipeline* pipeline, u32 buffer_id, u32 img_id)
 {
     VkCommandBufferBeginInfo begin_info = {0};
     begin_info.sType                    = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -1434,7 +1434,7 @@ void renderer_command_buffer_record(renderer_pipeline* pipeline, u32 buffer_id, 
     EMBER_ASSERT(cmd_result == VK_SUCCESS);
 }
 
-b32 renderer_check_validation_layers()
+internal b32 renderer_check_validation_layers()
 {
     cpu_scratch scratch = cpu_scratch_begin(g_renderer.host_arena);
 
@@ -1465,7 +1465,7 @@ b32 renderer_check_validation_layers()
     return layers_found;
 }
 
-b32 renderer_check_instance_extensions()
+internal b32 renderer_check_instance_extensions()
 {
     cpu_scratch scratch = cpu_scratch_begin(g_renderer.host_arena);
 
@@ -1496,7 +1496,7 @@ b32 renderer_check_instance_extensions()
     return exts_found;
 }
 
-b32 renderer_check_device_extensions(VkPhysicalDevice device)
+internal b32 renderer_check_device_extensions(VkPhysicalDevice device)
 {
     cpu_scratch scratch = cpu_scratch_begin(g_renderer.host_arena);
 
@@ -1527,7 +1527,7 @@ b32 renderer_check_device_extensions(VkPhysicalDevice device)
     return exts_found;
 }
 
-b32 renderer_device_is_suitable(VkPhysicalDevice device)
+internal b32 renderer_device_is_suitable(VkPhysicalDevice device)
 {
     VkPhysicalDeviceProperties2 props = {0};
     props.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2;

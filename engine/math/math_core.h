@@ -166,15 +166,15 @@ union mat4
 ///////////////
 // FUNCTIONS
 
-b32 math_approx_zero(f32 value);
-b32 math_approx_equal(f32 a, f32 b, f32 error);
+internal b32 math_approx_zero(f32 value);
+internal b32 math_approx_equal(f32 a, f32 b, f32 error);
 
-f32 math_sign(f32 value);
-f32 math_angle_wrap(f32 angle);
-f32 math_saturate(f32 value);
-f32 math_fast_sin(f32 angle);
-f32 math_fast_cos(f32 angle);
-f32 math_fast_cos_zero_to_half_pi(f32 angle);
-f32 math_fast_inv_sqrt_approx_one(f32 value);
+internal f32 math_sign(f32 value);
+internal f32 math_angle_wrap(f32 angle);
+internal f32 math_saturate(f32 value);
+internal f32 math_fast_sin(f32 angle);
+internal f32 math_fast_cos(f32 angle);
+internal f32 math_fast_cos_zero_to_half_pi(f32 angle);
+internal f32 math_fast_inv_sqrt_approx_one(f32 value);
 
 #endif // MATH_CORE_H

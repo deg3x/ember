@@ -52,9 +52,9 @@ struct gpu_arena
     VkPhysicalDeviceMemoryProperties mem_props;
 };
 
-gpu_arena gpu_arena_init(VkPhysicalDevice physical_device, VkDevice device);
-gpu_mem*  gpu_arena_alloc(gpu_arena* arena, u64 size, u64 alignment, gpu_mem_type type);
-void      gpu_arena_free(gpu_arena* arena, gpu_mem* memory);
-void      gpu_arena_release(gpu_arena* arena, VkDevice device);
+internal gpu_arena gpu_arena_init(VkPhysicalDevice physical_device, VkDevice device);
+internal gpu_mem*  gpu_arena_alloc(gpu_arena* arena, u64 size, u64 alignment, gpu_mem_type type);
+internal void      gpu_arena_free(gpu_arena* arena, gpu_mem* memory);
+internal void      gpu_arena_release(gpu_arena* arena, VkDevice device);
 
 #endif //GPU_ARENA_H

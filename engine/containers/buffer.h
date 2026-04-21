@@ -8,11 +8,11 @@ struct buffer
     u8* data;
 };
 
-b32 buffer_is_valid(buffer* buf);
-b32 buffer_is_valid_idx(buffer* buf, u64 idx);
-b32 buffer_is_equal(buffer* lhs, buffer* rhs);
+internal b32 buffer_is_valid(buffer* buf);
+internal b32 buffer_is_valid_idx(buffer* buf, u64 idx);
+internal b32 buffer_is_equal(buffer* lhs, buffer* rhs);
 
-buffer buffer_from_cstr(const c8* cstr);
-void   buffer_to_cstr(buffer* buf, c8* dest);
+internal buffer buffer_from_cstr(const c8* cstr);
+internal void   buffer_to_cstr(buffer* buf, c8* dest);
 
 #endif //BUFFER_H

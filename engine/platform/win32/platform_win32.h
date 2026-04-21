@@ -16,6 +16,6 @@ struct win32_gfx_state
 
 global win32_gfx_state g_win32_gfx_state;
 
-LRESULT CALLBACK win32_wnd_msg_callback(HWND hwnd, UINT msg, WPARAM w_param, LPARAM l_param);
+internal LRESULT CALLBACK win32_wnd_msg_callback(HWND hwnd, UINT msg, WPARAM w_param, LPARAM l_param);
 
 #endif // PLATFORM_WIN32_H

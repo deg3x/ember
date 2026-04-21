@@ -1,4 +1,4 @@
-gpu_arena gpu_arena_init(VkPhysicalDevice physical_device, VkDevice device)
+internal gpu_arena gpu_arena_init(VkPhysicalDevice physical_device, VkDevice device)
 {
     gpu_arena ret = {0};
 
@@ -126,7 +126,7 @@ gpu_arena gpu_arena_init(VkPhysicalDevice physical_device, VkDevice device)
     return ret;
 }
 
-gpu_mem* gpu_arena_alloc(gpu_arena* arena, u64 size, u64 alignment, gpu_mem_type type)
+internal gpu_mem* gpu_arena_alloc(gpu_arena* arena, u64 size, u64 alignment, gpu_mem_type type)
 {
     EMBER_ASSERT(arena != NULL);
 
@@ -170,7 +170,7 @@ gpu_mem* gpu_arena_alloc(gpu_arena* arena, u64 size, u64 alignment, gpu_mem_type
     return ret;
 }
 
-void gpu_arena_free(gpu_arena* arena, gpu_mem* memory)
+internal void gpu_arena_free(gpu_arena* arena, gpu_mem* memory)
 {
     EMBER_ASSERT(arena != NULL);
     EMBER_ASSERT(memory != NULL);
@@ -224,7 +224,7 @@ void gpu_arena_free(gpu_arena* arena, gpu_mem* memory)
     last_free->next = memory;
 }
 
-void gpu_arena_release(gpu_arena* arena, VkDevice device)
+internal void gpu_arena_release(gpu_arena* arena, VkDevice device)
 {
     EMBER_ASSERT(arena != NULL);
 

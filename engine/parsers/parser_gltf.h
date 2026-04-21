@@ -228,10 +228,10 @@ struct gltf_data
     i32        material_count;
 };
 
-gltf_data      gltf_parse_file(const c8* file_path);
-gltf_json_data gltf_parse_chunk_json(gltf_parser* parser, u32 chunk_length);
-gltf_data      gltf_parse_chunk_binary(gltf_parser* parser, u32 chunk_length, gltf_json_data* json_data);
-void           gltf_parse_components(void* source, void* dest, i32 count, i32 offset, i32 stride, i32 cmp_type, i32 data_type);
-void           gltf_free(gltf_data* gltf);
+internal gltf_data      gltf_parse_file(const c8* file_path);
+internal gltf_json_data gltf_parse_chunk_json(gltf_parser* parser, u32 chunk_length);
+internal gltf_data      gltf_parse_chunk_binary(gltf_parser* parser, u32 chunk_length, gltf_json_data* json_data);
+internal void           gltf_parse_components(void* source, void* dest, i32 count, i32 offset, i32 stride, i32 cmp_type, i32 data_type);
+internal void           gltf_free(gltf_data* gltf);
 
 #endif //PARSER_GLTF_H

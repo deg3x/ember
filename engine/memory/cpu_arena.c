@@ -1,4 +1,4 @@
-cpu_arena* cpu_arena_init(cpu_arena_params* params)
+internal cpu_arena* cpu_arena_init(cpu_arena_params* params)
 {
     EMBER_ASSERT(params->size_res >= params->size_cmt);
     EMBER_ASSERT(params->size_cmt >= ARENA_HEADER_SIZE);
@@ -38,7 +38,7 @@ cpu_arena* cpu_arena_init(cpu_arena_params* params)
     return result;
 }
 
-void* cpu_arena_push(cpu_arena* arena, u64 size, u64 align)
+internal void* cpu_arena_push(cpu_arena* arena, u64 size, u64 align)
 {
     u64 pos_start = POW_2_ROUND_UP(arena->position, align);
     u64 pos_goal  = POW_2_ROUND_UP(pos_start + size, align);
@@ -71,38 +71,38 @@ void* cpu_arena_push(cpu_arena* arena, u64 size, u64 align)
     return result;
 }
 
-void cpu_arena_pop(cpu_arena* arena, u64 size)
+internal void cpu_arena_pop(cpu_arena* arena, u64 size)
 {
     EMBER_ASSERT(arena->position >= size);
 
     arena->position -= size;
 }
 
-void cpu_arena_pop_to(cpu_arena* arena, u64 pos)
+internal void cpu_arena_pop_to(cpu_arena* arena, u64 pos)
 {
     EMBER_ASSERT(arena->position >= pos);
 
     arena->position = pos;
 }
 
-u64 cpu_arena_avail(cpu_arena* arena)
+internal u64 cpu_arena_avail(cpu_arena* arena)
 {
     u64 result = arena->size_cmt - arena->position;
 
     return result;
 }
 
-void cpu_arena_clear(cpu_arena* arena)
+internal void cpu_arena_clear(cpu_arena* arena)
 {
     cpu_arena_pop_to(arena, 0);
 }
 
-void cpu_arena_release(cpu_arena* arena)
+internal void cpu_arena_release(cpu_arena* arena)
 {
     platform_mem_release(arena, arena->size_res);
 }
 
-cpu_scratch cpu_scratch_begin(cpu_arena* arena)
+internal cpu_scratch cpu_scratch_begin(cpu_arena* arena)
 {
     cpu_scratch scratch = {
         arena,
@@ -112,7 +112,7 @@ cpu_scratch cpu_scratch_begin(cpu_arena* arena)
     return scratch;
 }
 
-void cpu_scratch_end(cpu_scratch scratch)
+internal void cpu_scratch_end(cpu_scratch scratch)
 {
     cpu_arena_pop_to(scratch.arena, scratch.position);
 }
