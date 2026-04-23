@@ -1,4 +1,4 @@
-internal cpu_arena* cpu_arena_init(cpu_arena_params* params)
+internal cpu_arena_t* cpu_arena_init(cpu_arena_params_t* params)
 {
     EMBER_ASSERT(params->size_res >= params->size_cmt);
     EMBER_ASSERT(params->size_cmt >= ARENA_HEADER_SIZE);
@@ -29,16 +29,16 @@ internal cpu_arena* cpu_arena_init(cpu_arena_params* params)
         platform_abort(1);
     }
 
-    cpu_arena* result = (cpu_arena*)address;
-    result->size_res  = reserve;
-    result->size_cmt  = commit;
-    result->position  = ARENA_HEADER_SIZE;
-    result->flags     = params->flags;
+    cpu_arena_t* result = (cpu_arena_t*)address;
+    result->size_res    = reserve;
+    result->size_cmt    = commit;
+    result->position    = ARENA_HEADER_SIZE;
+    result->flags       = params->flags;
 
     return result;
 }
 
-internal void* cpu_arena_push(cpu_arena* arena, u64 size, u64 align)
+internal void* cpu_arena_push(cpu_arena_t* arena, u64 size, u64 align)
 {
     u64 pos_start = POW_2_ROUND_UP(arena->position, align);
     u64 pos_goal  = POW_2_ROUND_UP(pos_start + size, align);
@@ -71,40 +71,40 @@ internal void* cpu_arena_push(cpu_arena* arena, u64 size, u64 align)
     return result;
 }
 
-internal void cpu_arena_pop(cpu_arena* arena, u64 size)
+internal void cpu_arena_pop(cpu_arena_t* arena, u64 size)
 {
     EMBER_ASSERT(arena->position >= size);
 
     arena->position -= size;
 }
 
-internal void cpu_arena_pop_to(cpu_arena* arena, u64 pos)
+internal void cpu_arena_pop_to(cpu_arena_t* arena, u64 pos)
 {
     EMBER_ASSERT(arena->position >= pos);
 
     arena->position = pos;
 }
 
-internal u64 cpu_arena_avail(cpu_arena* arena)
+internal u64 cpu_arena_avail(cpu_arena_t* arena)
 {
     u64 result = arena->size_cmt - arena->position;
 
     return result;
 }
 
-internal void cpu_arena_clear(cpu_arena* arena)
+internal void cpu_arena_clear(cpu_arena_t* arena)
 {
     cpu_arena_pop_to(arena, 0);
 }
 
-internal void cpu_arena_release(cpu_arena* arena)
+internal void cpu_arena_release(cpu_arena_t* arena)
 {
     platform_mem_release(arena, arena->size_res);
 }
 
-internal cpu_scratch cpu_scratch_begin(cpu_arena* arena)
+internal cpu_scratch_t cpu_scratch_begin(cpu_arena_t* arena)
 {
-    cpu_scratch scratch = {
+    cpu_scratch_t scratch = {
         arena,
         arena->position
     };
@@ -112,7 +112,7 @@ internal cpu_scratch cpu_scratch_begin(cpu_arena* arena)
     return scratch;
 }
 
-internal void cpu_scratch_end(cpu_scratch scratch)
+internal void cpu_scratch_end(cpu_scratch_t scratch)
 {
     cpu_arena_pop_to(scratch.arena, scratch.position);
 }

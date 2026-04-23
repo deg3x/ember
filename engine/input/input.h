@@ -1,7 +1,7 @@
 #ifndef INPUT_H
 #define INPUT_H
 
-typedef i32 input_key;
+typedef i32 input_key_t;
 enum
 {
     INPUT_KEY_lmb,
@@ -127,14 +127,14 @@ enum
     INPUT_KEY_count
 };
 
-typedef struct input_state input_state;
-struct input_state
+typedef struct input_state_t input_state_t;
+struct input_state_t
 {
-    vec2 mouse_pos;
-    vec2 mouse_scroll;
-    i8   keys[INPUT_KEY_count];
+    vec2_t mouse_pos;
+    vec2_t mouse_scroll;
+    i8     keys[INPUT_KEY_count];
 };
 
-global input_state g_input_state = {0};
+global input_state_t g_input_state = {0};
 
 #endif // INPUT_H

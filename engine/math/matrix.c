@@ -1,4 +1,4 @@
-internal f32 mat4_determinant(mat4* matrix)
+internal f32 mat4_determinant(mat4_t* matrix)
 {
     f32 det_23 = matrix->m[2][2] * matrix->m[3][3] - matrix->m[2][3] * matrix->m[3][2];
     f32 det_13 = matrix->m[1][2] * matrix->m[3][3] - matrix->m[1][3] * matrix->m[3][2];
@@ -21,9 +21,9 @@ internal f32 mat4_determinant(mat4* matrix)
     return result;
 }
 
-internal mat4 mat4_add(mat4* lhs, mat4* rhs)
+internal mat4_t mat4_add(mat4_t* lhs, mat4_t* rhs)
 {
-    mat4 result = {{
+    mat4_t result = {{
         vec4_add(&lhs->cols[0], &rhs->cols[0]),
         vec4_add(&lhs->cols[1], &rhs->cols[1]),
         vec4_add(&lhs->cols[2], &rhs->cols[2]),
@@ -33,9 +33,9 @@ internal mat4 mat4_add(mat4* lhs, mat4* rhs)
     return result;
 }
 
-internal mat4 mat4_sub(mat4* lhs, mat4* rhs)
+internal mat4_t mat4_sub(mat4_t* lhs, mat4_t* rhs)
 {
-    mat4 result = {{
+    mat4_t result = {{
         vec4_sub(&lhs->cols[0], &rhs->cols[0]),
         vec4_sub(&lhs->cols[1], &rhs->cols[1]),
         vec4_sub(&lhs->cols[2], &rhs->cols[2]),
@@ -45,11 +45,11 @@ internal mat4 mat4_sub(mat4* lhs, mat4* rhs)
     return result;
 }
 
-internal mat4 mat4_mul(mat4* lhs, mat4* rhs)
+internal mat4_t mat4_mul(mat4_t* lhs, mat4_t* rhs)
 {
-    mat4 lhs_tr = mat4_transpose(lhs);
+    mat4_t lhs_tr = mat4_transpose(lhs);
 
-    mat4 result = {
+    mat4_t result = {
         .m = {
             {vec4_dot(&lhs_tr.cols[0], &rhs->cols[0]), vec4_dot(&lhs_tr.cols[1], &rhs->cols[0]), vec4_dot(&lhs_tr.cols[2], &rhs->cols[0]), vec4_dot(&lhs_tr.cols[3], &rhs->cols[0])},
             {vec4_dot(&lhs_tr.cols[0], &rhs->cols[1]), vec4_dot(&lhs_tr.cols[1], &rhs->cols[1]), vec4_dot(&lhs_tr.cols[2], &rhs->cols[1]), vec4_dot(&lhs_tr.cols[3], &rhs->cols[1])},
@@ -61,9 +61,9 @@ internal mat4 mat4_mul(mat4* lhs, mat4* rhs)
     return result;
 }
 
-internal mat4 mat4_mul_s(mat4* lhs, f32 rhs)
+internal mat4_t mat4_mul_s(mat4_t* lhs, f32 rhs)
 {
-    mat4 result = {{
+    mat4_t result = {{
         vec4_mul_s(&lhs->cols[0], rhs),
         vec4_mul_s(&lhs->cols[1], rhs),
         vec4_mul_s(&lhs->cols[2], rhs),
@@ -73,7 +73,7 @@ internal mat4 mat4_mul_s(mat4* lhs, f32 rhs)
     return result;
 }
 
-internal mat4 mat4_inverse(mat4* matrix)
+internal mat4_t mat4_inverse(mat4_t* matrix)
 {
     f32 det_23_23 = matrix->m[2][2] * matrix->m[3][3] - matrix->m[2][3] * matrix->m[3][2];
     f32 det_23_13 = matrix->m[1][2] * matrix->m[3][3] - matrix->m[1][3] * matrix->m[3][2];
@@ -126,7 +126,7 @@ internal mat4 mat4_inverse(mat4* matrix)
 
     f32 inv_det = 1.0f / determinant;
 
-    mat4 result;
+    mat4_t result;
 
     result.m[0][0] =  det_123_123 * inv_det;
     result.m[0][1] = -det_123_023 * inv_det;
@@ -151,9 +151,9 @@ internal mat4 mat4_inverse(mat4* matrix)
     return result;
 }
 
-internal mat4 mat4_transpose(mat4* matrix)
+internal mat4_t mat4_transpose(mat4_t* matrix)
 {
-    mat4 result;
+    mat4_t result;
 
     result.m[0][0] = matrix->m[0][0];
     result.m[0][1] = matrix->m[1][0];
@@ -179,18 +179,18 @@ internal mat4 mat4_transpose(mat4* matrix)
 }
 
 
-internal vec3 mat4_to_euler(mat4* matrix)
+internal vec3_t mat4_to_euler(mat4_t* matrix)
 {
     f32 pitch =  math_atan2(matrix->m[1][2], matrix->m[2][2]);
     f32 roll  =  math_atan2(matrix->m[0][1], matrix->m[0][0]);
     f32 yaw   = -math_asin(matrix->m[0][2]);
 
-    vec3 result = { pitch, yaw, roll };
+    vec3_t result = { pitch, yaw, roll };
 
     return result;
 }
 
-internal mat4 mat4_from_euler(vec3* angles)
+internal mat4_t mat4_from_euler(vec3_t* angles)
 {
     f32 cos_x = math_cos(angles->x);
     f32 cos_y = math_cos(angles->y);
@@ -199,7 +199,7 @@ internal mat4 mat4_from_euler(vec3* angles)
     f32 sin_y = math_sin(angles->y);
     f32 sin_z = math_sin(angles->z);
 
-    mat4 result = {0};
+    mat4_t result = {0};
 
     result.m[0][0] =  cos_y * cos_z;
     result.m[0][1] =  sin_z * cos_y;
@@ -218,9 +218,9 @@ internal mat4 mat4_from_euler(vec3* angles)
     return result;
 }
 
-internal mat4 mat4_from_pitch(f32 pitch)
+internal mat4_t mat4_from_pitch(f32 pitch)
 {
-    mat4 result = {0};
+    mat4_t result = {0};
 
     f32 angle_cos = math_cos(pitch);
     f32 angle_sin = math_sin(pitch);
@@ -235,9 +235,9 @@ internal mat4 mat4_from_pitch(f32 pitch)
     return result;
 }
 
-internal mat4 mat4_from_yaw(f32 yaw)
+internal mat4_t mat4_from_yaw(f32 yaw)
 {
-    mat4 result = {0};
+    mat4_t result = {0};
 
     f32 angle_cos = math_cos(yaw);
     f32 angle_sin = math_sin(yaw);
@@ -252,9 +252,9 @@ internal mat4 mat4_from_yaw(f32 yaw)
     return result;
 }
 
-internal mat4 mat4_from_roll(f32 roll)
+internal mat4_t mat4_from_roll(f32 roll)
 {
-    mat4 result = {0};
+    mat4_t result = {0};
 
     f32 angle_cos = math_cos(roll);
     f32 angle_sin = math_sin(roll);
@@ -269,9 +269,9 @@ internal mat4 mat4_from_roll(f32 roll)
     return result;
 }
 
-internal mat4 mat4_from_diag(f32 diagonal)
+internal mat4_t mat4_from_diag(f32 diagonal)
 {
-    mat4 result = {
+    mat4_t result = {
         .m = {
             { diagonal, 0.0f, 0.0f, 0.0f },
             { 0.0f, diagonal, 0.0f, 0.0f },
@@ -283,9 +283,9 @@ internal mat4 mat4_from_diag(f32 diagonal)
     return result;
 }
 
-internal mat4 mat4_from_quat(quat* quat)
+internal mat4_t mat4_from_quat(quat_t* quat)
 {
-    mat4 result;
+    mat4_t result;
 
     f32 ww = quat->w * quat->w;
     f32 wx = quat->w * quat->x;
@@ -317,9 +317,9 @@ internal mat4 mat4_from_quat(quat* quat)
     return result;
 }
 
-internal mat4 mat4_translation(vec3* translation)
+internal mat4_t mat4_translation(vec3_t* translation)
 {
-    mat4 result = {
+    mat4_t result = {
         .m = {
             { 1.0f, 0.0f, 0.0f, 0.0f },
             { 0.0f, 1.0f, 0.0f, 0.0f },
@@ -331,7 +331,7 @@ internal mat4 mat4_translation(vec3* translation)
     return result;
 }
 
-internal mat4 mat4_rotation(vec3* axis, f32 angle)
+internal mat4_t mat4_rotation(vec3_t* axis, f32 angle)
 {
     f32 angle_cos   = math_cos(angle);
     f32 angle_sin   = math_sin(angle);
@@ -340,7 +340,7 @@ internal mat4 mat4_rotation(vec3* axis, f32 angle)
     f32 angle_sin_z = axis->z * angle_sin;
     f32 one_sub_cos = 1.0f - angle_cos;
 
-    mat4 result;
+    mat4_t result;
 
     result.m[0][0] = axis->x * axis->x * one_sub_cos + angle_cos;
     result.m[0][1] = axis->x * axis->y * one_sub_cos + angle_sin_z;
@@ -365,9 +365,9 @@ internal mat4 mat4_rotation(vec3* axis, f32 angle)
     return result;
 }
 
-internal mat4 mat4_scale(vec3* scale)
+internal mat4_t mat4_scale(vec3_t* scale)
 {
-    mat4 result = {
+    mat4_t result = {
         .m = {
             { scale->x, 0.0f, 0.0f, 0.0f },
             { 0.0f, scale->y, 0.0f, 0.0f },
@@ -379,25 +379,25 @@ internal mat4 mat4_scale(vec3* scale)
     return result;
 }
 
-internal mat4 mat4_model(vec3* position, quat* rotation, vec3* scale)
+internal mat4_t mat4_model(vec3_t* position, quat_t* rotation, vec3_t* scale)
 {
-    mat4 rot_matrix = mat4_from_quat(rotation);
-    mat4 scl_matrix = mat4_scale(scale);
+    mat4_t rot_matrix = mat4_from_quat(rotation);
+    mat4_t scl_matrix = mat4_scale(scale);
 
-    mat4 result = mat4_translation(position);
+    mat4_t result = mat4_translation(position);
     result      = mat4_mul(&result, &rot_matrix);
     result      = mat4_mul(&result, &scl_matrix);
 
     return result;
 }
 
-internal mat4 mat4_persp(f32 fov_x, f32 aspect_ratio, f32 clip_near, f32 clip_far)
+internal mat4_t mat4_persp(f32 fov_x, f32 aspect_ratio, f32 clip_near, f32 clip_far)
 {
     f32 inv_half_fov_tan = 1.0f / math_tan(fov_x * 0.5f);
     f32 inv_aspect_ratio = 1.0f / aspect_ratio;
     f32 far_minus_near   = clip_far - clip_near;
 
-    mat4 result = {0};
+    mat4_t result = {0};
 
     result.m[0][0] = inv_half_fov_tan * inv_aspect_ratio;
     result.m[1][1] = inv_half_fov_tan;
@@ -408,9 +408,9 @@ internal mat4 mat4_persp(f32 fov_x, f32 aspect_ratio, f32 clip_near, f32 clip_fa
     return result;
 }
 
-internal mat4 mat4_ortho(f32 clip_left, f32 clip_right, f32 clip_bottom, f32 clip_top, f32 clip_near, f32 clip_far)
+internal mat4_t mat4_ortho(f32 clip_left, f32 clip_right, f32 clip_bottom, f32 clip_top, f32 clip_near, f32 clip_far)
 {
-    mat4 result = {0};
+    mat4_t result = {0};
 
     f32 inv_right_minus_left = 1.0f / (clip_right - clip_left);
     f32 inv_top_minus_bottom = 1.0f / (clip_top - clip_bottom);
@@ -427,16 +427,16 @@ internal mat4 mat4_ortho(f32 clip_left, f32 clip_right, f32 clip_bottom, f32 cli
     return result;
 }
 
-internal mat4 mat4_look_at(vec3* eye, vec3* target, vec3* up)
+internal mat4_t mat4_look_at(vec3_t* eye, vec3_t* target, vec3_t* up)
 {
-    vec3 eye_to_target = vec3_sub(target, eye);
-    vec3 forward       = vec3_norm(&eye_to_target);
-    vec3 up_cross_fw   = vec3_cross(up, &forward);
-    vec3 right         = vec3_norm(&up_cross_fw);
-    vec3 fw_cross_r    = vec3_cross(&forward, &right);
-    vec3 localUp       = vec3_norm(&fw_cross_r);
+    vec3_t eye_to_target = vec3_sub(target, eye);
+    vec3_t forward       = vec3_norm(&eye_to_target);
+    vec3_t up_cross_fw   = vec3_cross(up, &forward);
+    vec3_t right         = vec3_norm(&up_cross_fw);
+    vec3_t fw_cross_r    = vec3_cross(&forward, &right);
+    vec3_t localUp       = vec3_norm(&fw_cross_r);
 
-    mat4 result;
+    mat4_t result;
 
     result.m[0][0] = -right.x;
     result.m[0][1] =  localUp.x;

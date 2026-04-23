@@ -1,25 +1,25 @@
-internal world world_init()
+internal world_t world_init()
 {
-    world result = {0};
+    world_t result = {0};
 
-    cpu_arena_params params = { WORLD_MEM_SIZE, WORLD_MEM_SIZE, 0 };
+    cpu_arena_params_t params = { WORLD_MEM_SIZE, WORLD_MEM_SIZE, 0 };
 
     result.arena            = cpu_arena_init(&params);
-    result.nodes.transforms = MEMORY_PUSH_ZERO(result.arena, mat4, WORLD_COUNT_TRANSFORMS);
+    result.nodes.transforms = MEMORY_PUSH_ZERO(result.arena, mat4_t, WORLD_COUNT_TRANSFORMS);
     result.nodes.parents    = MEMORY_PUSH_ZERO(result.arena, i32, WORLD_COUNT_PARENTS);
 
     return result;
 }
 
-internal void world_load_model(world* w, const c8* file)
+internal void world_load_model(world_t* w, const c8* file)
 {
     EMBER_TRACE_BEGIN(gltf_parse);
 
-    gltf_data gltf = gltf_parse_file(file);
+    gltf_data_t gltf = gltf_parse_file(file);
 
     EMBER_TRACE_END(gltf_parse);
 
-    memcpy(w->nodes.transforms + w->nodes.count, gltf.transforms, gltf.node_count * sizeof(mat4));
+    memcpy(w->nodes.transforms + w->nodes.count, gltf.transforms, gltf.node_count * sizeof(mat4_t));
 
     for (i32 i = 0; i < gltf.node_count; i++)
     {
@@ -39,11 +39,11 @@ internal void world_load_model(world* w, const c8* file)
             continue;
         }
 
-        renderer_ssbo ssbo = {
+        renderer_ssbo_t ssbo = {
             world_node_transform(w, node_id, COORD_SPACE_world)
         };
 
-        renderer_node node = {
+        renderer_node_t node = {
             gltf.mesh_offsets[mesh_id] + g_renderer.mesh_count,
             gltf.mesh_primitives[mesh_id]
         };
@@ -58,9 +58,9 @@ internal void world_load_model(world* w, const c8* file)
     gltf_free(&gltf);
 }
 
-internal mat4 world_node_transform(world* w, i32 id, coord_space space)
+internal mat4_t world_node_transform(world_t* w, i32 id, coord_space_t space)
 {
-    mat4 result = w->nodes.transforms[id];
+    mat4_t result = w->nodes.transforms[id];
 
     if (space == COORD_SPACE_local)
     {

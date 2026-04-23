@@ -1,24 +1,24 @@
 #ifndef QUATERNION_H
 #define QUATERNION_H
 
-internal quat quat_norm(quat* q);
-internal quat quat_renorm(quat* q);
+internal quat_t quat_norm(quat_t* q);
+internal quat_t quat_renorm(quat_t* q);
 
-internal quat quat_add(quat* lhs, quat* rhs);
-internal quat quat_sub(quat* lhs, quat* rhs);
-internal quat quat_mul(quat* lhs, quat* rhs);
-internal quat quat_mul_s(quat* lhs, f32 rhs);
+internal quat_t quat_add(quat_t* lhs, quat_t* rhs);
+internal quat_t quat_sub(quat_t* lhs, quat_t* rhs);
+internal quat_t quat_mul(quat_t* lhs, quat_t* rhs);
+internal quat_t quat_mul_s(quat_t* lhs, f32 rhs);
 
-internal quat quat_inv(quat* q);
-internal quat quat_conj(quat* q);
+internal quat_t quat_inv(quat_t* q);
+internal quat_t quat_conj(quat_t* q);
 
-internal f32 quat_dot(quat* lhs, quat* rhs);
-internal f32 quat_len(quat* q);
-internal f32 quat_len_sqr(quat* q);
+internal f32 quat_dot(quat_t* lhs, quat_t* rhs);
+internal f32 quat_len(quat_t* q);
+internal f32 quat_len_sqr(quat_t* q);
 
-internal vec3 quat_to_euler(quat* q);
-internal quat quat_from_euler(vec3* angles);
-internal quat quat_from_matrix(mat4* matrix);
-internal quat quat_from_axis_angle(vec3* axis, f32 angle);
+internal vec3_t quat_to_euler(quat_t* q);
+internal quat_t quat_from_euler(vec3_t* angles);
+internal quat_t quat_from_matrix(mat4_t* matrix);
+internal quat_t quat_from_axis_angle(vec3_t* axis, f32 angle);
 
 #endif

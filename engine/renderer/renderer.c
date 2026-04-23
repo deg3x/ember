@@ -1,6 +1,6 @@
-internal void renderer_init(platform_hnd window_handle)
+internal void renderer_init(platform_hnd_t window_handle)
 {
-    cpu_arena_params params = { GB(1), GB(1), 0 };
+    cpu_arena_params_t params = { GB(1), GB(1), 0 };
 
     g_renderer.host_arena = cpu_arena_init(&params);
 
@@ -19,18 +19,18 @@ internal void renderer_init(platform_hnd window_handle)
     renderer_create_sync_primitives();
     renderer_create_resources();
 
-    g_renderer.mesh_data = MEMORY_PUSH_ZERO(g_renderer.host_arena, renderer_mesh, RENDERER_MESH_COUNT_MAX);
-    g_renderer.node_data = MEMORY_PUSH_ZERO(g_renderer.host_arena, renderer_node, RENDERER_NODE_COUNT_MAX);
+    g_renderer.mesh_data = MEMORY_PUSH_ZERO(g_renderer.host_arena, renderer_mesh_t, RENDERER_MESH_COUNT_MAX);
+    g_renderer.node_data = MEMORY_PUSH_ZERO(g_renderer.host_arena, renderer_node_t, RENDERER_NODE_COUNT_MAX);
 
     renderer_create_depth_resources();
 
-    g_renderer.pipelines      = MEMORY_PUSH_ZERO(g_renderer.host_arena, renderer_pipeline, 1);
+    g_renderer.pipelines      = MEMORY_PUSH_ZERO(g_renderer.host_arena, renderer_pipeline_t, 1);
     g_renderer.pipeline_count = 1;
 
     renderer_pipeline_init(g_renderer.pipelines);
 }
 
-internal void renderer_update(platform_hnd window_handle)
+internal void renderer_update(platform_hnd_t window_handle)
 {
     persist u32 frame_id = 0;
 
@@ -62,19 +62,19 @@ internal void renderer_update(platform_hnd window_handle)
 
     renderer_command_buffer_record(&g_renderer.pipelines[0], frame_id, img_id);
 
-    renderer_ubo ubo;
+    renderer_ubo_t ubo;
 
-    f32 time        = (f32)platform_timer_since_start(g_program_state.timer);
-    vec3 camera_pos = {0.0f, 70.0f, 70.0f};
-    camera_pos      = vec3_rotate_axis(&camera_pos, &VEC3_UP, time * 0.3f);
+    f32 time          = (f32)platform_timer_since_start(g_program_state.timer);
+    vec3_t camera_pos = {0.0f, 70.0f, 70.0f};
+    camera_pos        = vec3_rotate_axis(&camera_pos, &VEC3_UP, time * 0.3f);
 
     ubo.view = mat4_look_at(
         &camera_pos,
-        &(vec3){0.0f, 0.0f, 0.0f},
-        &(vec3){0.0f, 1.0f, 0.0f}
+        &(vec3_t){0.0f, 0.0f, 0.0f},
+        &(vec3_t){0.0f, 1.0f, 0.0f}
     );
 
-    platform_wnd_size client_size = platform_gfx_wnd_client_get_size(window_handle);
+    platform_wnd_size_t client_size = platform_gfx_wnd_client_get_size(window_handle);
 
     f32 aspect = (f32)client_size.width / (f32)client_size.height;
 
@@ -185,7 +185,7 @@ internal void renderer_destroy()
     cpu_arena_release(g_renderer.host_arena);
 }
 
-internal void renderer_pipeline_init(renderer_pipeline* pipeline)
+internal void renderer_pipeline_init(renderer_pipeline_t* pipeline)
 {
     renderer_pipeline_create_descriptor_set_layout(pipeline);
     renderer_pipeline_create_descriptor_sets(pipeline);
@@ -193,7 +193,7 @@ internal void renderer_pipeline_init(renderer_pipeline* pipeline)
     renderer_pipeline_create_graphics_pipeline(pipeline);
 }
 
-internal void renderer_pipeline_destroy(renderer_pipeline* pipeline)
+internal void renderer_pipeline_destroy(renderer_pipeline_t* pipeline)
 {
     vkDestroyPipeline(g_renderer.device, pipeline->graphics_pipeline, NULL);
     vkDestroyPipelineLayout(g_renderer.device, pipeline->graphics_pipeline_layout, NULL);
@@ -261,7 +261,7 @@ internal void renderer_create_instance()
     EMBER_ASSERT(create_result == VK_SUCCESS);
 }
 
-internal void renderer_create_surface(platform_hnd window_handle)
+internal void renderer_create_surface(platform_hnd_t window_handle)
 {
 #if PLATFORM_WINDOWS
     VkWin32SurfaceCreateInfoKHR surface_info = {0};
@@ -280,7 +280,7 @@ internal void renderer_create_physical_device()
 {
     g_renderer.physical_device = VK_NULL_HANDLE;
 
-    cpu_scratch scratch = cpu_scratch_begin(g_renderer.host_arena);
+    cpu_scratch_t scratch = cpu_scratch_begin(g_renderer.host_arena);
 
     u32 device_count = 0;
     vkEnumeratePhysicalDevices(g_renderer.instance, &device_count, NULL);
@@ -306,7 +306,7 @@ internal void renderer_create_physical_device()
 
 internal void renderer_create_queue_ids()
 {
-    cpu_scratch scratch = cpu_scratch_begin(g_renderer.host_arena);
+    cpu_scratch_t scratch = cpu_scratch_begin(g_renderer.host_arena);
 
     u32 family_count;
     vkGetPhysicalDeviceQueueFamilyProperties(g_renderer.physical_device, &family_count, NULL);
@@ -360,7 +360,7 @@ internal void renderer_create_queue_ids()
 
 internal void renderer_create_device()
 {
-    cpu_scratch scratch = cpu_scratch_begin(g_renderer.host_arena);
+    cpu_scratch_t scratch = cpu_scratch_begin(g_renderer.host_arena);
 
     u32 queue_count = (g_renderer.queue_ids.graphics == g_renderer.queue_ids.presentation) ? 1 : 2;
 
@@ -406,7 +406,7 @@ internal void renderer_create_device()
     cpu_scratch_end(scratch);
 }
 
-internal void renderer_create_swapchain(platform_hnd window_handle)
+internal void renderer_create_swapchain(platform_hnd_t window_handle)
 {
     VkSurfaceFormatKHR swap_format = renderer_swapchain_find_format();
     VkPresentModeKHR swap_present  = renderer_swapchain_find_present();
@@ -594,29 +594,29 @@ internal void renderer_create_resources()
     }
 }
 
-internal void renderer_create_nodes(renderer_node* nodes, renderer_ssbo* node_ssbo, i32 node_count)
+internal void renderer_create_nodes(renderer_node_t* nodes, renderer_ssbo_t* node_ssbo, i32 node_count)
 {
-    memcpy(g_renderer.node_data + g_renderer.node_count, nodes, node_count * sizeof(renderer_node));
+    memcpy(g_renderer.node_data + g_renderer.node_count, nodes, node_count * sizeof(renderer_node_t));
 
     for (i32 i = 0; i < RENDERER_FRAMES_IN_FLIGHT; i++)
     {
-        u8* dst = (u8*)g_renderer.buffers.ssbo_mapped[i] + g_renderer.node_count * sizeof(renderer_ssbo);
+        u8* dst = (u8*)g_renderer.buffers.ssbo_mapped[i] + g_renderer.node_count * sizeof(renderer_ssbo_t);
 
-        memcpy(dst, node_ssbo, node_count * sizeof(renderer_ssbo));
+        memcpy(dst, node_ssbo, node_count * sizeof(renderer_ssbo_t));
     }
 
     g_renderer.node_count += node_count;
 }
 
-internal void renderer_create_meshes(mesh* m, i32 count)
+internal void renderer_create_meshes(mesh_t* m, i32 count)
 {
     for (i32 i = 0; i < count; i++)
     {
         u32 vertex_size = m[i].vertex_count * RENDERER_SIZE_VERTEX;
         u32 index_size  = m[i].index_count * RENDERER_SIZE_INDEX;
 
-        renderer_mesh* new_mesh = g_renderer.mesh_data + g_renderer.mesh_count;
-        renderer_mesh* last     = g_renderer.mesh_data + MAX(g_renderer.mesh_count - 1, 0);
+        renderer_mesh_t* new_mesh = g_renderer.mesh_data + g_renderer.mesh_count;
+        renderer_mesh_t* last     = g_renderer.mesh_data + MAX(g_renderer.mesh_count - 1, 0);
 
         new_mesh->vertex_offset = last->vertex_offset + last->vertex_count;
         new_mesh->index_offset  = last->index_offset + last->index_count;
@@ -846,35 +846,35 @@ internal void renderer_copy_buffer(VkBuffer src, VkBuffer dst, VkDeviceSize offs
     vkFreeCommandBuffers(g_renderer.device, g_renderer.command_pool, 1, &cmd_buffer);
 }
 
-internal gpu_mem* renderer_create_buffer_memory(VkBuffer buffer, gpu_mem_type mem_type)
+internal gpu_mem_t* renderer_create_buffer_memory(VkBuffer buffer, gpu_mem_type_t mem_type)
 {
     VkMemoryRequirements mem_req;
     vkGetBufferMemoryRequirements(g_renderer.device, buffer, &mem_req);
 
     EMBER_ASSERT((mem_req.memoryTypeBits & (1 << g_renderer.gpu_arena.blocks[mem_type].mem_idx)) != 0);
 
-    gpu_mem* alloc = gpu_arena_alloc(&g_renderer.gpu_arena, mem_req.size, mem_req.alignment, mem_type);
+    gpu_mem_t* alloc = gpu_arena_alloc(&g_renderer.gpu_arena, mem_req.size, mem_req.alignment, mem_type);
 
     vkBindBufferMemory(g_renderer.device, buffer, alloc->memory, alloc->offset);
 
     return alloc;
 }
 
-internal gpu_mem* renderer_create_image_memory(VkImage image, gpu_mem_type mem_type)
+internal gpu_mem_t* renderer_create_image_memory(VkImage image, gpu_mem_type_t mem_type)
 {
     VkMemoryRequirements mem_req;
     vkGetImageMemoryRequirements(g_renderer.device, image, &mem_req);
 
     EMBER_ASSERT((mem_req.memoryTypeBits & (1 << g_renderer.gpu_arena.blocks[mem_type].mem_idx)) != 0);
 
-    gpu_mem* alloc = gpu_arena_alloc(&g_renderer.gpu_arena, mem_req.size, mem_req.alignment, mem_type);
+    gpu_mem_t* alloc = gpu_arena_alloc(&g_renderer.gpu_arena, mem_req.size, mem_req.alignment, mem_type);
 
     vkBindImageMemory(g_renderer.device, image, alloc->memory, alloc->offset);
 
     return alloc;
 }
 
-internal void renderer_pipeline_create_descriptor_set_layout(renderer_pipeline* pipeline)
+internal void renderer_pipeline_create_descriptor_set_layout(renderer_pipeline_t* pipeline)
 {
     VkDescriptorSetLayoutBinding bindings[2] = {0};
     bindings[0].binding                      = 0;
@@ -898,7 +898,7 @@ internal void renderer_pipeline_create_descriptor_set_layout(renderer_pipeline* 
     EMBER_ASSERT(create_result == VK_SUCCESS);
 }
 
-internal void renderer_pipeline_create_descriptor_sets(renderer_pipeline* pipeline)
+internal void renderer_pipeline_create_descriptor_sets(renderer_pipeline_t* pipeline)
 {
     VkDescriptorSetLayout layouts[RENDERER_FRAMES_IN_FLIGHT] = {
         pipeline->descriptor_set_layout,
@@ -919,12 +919,12 @@ internal void renderer_pipeline_create_descriptor_sets(renderer_pipeline* pipeli
         VkDescriptorBufferInfo ubo_info = {0};
         ubo_info.buffer                 = g_renderer.buffers.ubo_buf[i];
         ubo_info.offset                 = 0;
-        ubo_info.range                  = GPU_MEM_SIZE_UBO / RENDERER_FRAMES_IN_FLIGHT; //sizeof(renderer_ubo_t);
+        ubo_info.range                  = GPU_MEM_SIZE_UBO / RENDERER_FRAMES_IN_FLIGHT;
 
         VkDescriptorBufferInfo ssbo_info = {0};
         ssbo_info.buffer                 = g_renderer.buffers.ssbo_buf[i];
         ssbo_info.offset                 = 0;
-        ssbo_info.range                  = GPU_MEM_SIZE_SSBO / RENDERER_FRAMES_IN_FLIGHT; //sizeof(renderer_ssbo_t);
+        ssbo_info.range                  = GPU_MEM_SIZE_SSBO / RENDERER_FRAMES_IN_FLIGHT;
 
         VkWriteDescriptorSet write_set[2] = {0};
         write_set[0].sType                = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
@@ -951,12 +951,12 @@ internal void renderer_pipeline_create_descriptor_sets(renderer_pipeline* pipeli
     }
 }
 
-internal void renderer_pipeline_create_graphics_pipeline_layout(renderer_pipeline* pipeline)
+internal void renderer_pipeline_create_graphics_pipeline_layout(renderer_pipeline_t* pipeline)
 {
     VkPushConstantRange push_constant_range = {0};
     push_constant_range.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
     push_constant_range.offset     = 0;
-    push_constant_range.size       = sizeof(renderer_push_constant);
+    push_constant_range.size       = sizeof(renderer_push_constant_t);
 
     VkPipelineLayoutCreateInfo layout_info = {0};
     layout_info.sType                      = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
@@ -969,11 +969,11 @@ internal void renderer_pipeline_create_graphics_pipeline_layout(renderer_pipelin
     EMBER_ASSERT(create_result == VK_SUCCESS);
 }
 
-internal void renderer_pipeline_create_graphics_pipeline(renderer_pipeline* pipeline)
+internal void renderer_pipeline_create_graphics_pipeline(renderer_pipeline_t* pipeline)
 {
-    cpu_scratch scratch = cpu_scratch_begin(g_renderer.host_arena);
-    u8* vert            = MEMORY_PUSH(scratch.arena, u8, KB(16));
-    u8* frag            = MEMORY_PUSH(scratch.arena, u8, KB(16));
+    cpu_scratch_t scratch = cpu_scratch_begin(g_renderer.host_arena);
+    u8* vert              = MEMORY_PUSH(scratch.arena, u8, KB(16));
+    u8* frag              = MEMORY_PUSH(scratch.arena, u8, KB(16));
 
     u64 vert_size = platform_file_data("../triangle_vert.spv", vert);
     u64 frag_size = platform_file_data("../triangle_frag.spv", frag);
@@ -1002,22 +1002,22 @@ internal void renderer_pipeline_create_graphics_pipeline(renderer_pipeline* pipe
     VkVertexInputAttributeDescription vertex_attr[VERTEX_ATTR_TYPE_count] = {0};
     vertex_attr[VERTEX_ATTR_TYPE_position].binding                        = 0;
     vertex_attr[VERTEX_ATTR_TYPE_position].location                       = 0;
-    vertex_attr[VERTEX_ATTR_TYPE_position].offset                         = offsetof(vertex, position);
+    vertex_attr[VERTEX_ATTR_TYPE_position].offset                         = offsetof(vertex_t, position);
     vertex_attr[VERTEX_ATTR_TYPE_position].format                         = VK_FORMAT_R32G32B32_SFLOAT;
 
     vertex_attr[VERTEX_ATTR_TYPE_normal].binding                          = 0;
     vertex_attr[VERTEX_ATTR_TYPE_normal].location                         = 1;
-    vertex_attr[VERTEX_ATTR_TYPE_normal].offset                           = offsetof(vertex, normal);
+    vertex_attr[VERTEX_ATTR_TYPE_normal].offset                           = offsetof(vertex_t, normal);
     vertex_attr[VERTEX_ATTR_TYPE_normal].format                           = VK_FORMAT_R32G32B32_SFLOAT;
 
     vertex_attr[VERTEX_ATTR_TYPE_color].binding                           = 0;
     vertex_attr[VERTEX_ATTR_TYPE_color].location                          = 2;
-    vertex_attr[VERTEX_ATTR_TYPE_color].offset                            = offsetof(vertex, color);
+    vertex_attr[VERTEX_ATTR_TYPE_color].offset                            = offsetof(vertex_t, color);
     vertex_attr[VERTEX_ATTR_TYPE_color].format                            = VK_FORMAT_R32G32B32_SFLOAT;
 
     vertex_attr[VERTEX_ATTR_TYPE_uv].binding                              = 0;
     vertex_attr[VERTEX_ATTR_TYPE_uv].location                             = 3;
-    vertex_attr[VERTEX_ATTR_TYPE_uv].offset                               = offsetof(vertex, uv);
+    vertex_attr[VERTEX_ATTR_TYPE_uv].offset                               = offsetof(vertex_t, uv);
     vertex_attr[VERTEX_ATTR_TYPE_uv].format                               = VK_FORMAT_R32G32_SFLOAT;
 
     VkPipelineVertexInputStateCreateInfo vertex_input_info = {0};
@@ -1160,7 +1160,7 @@ internal VkShaderModule renderer_pipeline_create_shader_module(const u8* code, u
     return result;
 }
 
-internal void renderer_swapchain_recreate(platform_hnd window_handle)
+internal void renderer_swapchain_recreate(platform_hnd_t window_handle)
 {
     while(platform_gfx_wnd_is_minimized(window_handle))
     {
@@ -1186,7 +1186,7 @@ internal void renderer_swapchain_recreate(platform_hnd window_handle)
 
 internal VkSurfaceFormatKHR renderer_swapchain_find_format()
 {
-    cpu_scratch scratch = cpu_scratch_begin(g_renderer.host_arena);
+    cpu_scratch_t scratch = cpu_scratch_begin(g_renderer.host_arena);
 
     u32 format_count;
     vkGetPhysicalDeviceSurfaceFormatsKHR(g_renderer.physical_device, g_renderer.surface, &format_count, NULL);
@@ -1227,7 +1227,7 @@ internal VkSurfaceFormatKHR renderer_swapchain_find_format()
 
 internal VkPresentModeKHR renderer_swapchain_find_present()
 {
-    cpu_scratch scratch = cpu_scratch_begin(g_renderer.host_arena);
+    cpu_scratch_t scratch = cpu_scratch_begin(g_renderer.host_arena);
 
     u32 present_count;
     vkGetPhysicalDeviceSurfacePresentModesKHR(g_renderer.physical_device, g_renderer.surface, &present_count, NULL);
@@ -1249,7 +1249,7 @@ internal VkPresentModeKHR renderer_swapchain_find_present()
     return VK_PRESENT_MODE_FIFO_KHR;
 }
 
-internal VkExtent2D renderer_swapchain_find_extent(platform_hnd window_handle)
+internal VkExtent2D renderer_swapchain_find_extent(platform_hnd_t window_handle)
 {
     VkSurfaceCapabilitiesKHR capabilities;
     vkGetPhysicalDeviceSurfaceCapabilitiesKHR(g_renderer.physical_device, g_renderer.surface, &capabilities);
@@ -1259,7 +1259,7 @@ internal VkExtent2D renderer_swapchain_find_extent(platform_hnd window_handle)
         return capabilities.currentExtent;
     }
 
-    platform_wnd_size client_size = platform_gfx_wnd_client_get_size(window_handle);
+    platform_wnd_size_t client_size = platform_gfx_wnd_client_get_size(window_handle);
 
     VkExtent2D extent;
 
@@ -1269,7 +1269,7 @@ internal VkExtent2D renderer_swapchain_find_extent(platform_hnd window_handle)
     return extent;
 }
 
-internal void renderer_command_buffer_record(renderer_pipeline* pipeline, u32 buffer_id, u32 img_id)
+internal void renderer_command_buffer_record(renderer_pipeline_t* pipeline, u32 buffer_id, u32 img_id)
 {
     VkCommandBufferBeginInfo begin_info = {0};
     begin_info.sType                    = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -1384,18 +1384,18 @@ internal void renderer_command_buffer_record(renderer_pipeline* pipeline, u32 bu
 
     for (i32 i = 0; i < g_renderer.node_count; i++)
     {
-        renderer_node node = g_renderer.node_data[i];
+        renderer_node_t node = g_renderer.node_data[i];
 
         for (i32 j = 0; j < node.mesh_count; j++)
         {
-            renderer_mesh mesh = g_renderer.mesh_data[node.mesh_id + j];
+            renderer_mesh_t mesh = g_renderer.mesh_data[node.mesh_id + j];
 
             vkCmdPushConstants(
                 cmd,
                 g_renderer.pipelines->graphics_pipeline_layout,
                 VK_SHADER_STAGE_VERTEX_BIT,
                 0,
-                sizeof(renderer_push_constant),
+                sizeof(renderer_push_constant_t),
                 &i
             );
 
@@ -1436,7 +1436,7 @@ internal void renderer_command_buffer_record(renderer_pipeline* pipeline, u32 bu
 
 internal b32 renderer_check_validation_layers()
 {
-    cpu_scratch scratch = cpu_scratch_begin(g_renderer.host_arena);
+    cpu_scratch_t scratch = cpu_scratch_begin(g_renderer.host_arena);
 
     u32 layer_count = 0;
     vkEnumerateInstanceLayerProperties(&layer_count, NULL);
@@ -1467,7 +1467,7 @@ internal b32 renderer_check_validation_layers()
 
 internal b32 renderer_check_instance_extensions()
 {
-    cpu_scratch scratch = cpu_scratch_begin(g_renderer.host_arena);
+    cpu_scratch_t scratch = cpu_scratch_begin(g_renderer.host_arena);
 
     u32 ext_count = 0;
     vkEnumerateInstanceExtensionProperties(NULL, &ext_count, NULL);
@@ -1498,7 +1498,7 @@ internal b32 renderer_check_instance_extensions()
 
 internal b32 renderer_check_device_extensions(VkPhysicalDevice device)
 {
-    cpu_scratch scratch = cpu_scratch_begin(g_renderer.host_arena);
+    cpu_scratch_t scratch = cpu_scratch_begin(g_renderer.host_arena);
 
     u32 ext_count = 0;
     vkEnumerateDeviceExtensionProperties(device, NULL, &ext_count, NULL);

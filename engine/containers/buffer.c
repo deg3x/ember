@@ -1,18 +1,18 @@
-internal b32 buffer_is_valid(buffer* buf)
+internal b32 buffer_is_valid(buffer_t* buf)
 {
     b32 result = (buf->data != NULL);
 
     return result;
 }
 
-internal b32 buffer_is_valid_idx(buffer* buf, u64 idx)
+internal b32 buffer_is_valid_idx(buffer_t* buf, u64 idx)
 {
     b32 result = (buf->size > idx);
 
     return result;
 }
 
-internal b32 buffer_is_equal(buffer* lhs, buffer* rhs)
+internal b32 buffer_is_equal(buffer_t* lhs, buffer_t* rhs)
 {
     if (lhs->size != rhs->size)
     {
@@ -30,9 +30,9 @@ internal b32 buffer_is_equal(buffer* lhs, buffer* rhs)
     return EMBER_TRUE;
 }
 
-internal buffer buffer_from_cstr(const c8* cstr)
+internal buffer_t buffer_from_cstr(const c8* cstr)
 {
-    buffer result = {
+    buffer_t result = {
         strlen(cstr),
         (u8 *)cstr
     };
@@ -40,7 +40,7 @@ internal buffer buffer_from_cstr(const c8* cstr)
     return result;
 }
 
-internal void buffer_to_cstr(buffer* buf, c8* dest)
+internal void buffer_to_cstr(buffer_t* buf, c8* dest)
 {
     EMBER_ASSERT(dest != NULL);
 

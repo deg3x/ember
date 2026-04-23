@@ -85,8 +85,8 @@ typedef char     c8;
 
 #include <intrin.h>
 
-typedef struct trace_event trace_event;
-struct trace_event
+typedef struct trace_event_t trace_event_t;
+struct trace_event_t
 {
     f64 time_diff;
     u64 cpu_clock_start;
@@ -94,10 +94,10 @@ struct trace_event
     u64 cpu_clock_diff;
 };
 
-#define EMBER_TRACE_BEGIN(n)                    \
-        trace_event _event_##n;                 \
-        platform_timer _timer_##n;              \
-        _timer_##n = platform_timer_init();     \
+#define EMBER_TRACE_BEGIN(n)                      \
+        trace_event_t _event_##n;                 \
+        platform_timer_t _timer_##n;              \
+        _timer_##n = platform_timer_init();       \
         _event_##n.cpu_clock_start = __rdtsc()
 
 #define EMBER_TRACE_END(n)                                                  \

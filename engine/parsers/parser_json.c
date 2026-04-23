@@ -1,6 +1,6 @@
-internal json_entry* json_parse(u8* data, u64 size, cpu_arena* arena)
+internal json_entry_t* json_parse(u8* data, u64 size, cpu_arena_t* arena)
 {
-    json_parser parser;
+    json_parser_t parser;
 
     parser.arena       = arena;
     parser.position    = 0;
@@ -8,20 +8,20 @@ internal json_entry* json_parse(u8* data, u64 size, cpu_arena* arena)
     parser.source.data = data;
     parser.source.size = size;
 
-    json_token token   = json_parse_token(&parser);
-    json_entry* result = json_parse_entry(&parser, &(buffer){0}, &token);
+    json_token_t token   = json_parse_token(&parser);
+    json_entry_t* result = json_parse_entry(&parser, &(buffer_t){0}, &token);
 
     return result;
 }
 
-internal json_entry* json_parse_file(const c8* file_path, cpu_arena* arena)
+internal json_entry_t* json_parse_file(const c8* file_path, cpu_arena_t* arena)
 {
-    platform_hnd file_handle     = platform_file_open(file_path, PLATFORM_FILE_FLAGS_read | PLATFORM_FILE_FLAGS_share_r);
-    platform_file_info file_info = platform_file_info_get(file_handle);
+    platform_hnd_t file_handle     = platform_file_open(file_path, PLATFORM_FILE_FLAGS_read | PLATFORM_FILE_FLAGS_share_r);
+    platform_file_info_t file_info = platform_file_info_get(file_handle);
 
     EMBER_ASSERT(file_info.size <= cpu_arena_avail(arena));
 
-    json_parser parser;
+    json_parser_t parser;
 
     parser.arena       = arena;
     parser.position    = 0;
@@ -29,19 +29,19 @@ internal json_entry* json_parse_file(const c8* file_path, cpu_arena* arena)
     parser.source.data = MEMORY_PUSH(arena, u8, file_info.size);
     parser.source.size = platform_file_read(file_handle, parser.source.data, FILE_READ_ALL);
 
-    json_token token   = json_parse_token(&parser);
-    json_entry* result = json_parse_entry(&parser, &(buffer){0}, &token);
+    json_token_t token   = json_parse_token(&parser);
+    json_entry_t* result = json_parse_entry(&parser, &(buffer_t){0}, &token);
 
     platform_file_close(file_handle);
 
     return result;
 }
 
-internal json_entry* json_parse_entry(json_parser* parser, buffer* label, json_token* token)
+internal json_entry_t* json_parse_entry(json_parser_t* parser, buffer_t* label, json_token_t* token)
 {
     b32 is_valid = EMBER_TRUE;
 
-    json_entry* sub_entry = NULL;
+    json_entry_t* sub_entry = NULL;
     if (token->type == JSON_TOKEN_TYPE_bracket_open)
     {
         sub_entry = json_parse_list(parser, JSON_TOKEN_TYPE_bracket_close, EMBER_FALSE);
@@ -63,11 +63,11 @@ internal json_entry* json_parse_entry(json_parser* parser, buffer* label, json_t
         is_valid = EMBER_FALSE;
     }
 
-    json_entry* result = NULL;
+    json_entry_t* result = NULL;
 
     if (is_valid)
     {
-        result        = MEMORY_PUSH(parser->arena, json_entry, 1);
+        result        = MEMORY_PUSH(parser->arena, json_entry_t, 1);
         result->label = *label;
         result->value = token->value;
         result->child = sub_entry;
@@ -77,15 +77,15 @@ internal json_entry* json_parse_entry(json_parser* parser, buffer* label, json_t
     return result;
 }
 
-internal json_entry* json_parse_list(json_parser* parser, json_token_type end_type, b32 has_labels)
+internal json_entry_t* json_parse_list(json_parser_t* parser, json_token_type_t end_type, b32 has_labels)
 {
-    json_entry* first = NULL;
-    json_entry* last  = NULL;
+    json_entry_t* first = NULL;
+    json_entry_t* last  = NULL;
 
     while (json_parser_is_valid(parser))
     {
-        buffer label     = {0};
-        json_token token = json_parse_token(parser);
+        buffer_t label     = {0};
+        json_token_t token = json_parse_token(parser);
 
         if (has_labels)
         {
@@ -93,7 +93,7 @@ internal json_entry* json_parse_list(json_parser* parser, json_token_type end_ty
             {
                 label = token.value;
 
-                json_token colon = json_parse_token(parser);
+                json_token_t colon = json_parse_token(parser);
                 if (colon.type == JSON_TOKEN_TYPE_colon)
                 {
                     token = json_parse_token(parser);
@@ -109,7 +109,7 @@ internal json_entry* json_parse_list(json_parser* parser, json_token_type end_ty
             }
         }
 
-        json_entry* entry = json_parse_entry(parser, &label, &token);
+        json_entry_t* entry = json_parse_entry(parser, &label, &token);
         if (entry != NULL)
         {
             if (last != NULL)
@@ -132,7 +132,7 @@ internal json_entry* json_parse_list(json_parser* parser, json_token_type end_ty
             json_parser_error(parser);
         }
 
-        json_token comma = json_parse_token(parser);
+        json_token_t comma = json_parse_token(parser);
         if (comma.type == end_type)
         {
             break;
@@ -146,12 +146,12 @@ internal json_entry* json_parse_list(json_parser* parser, json_token_type end_ty
     return first;
 }
 
-internal json_token json_parse_token(json_parser* parser)
+internal json_token_t json_parse_token(json_parser_t* parser)
 {
-    json_token result = {0};
+    json_token_t result = {0};
 
-    buffer src = parser->source;
-    u64 pos    = parser->position;
+    buffer_t src = parser->source;
+    u64 pos      = parser->position;
 
     while (json_is_whitespace(&src, pos))
     {
@@ -214,11 +214,11 @@ internal json_token json_parse_token(json_parser* parser)
             {
                 pos += 1;
 
-                buffer remain = buffer_from_cstr("alse");
+                buffer_t remain = buffer_from_cstr("alse");
 
                 if ((src.size - pos) >= remain.size)
                 {
-                    buffer check = {
+                    buffer_t check = {
                         remain.size,
                         src.data + pos
                     };
@@ -238,11 +238,11 @@ internal json_token json_parse_token(json_parser* parser)
             {
                 pos += 1;
 
-                buffer remain = buffer_from_cstr("rue");
+                buffer_t remain = buffer_from_cstr("rue");
 
                 if ((src.size - pos) >= remain.size)
                 {
-                    buffer check = {
+                    buffer_t check = {
                         remain.size,
                         src.data + pos
                     };
@@ -262,11 +262,11 @@ internal json_token json_parse_token(json_parser* parser)
             {
                 pos += 1;
 
-                buffer remain = buffer_from_cstr("ull");
+                buffer_t remain = buffer_from_cstr("ull");
 
                 if ((src.size - pos) >= remain.size)
                 {
-                    buffer check = {
+                    buffer_t check = {
                         remain.size,
                         src.data + pos
                     };
@@ -381,13 +381,13 @@ internal json_token json_parse_token(json_parser* parser)
     return result;
 }
 
-internal i32 json_num_of_children(json_entry* entry)
+internal i32 json_num_of_children(json_entry_t* entry)
 {
     EMBER_ASSERT(entry != NULL);
 
     i32 result = 0;
 
-    json_entry* current = entry->child;
+    json_entry_t* current = entry->child;
     while (current != NULL)
     {
         result += 1;
@@ -397,13 +397,13 @@ internal i32 json_num_of_children(json_entry* entry)
     return result;
 }
 
-internal json_entry* json_find_child(json_entry* entry, buffer* child_label)
+internal json_entry_t* json_find_child(json_entry_t* entry, buffer_t* child_label)
 {
     EMBER_ASSERT(entry != NULL);
 
-    json_entry* result = NULL;
+    json_entry_t* result = NULL;
 
-    for (json_entry* iter = entry->child; iter != NULL; iter = iter->next)
+    for (json_entry_t* iter = entry->child; iter != NULL; iter = iter->next)
     {
         if (buffer_is_equal(&iter->label, child_label))
         {
@@ -415,22 +415,22 @@ internal json_entry* json_find_child(json_entry* entry, buffer* child_label)
     return result;
 }
 
-internal b32 json_child_value(cpu_arena* arena, json_entry* entry, json_value_type type, void* dest, const c8* child_label)
+internal b32 json_child_value(cpu_arena_t* arena, json_entry_t* entry, json_value_type_t type, void* dest, const c8* child_label)
 {
     EMBER_ASSERT(entry != NULL);
     EMBER_ASSERT(dest != NULL);
     EMBER_ASSERT(child_label != NULL);
 
-    buffer label_buffer = buffer_from_cstr(child_label);
-    json_entry* child   = json_find_child(entry, &label_buffer);
+    buffer_t label_buffer = buffer_from_cstr(child_label);
+    json_entry_t* child   = json_find_child(entry, &label_buffer);
 
     if (child == NULL)
     {
         return EMBER_FALSE;
     }
 
-    cpu_scratch scratch = cpu_scratch_begin(arena);
-    b32 result          = EMBER_TRUE;
+    cpu_scratch_t scratch = cpu_scratch_begin(arena);
+    b32 result            = EMBER_TRUE;
 
     switch (type)
     {
@@ -463,8 +463,8 @@ internal b32 json_child_value(cpu_arena* arena, json_entry* entry, json_value_ty
         }
         case JSON_VALUE_TYPE_b32:
         {
-            buffer buf_true  = buffer_from_cstr("tru");
-            buffer buf_false = buffer_from_cstr("fals");
+            buffer_t buf_true  = buffer_from_cstr("tru");
+            buffer_t buf_false = buffer_from_cstr("fals");
 
             if (buffer_is_equal(&buf_true, &child->value))
             {
@@ -498,7 +498,7 @@ internal b32 json_child_value(cpu_arena* arena, json_entry* entry, json_value_ty
 
             i32* i_dest = (i32 *)dest;
 
-            json_entry* array_child = child->child;
+            json_entry_t* array_child = child->child;
             while (array_child != NULL)
             {
                 c8* value_str = MEMORY_PUSH(scratch.arena, c8, array_child->value.size + 1);
@@ -524,7 +524,7 @@ internal b32 json_child_value(cpu_arena* arena, json_entry* entry, json_value_ty
 
             f32* f_dest = (f32 *)dest;
 
-            json_entry* array_child = child->child;
+            json_entry_t* array_child = child->child;
             while (array_child != NULL)
             {
                 c8* value_str = MEMORY_PUSH(scratch.arena, c8, array_child->value.size + 1);
@@ -552,19 +552,19 @@ internal b32 json_child_value(cpu_arena* arena, json_entry* entry, json_value_ty
     return result;
 }
 
-internal b32 json_parser_is_valid(json_parser* parser)
+internal b32 json_parser_is_valid(json_parser_t* parser)
 {
     b32 result = (!parser->has_error && buffer_is_valid_idx(&parser->source, parser->position));
 
     return result;
 }
 
-internal void json_parser_error(json_parser* parser)
+internal void json_parser_error(json_parser_t* parser)
 {
     parser->has_error = EMBER_TRUE;
 }
 
-internal b32 json_is_whitespace(buffer* buffer, u64 pos)
+internal b32 json_is_whitespace(buffer_t* buffer, u64 pos)
 {
     b32 result = EMBER_FALSE;
 
@@ -578,7 +578,7 @@ internal b32 json_is_whitespace(buffer* buffer, u64 pos)
     return result;
 }
 
-internal b32 json_is_number(buffer* buffer, u64 pos)
+internal b32 json_is_number(buffer_t* buffer, u64 pos)
 {
     b32 result = EMBER_FALSE;
 

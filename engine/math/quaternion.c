@@ -1,8 +1,8 @@
-internal quat quat_norm(quat* q)
+internal quat_t quat_norm(quat_t* q)
 {
     f32 inv_len = 1.0f / quat_len(q);
 
-    quat result = {
+    quat_t result = {
         q->x * inv_len,
         q->y * inv_len,
         q->z * inv_len,
@@ -12,11 +12,11 @@ internal quat quat_norm(quat* q)
     return result;
 }
 
-internal quat quat_renorm(quat* q)
+internal quat_t quat_renorm(quat_t* q)
 {
     f32 inv_len = math_fast_inv_sqrt_approx_one(quat_len_sqr(q));
 
-    quat result = {
+    quat_t result = {
         q->x * inv_len,
         q->y * inv_len,
         q->z * inv_len,
@@ -26,9 +26,9 @@ internal quat quat_renorm(quat* q)
     return result;
 }
 
-internal quat quat_add(quat* lhs, quat* rhs)
+internal quat_t quat_add(quat_t* lhs, quat_t* rhs)
 {
-    quat result = {
+    quat_t result = {
         lhs->x + rhs->x,
         lhs->y + rhs->y,
         lhs->z + rhs->z,
@@ -38,9 +38,9 @@ internal quat quat_add(quat* lhs, quat* rhs)
     return result;
 }
 
-internal quat quat_sub(quat* lhs, quat* rhs)
+internal quat_t quat_sub(quat_t* lhs, quat_t* rhs)
 {
-    quat result = {
+    quat_t result = {
         lhs->x - rhs->x,
         lhs->y - rhs->y,
         lhs->z - rhs->z,
@@ -50,21 +50,21 @@ internal quat quat_sub(quat* lhs, quat* rhs)
     return result;
 }
 
-internal quat quat_mul(quat* lhs, quat* rhs)
+internal quat_t quat_mul(quat_t* lhs, quat_t* rhs)
 {
     f32 x = lhs->w * rhs->x + lhs->x * rhs->w + lhs->y * rhs->z - lhs->z * rhs->y;
     f32 y = lhs->w * rhs->y + lhs->y * rhs->w - lhs->x * rhs->z + lhs->z * rhs->x;
     f32 z = lhs->w * rhs->z + lhs->z * rhs->w + lhs->x * rhs->y - lhs->y * rhs->x;
     f32 w = lhs->w * rhs->w - lhs->x * rhs->x - lhs->y * rhs->y - lhs->z * rhs->z;
 
-    quat result = { x, y, z, w };
+    quat_t result = { x, y, z, w };
 
     return result;
 }
 
-internal quat quat_mul_s(quat* lhs, f32 rhs)
+internal quat_t quat_mul_s(quat_t* lhs, f32 rhs)
 {
-    quat result = {
+    quat_t result = {
         lhs->x * rhs,
         lhs->y * rhs,
         lhs->z * rhs,
@@ -74,11 +74,11 @@ internal quat quat_mul_s(quat* lhs, f32 rhs)
     return result;
 }
 
-internal quat quat_inv(quat* q)
+internal quat_t quat_inv(quat_t* q)
 {
     f32 inv_len_sqr = 1.0f / quat_len_sqr(q);
 
-    quat result = {
+    quat_t result = {
        -q->x * inv_len_sqr,
        -q->y * inv_len_sqr,
        -q->z * inv_len_sqr,
@@ -88,9 +88,9 @@ internal quat quat_inv(quat* q)
     return result;
 }
 
-internal quat quat_conj(quat* q)
+internal quat_t quat_conj(quat_t* q)
 {
-    quat result = {
+    quat_t result = {
        -q->x,
        -q->y,
        -q->z,
@@ -100,7 +100,7 @@ internal quat quat_conj(quat* q)
     return result;
 }
 
-internal f32 quat_dot(quat* lhs, quat* rhs)
+internal f32 quat_dot(quat_t* lhs, quat_t* rhs)
 {
     f32 result =
         lhs->x * rhs->x +
@@ -111,7 +111,7 @@ internal f32 quat_dot(quat* lhs, quat* rhs)
     return result;
 }
 
-internal f32 quat_len(quat* q)
+internal f32 quat_len(quat_t* q)
 {
     f32 x_sqr = q->x * q->x;
     f32 y_sqr = q->y * q->y;
@@ -123,7 +123,7 @@ internal f32 quat_len(quat* q)
     return result;
 }
 
-internal f32 quat_len_sqr(quat* q)
+internal f32 quat_len_sqr(quat_t* q)
 {
     f32 result =
         q->x * q->x +
@@ -134,9 +134,9 @@ internal f32 quat_len_sqr(quat* q)
     return result;
 }
 
-internal vec3 quat_to_euler(quat* q)
+internal vec3_t quat_to_euler(quat_t* q)
 {
-    vec3 result;
+    vec3_t result;
     f32 pitch_test = q->w * q->x + q->y * q->z;
     f32 pitch_sign = math_sign(pitch_test);
 
@@ -168,7 +168,7 @@ internal vec3 quat_to_euler(quat* q)
     return result;
 }
 
-internal quat quat_from_euler(vec3* angles)
+internal quat_t quat_from_euler(vec3_t* angles)
 {
     f32 x_half = angles->x;
     f32 y_half = angles->y;
@@ -185,12 +185,12 @@ internal quat quat_from_euler(vec3* angles)
     f32 z = cos_p * cos_y * sin_r - sin_p * sin_y * cos_r;
     f32 w = cos_p * cos_y * cos_r + sin_p * sin_y * sin_r;
 
-    quat result = { x, y, z, w };
+    quat_t result = { x, y, z, w };
 
     return result;
 }
 
-internal quat quat_from_matrix(mat4* matrix)
+internal quat_t quat_from_matrix(mat4_t* matrix)
 {
     f32 m00m11_a = matrix->m[0][0] + matrix->m[1][1];
     f32 m00m11_s = matrix->m[0][0] - matrix->m[1][1];
@@ -230,7 +230,7 @@ internal quat quat_from_matrix(mat4* matrix)
     f32 max_sqrt     = math_sqrt(max_comp);
     f32 inv_two_sqrt = 1.0f / (2.0f * max_sqrt);
 
-    quat result;
+    quat_t result;
     result.data[max_idx]           = 0.5f * max_sqrt;
     result.data[(max_idx + 1) % 4] = (matrix->m[1][2] + ops_sign[max_idx][0] * matrix->m[2][1]) * inv_two_sqrt;
     result.data[(max_idx + 2) % 4] = (matrix->m[2][0] + ops_sign[max_idx][1] * matrix->m[0][2]) * inv_two_sqrt;
@@ -239,13 +239,13 @@ internal quat quat_from_matrix(mat4* matrix)
     return quat_norm(&result);
 }
 
-internal quat quat_from_axis_angle(vec3* axis, f32 angle)
+internal quat_t quat_from_axis_angle(vec3_t* axis, f32 angle)
 {
     f32 half_angle     = angle * 0.5f;
     f32 half_angle_cos = math_cos(half_angle);
     f32 half_angle_sin = math_sin(half_angle);
 
-    quat result = {
+    quat_t result = {
         half_angle_sin * axis->x,
         half_angle_sin * axis->y,
         half_angle_sin * axis->z,

@@ -27,6 +27,8 @@
     #error Platform not supported.
 #endif
 
+#include "core/types.h"
+
 #include "math/math_core.h"
 #include "math/vector.h"
 #include "math/matrix.h"
@@ -34,8 +36,6 @@
 #include "memory/cpu_arena.h"
 #include "containers/buffer.h"
 #include "input/input.h"
-
-#include "core/types.h"
 
 #include "renderer/gpu_arena.h"
 #include "renderer/renderer.h"
