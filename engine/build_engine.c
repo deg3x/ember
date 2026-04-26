@@ -38,6 +38,10 @@
 #include "input/input.h"
 
 #include "renderer/gpu_arena.h"
+#include "renderer/renderer_defs.h"
+#include "renderer/renderer_resources.h"
+#include "renderer/renderer_swapchain.h"
+#include "renderer/renderer_pipeline.h"
 #include "renderer/renderer.h"
 
 #include "parsers/parser_json.h"
@@ -64,6 +68,9 @@
 #include "input/input.c"
 
 #include "renderer/gpu_arena.c"
+#include "renderer/renderer_resources.c"
+#include "renderer/renderer_swapchain.c"
+#include "renderer/renderer_pipeline.c"
 #include "renderer/renderer.c"
 
 #include "parsers/parser_json.c"
