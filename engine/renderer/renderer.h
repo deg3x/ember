@@ -10,6 +10,8 @@
 #define RENDERER_MESH_COUNT_MAX 10000
 #define RENDERER_NODE_COUNT_MAX 10000
 
+#define FRAME_SIZE(s) ((s) / RENDERER_FRAMES_IN_FLIGHT)
+
 typedef enum vertex_attr_type_t vertex_attr_type_t;
 enum vertex_attr_type_t
 {
@@ -60,10 +62,10 @@ struct renderer_buffers_t
     VkBuffer    vertex_buf;
     VkBuffer    index_buf;
     VkBuffer    stage_buf;
-    VkBuffer    ubo_buf[RENDERER_FRAMES_IN_FLIGHT];
-    VkBuffer    ssbo_buf[RENDERER_FRAMES_IN_FLIGHT];
-    VkBuffer    dcmd_buf[RENDERER_FRAMES_IN_FLIGHT];
-    VkBuffer    draw_buf[RENDERER_FRAMES_IN_FLIGHT];
+    VkBuffer    ubo_buf;
+    VkBuffer    ssbo_buf;
+    VkBuffer    dcmd_buf;
+    VkBuffer    draw_buf;
 
     VkImage     depth_image;
     VkImageView depth_image_view;
@@ -71,17 +73,17 @@ struct renderer_buffers_t
     gpu_mem_t*  vertex_mem;
     gpu_mem_t*  index_mem;
     gpu_mem_t*  stage_mem;
-    gpu_mem_t*  ubo_mem[RENDERER_FRAMES_IN_FLIGHT];
-    gpu_mem_t*  ssbo_mem[RENDERER_FRAMES_IN_FLIGHT];
-    gpu_mem_t*  dcmd_mem[RENDERER_FRAMES_IN_FLIGHT];
-    gpu_mem_t*  draw_mem[RENDERER_FRAMES_IN_FLIGHT];
+    gpu_mem_t*  ubo_mem;
+    gpu_mem_t*  ssbo_mem;
+    gpu_mem_t*  dcmd_mem;
+    gpu_mem_t*  draw_mem;
     gpu_mem_t*  depth_mem;
 
     void*       stage_mapped;
-    void*       ubo_mapped[RENDERER_FRAMES_IN_FLIGHT];
-    void*       ssbo_mapped[RENDERER_FRAMES_IN_FLIGHT];
-    void*       dcmd_mapped[RENDERER_FRAMES_IN_FLIGHT];
-    void*       draw_mapped[RENDERER_FRAMES_IN_FLIGHT];
+    void*       ubo_mapped;
+    void*       ssbo_mapped;
+    void*       dcmd_mapped;
+    void*       draw_mapped;
 };
 
 typedef struct renderer_mesh_t renderer_mesh_t;

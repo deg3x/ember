@@ -80,7 +80,8 @@ internal void renderer_update(platform_hnd_t window_handle)
 
     ubo.proj = mat4_persp(30.0f, aspect, 0.01f, 1000.0f);
 
-    memcpy(g_renderer.buffers.ubo_mapped[frame_id], &ubo, sizeof(ubo));
+    void* dest = (u8 *)g_renderer.buffers.ubo_mapped + frame_id * FRAME_SIZE(GPU_MEM_SIZE_UBO);
+    memcpy(dest, &ubo, sizeof(ubo));
 
     VkSemaphoreSubmitInfo wait_sem_info = {0};
     wait_sem_info.sType                 = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO;
@@ -150,11 +151,17 @@ internal void renderer_destroy()
     vkUnmapMemory(g_renderer.device, g_renderer.buffers.stage_mem->memory);
     vkDestroyBuffer(g_renderer.device, g_renderer.buffers.stage_buf, NULL);
 
-    for (u32 i = 0; i < RENDERER_FRAMES_IN_FLIGHT; i++)
-    {
-        vkUnmapMemory(g_renderer.device, g_renderer.buffers.ubo_mem[i]->memory);
-        vkDestroyBuffer(g_renderer.device, g_renderer.buffers.ubo_buf[i], NULL);
-    }
+    vkUnmapMemory(g_renderer.device, g_renderer.buffers.ubo_mem->memory);
+    vkDestroyBuffer(g_renderer.device, g_renderer.buffers.ubo_buf, NULL);
+
+    vkUnmapMemory(g_renderer.device, g_renderer.buffers.ssbo_mem->memory);
+    vkDestroyBuffer(g_renderer.device, g_renderer.buffers.ssbo_buf, NULL);
+
+    vkUnmapMemory(g_renderer.device, g_renderer.buffers.dcmd_mem->memory);
+    vkDestroyBuffer(g_renderer.device, g_renderer.buffers.dcmd_buf, NULL);
+
+    vkUnmapMemory(g_renderer.device, g_renderer.buffers.draw_mem->memory);
+    vkDestroyBuffer(g_renderer.device, g_renderer.buffers.draw_buf, NULL);
 
     vkDestroyImageView(g_renderer.device, g_renderer.buffers.depth_image_view, NULL);
     vkDestroyImage(g_renderer.device, g_renderer.buffers.depth_image, NULL);
@@ -546,13 +553,10 @@ internal void renderer_create_resources()
     renderer_create_buffer(&g_renderer.buffers.index_buf, GPU_MEM_SIZE_INDEX, flags_idx);
     renderer_create_buffer(&g_renderer.buffers.stage_buf, GPU_MEM_SIZE_STG, flags_stg);
 
-    for (u32 i = 0; i < RENDERER_FRAMES_IN_FLIGHT; i++)
-    {
-        renderer_create_buffer(&g_renderer.buffers.ubo_buf[i], GPU_MEM_SIZE_UBO / RENDERER_FRAMES_IN_FLIGHT, flags_ubo);
-        renderer_create_buffer(&g_renderer.buffers.ssbo_buf[i], GPU_MEM_SIZE_SSBO / RENDERER_FRAMES_IN_FLIGHT, flags_ssbo);
-        renderer_create_buffer(&g_renderer.buffers.dcmd_buf[i], GPU_MEM_SIZE_DCMD / RENDERER_FRAMES_IN_FLIGHT, flags_dcmd);
-        renderer_create_buffer(&g_renderer.buffers.draw_buf[i], GPU_MEM_SIZE_DRAW / RENDERER_FRAMES_IN_FLIGHT, flags_draw);
-    }
+    renderer_create_buffer(&g_renderer.buffers.ubo_buf, GPU_MEM_SIZE_UBO, flags_ubo);
+    renderer_create_buffer(&g_renderer.buffers.ssbo_buf, GPU_MEM_SIZE_SSBO, flags_ssbo);
+    renderer_create_buffer(&g_renderer.buffers.dcmd_buf, GPU_MEM_SIZE_DCMD, flags_dcmd);
+    renderer_create_buffer(&g_renderer.buffers.draw_buf, GPU_MEM_SIZE_DRAW, flags_draw);
 
     g_renderer.buffers.vertex_mem = renderer_create_buffer_memory(g_renderer.buffers.vertex_buf, GPU_MEM_TYPE_mesh);
     g_renderer.buffers.index_mem  = renderer_create_buffer_memory(g_renderer.buffers.index_buf, GPU_MEM_TYPE_mesh);
@@ -569,57 +573,54 @@ internal void renderer_create_resources()
 
     EMBER_ASSERT(vk_result == VK_SUCCESS);
 
-    for (u32 i = 0; i < RENDERER_FRAMES_IN_FLIGHT; i++)
-    {
-        g_renderer.buffers.ubo_mem[i]  = renderer_create_buffer_memory(g_renderer.buffers.ubo_buf[i], GPU_MEM_TYPE_ubo);
-        g_renderer.buffers.ssbo_mem[i] = renderer_create_buffer_memory(g_renderer.buffers.ssbo_buf[i], GPU_MEM_TYPE_ssbo);
-        g_renderer.buffers.dcmd_mem[i] = renderer_create_buffer_memory(g_renderer.buffers.dcmd_buf[i], GPU_MEM_TYPE_dcmd);
-        g_renderer.buffers.draw_mem[i] = renderer_create_buffer_memory(g_renderer.buffers.draw_buf[i], GPU_MEM_TYPE_draw);
+        g_renderer.buffers.ubo_mem  = renderer_create_buffer_memory(g_renderer.buffers.ubo_buf, GPU_MEM_TYPE_ubo);
+        g_renderer.buffers.ssbo_mem = renderer_create_buffer_memory(g_renderer.buffers.ssbo_buf, GPU_MEM_TYPE_ssbo);
+        g_renderer.buffers.dcmd_mem = renderer_create_buffer_memory(g_renderer.buffers.dcmd_buf, GPU_MEM_TYPE_dcmd);
+        g_renderer.buffers.draw_mem = renderer_create_buffer_memory(g_renderer.buffers.draw_buf, GPU_MEM_TYPE_draw);
 
         vk_result = vkMapMemory(
             g_renderer.device,
-            g_renderer.buffers.ubo_mem[i]->memory,
-            g_renderer.buffers.ubo_mem[i]->offset,
+            g_renderer.buffers.ubo_mem->memory,
+            g_renderer.buffers.ubo_mem->offset,
             GPU_MEM_SIZE_UBO,
             0,
-            &g_renderer.buffers.ubo_mapped[i]
+            &g_renderer.buffers.ubo_mapped
         );
 
         EMBER_ASSERT(vk_result == VK_SUCCESS);
 
         vk_result = vkMapMemory(
             g_renderer.device,
-            g_renderer.buffers.ssbo_mem[i]->memory,
-            g_renderer.buffers.ssbo_mem[i]->offset,
+            g_renderer.buffers.ssbo_mem->memory,
+            g_renderer.buffers.ssbo_mem->offset,
             GPU_MEM_SIZE_SSBO,
             0,
-            &g_renderer.buffers.ssbo_mapped[i]
+            &g_renderer.buffers.ssbo_mapped
         );
 
         EMBER_ASSERT(vk_result == VK_SUCCESS);
 
         vk_result = vkMapMemory(
             g_renderer.device,
-            g_renderer.buffers.dcmd_mem[i]->memory,
-            g_renderer.buffers.dcmd_mem[i]->offset,
+            g_renderer.buffers.dcmd_mem->memory,
+            g_renderer.buffers.dcmd_mem->offset,
             GPU_MEM_SIZE_DCMD,
             0,
-            &g_renderer.buffers.dcmd_mapped[i]
+            &g_renderer.buffers.dcmd_mapped
         );
 
         EMBER_ASSERT(vk_result == VK_SUCCESS);
 
         vk_result = vkMapMemory(
             g_renderer.device,
-            g_renderer.buffers.draw_mem[i]->memory,
-            g_renderer.buffers.draw_mem[i]->offset,
+            g_renderer.buffers.draw_mem->memory,
+            g_renderer.buffers.draw_mem->offset,
             GPU_MEM_SIZE_DRAW,
             0,
-            &g_renderer.buffers.draw_mapped[i]
+            &g_renderer.buffers.draw_mapped
         );
 
         EMBER_ASSERT(vk_result == VK_SUCCESS);
-    }
 }
 
 internal void renderer_create_nodes(renderer_node_t* nodes, renderer_ssbo_t* node_ssbo, i32 node_count)
@@ -628,7 +629,7 @@ internal void renderer_create_nodes(renderer_node_t* nodes, renderer_ssbo_t* nod
 
     for (i32 i = 0; i < RENDERER_FRAMES_IN_FLIGHT; i++)
     {
-        u8* dst = (u8*)g_renderer.buffers.ssbo_mapped[i] + g_renderer.node_count * sizeof(renderer_ssbo_t);
+        u8* dst = (u8*)g_renderer.buffers.ssbo_mapped + i * FRAME_SIZE(GPU_MEM_SIZE_SSBO) + g_renderer.node_count * sizeof(renderer_ssbo_t);
 
         memcpy(dst, node_ssbo, node_count * sizeof(renderer_ssbo_t));
     }
@@ -950,20 +951,24 @@ internal void renderer_pipeline_create_descriptor_sets(renderer_pipeline_t* pipe
 
     for (u32 i = 0; i < RENDERER_FRAMES_IN_FLIGHT; i++)
     {
+        u64 size_ubo  = FRAME_SIZE(GPU_MEM_SIZE_UBO);
+        u64 size_ssbo = FRAME_SIZE(GPU_MEM_SIZE_SSBO);
+        u64 size_draw = FRAME_SIZE(GPU_MEM_SIZE_DRAW);
+
         VkDescriptorBufferInfo ubo_info = {0};
-        ubo_info.buffer                 = g_renderer.buffers.ubo_buf[i];
-        ubo_info.offset                 = 0;
-        ubo_info.range                  = GPU_MEM_SIZE_UBO / RENDERER_FRAMES_IN_FLIGHT;
+        ubo_info.buffer                 = g_renderer.buffers.ubo_buf;
+        ubo_info.offset                 = i * size_ubo;
+        ubo_info.range                  = size_ubo;
 
         VkDescriptorBufferInfo ssbo_info = {0};
-        ssbo_info.buffer                 = g_renderer.buffers.ssbo_buf[i];
-        ssbo_info.offset                 = 0;
-        ssbo_info.range                  = GPU_MEM_SIZE_SSBO / RENDERER_FRAMES_IN_FLIGHT;
+        ssbo_info.buffer                 = g_renderer.buffers.ssbo_buf;
+        ssbo_info.offset                 = i * size_ssbo;
+        ssbo_info.range                  = size_ssbo;
 
         VkDescriptorBufferInfo draw_info = {0};
-        draw_info.buffer                 = g_renderer.buffers.draw_buf[i];
-        draw_info.offset                 = 0;
-        draw_info.range                  = GPU_MEM_SIZE_DRAW / RENDERER_FRAMES_IN_FLIGHT;
+        draw_info.buffer                 = g_renderer.buffers.draw_buf;
+        draw_info.offset                 = i * size_draw;
+        draw_info.range                  = size_draw;
 
         VkWriteDescriptorSet write_set[3] = {0};
 
@@ -1427,6 +1432,9 @@ internal void renderer_command_buffer_record(renderer_pipeline_t* pipeline, u32 
         NULL
     );
 
+    u64 offset_dcmd = buffer_id * FRAME_SIZE(GPU_MEM_SIZE_DCMD);
+    u64 offset_draw = buffer_id * FRAME_SIZE(GPU_MEM_SIZE_DRAW);
+
     i32 idx = 0;
     for (i32 i = 0; i < g_renderer.node_count; i++)
     {
@@ -1436,8 +1444,8 @@ internal void renderer_command_buffer_record(renderer_pipeline_t* pipeline, u32 
         {
             renderer_mesh_t mesh = g_renderer.mesh_data[node.mesh_id + j];
 
-            renderer_dcmd_data_t* dcmd_data = (renderer_dcmd_data_t *)g_renderer.buffers.dcmd_mapped[buffer_id];
-            renderer_draw_data_t* draw_data = (renderer_draw_data_t *)g_renderer.buffers.draw_mapped[buffer_id];
+            renderer_dcmd_data_t* dcmd_data = (renderer_dcmd_data_t *)((u8 *)g_renderer.buffers.dcmd_mapped + offset_dcmd);
+            renderer_draw_data_t* draw_data = (renderer_draw_data_t *)((u8 *)g_renderer.buffers.draw_mapped + offset_draw);
 
             dcmd_data[idx].indexCount    = mesh.index_count;
             dcmd_data[idx].firstIndex    = mesh.index_offset;
@@ -1451,7 +1459,7 @@ internal void renderer_command_buffer_record(renderer_pipeline_t* pipeline, u32 
         }
     }
 
-    vkCmdDrawIndexedIndirect(cmd, g_renderer.buffers.dcmd_buf[buffer_id], 0, idx, sizeof(renderer_dcmd_data_t));
+    vkCmdDrawIndexedIndirect(cmd, g_renderer.buffers.dcmd_buf, offset_dcmd, idx, sizeof(renderer_dcmd_data_t));
 
     vkCmdEndRendering(cmd);
 
