@@ -11,10 +11,10 @@ layout(std430, binding = 1) buffer Transforms
     mat4 model[];
 }transforms;
 
-layout(push_constant) uniform PC
+layout(std430, binding = 2) buffer DrawData
 {
-    uint id;
-}pc;
+    uint transform_id[];
+}draw_data;
 
 layout(location = 0) in vec3 position;
 layout(location = 1) in vec3 normal;
@@ -26,8 +26,10 @@ layout(location = 1) out vec3 frag_normal;
 
 void main()
 {
-    //gl_Position = ubo.proj * ubo.view * ubo.model * vec4(position, 1.0);
-    gl_Position = ubo.proj * ubo.view * transforms.model[pc.id] * vec4(position, 1.0);
+    uint model_id = draw_data.transform_id[gl_InstanceIndex];
+    mat4 model    = transforms.model[model_id];
+
+    gl_Position = ubo.proj * ubo.view * model * vec4(position, 1.0);
 
     frag_color  = color;
     frag_normal = normal;

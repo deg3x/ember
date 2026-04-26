@@ -46,6 +46,14 @@ struct renderer_push_constant_t
     u32 transform_id;
 };
 
+typedef struct renderer_draw_data_t renderer_draw_data_t;
+struct renderer_draw_data_t
+{
+    u32 transform_id;
+};
+
+typedef VkDrawIndexedIndirectCommand renderer_dcmd_data_t;
+
 typedef struct renderer_buffers_t renderer_buffers_t;
 struct renderer_buffers_t
 {
@@ -54,20 +62,26 @@ struct renderer_buffers_t
     VkBuffer    stage_buf;
     VkBuffer    ubo_buf[RENDERER_FRAMES_IN_FLIGHT];
     VkBuffer    ssbo_buf[RENDERER_FRAMES_IN_FLIGHT];
+    VkBuffer    dcmd_buf[RENDERER_FRAMES_IN_FLIGHT];
+    VkBuffer    draw_buf[RENDERER_FRAMES_IN_FLIGHT];
 
     VkImage     depth_image;
     VkImageView depth_image_view;
 
-    gpu_mem_t*    vertex_mem;
-    gpu_mem_t*    index_mem;
-    gpu_mem_t*    stage_mem;
-    gpu_mem_t*    ubo_mem[RENDERER_FRAMES_IN_FLIGHT];
-    gpu_mem_t*    ssbo_mem[RENDERER_FRAMES_IN_FLIGHT];
-    gpu_mem_t*    depth_mem;
+    gpu_mem_t*  vertex_mem;
+    gpu_mem_t*  index_mem;
+    gpu_mem_t*  stage_mem;
+    gpu_mem_t*  ubo_mem[RENDERER_FRAMES_IN_FLIGHT];
+    gpu_mem_t*  ssbo_mem[RENDERER_FRAMES_IN_FLIGHT];
+    gpu_mem_t*  dcmd_mem[RENDERER_FRAMES_IN_FLIGHT];
+    gpu_mem_t*  draw_mem[RENDERER_FRAMES_IN_FLIGHT];
+    gpu_mem_t*  depth_mem;
 
     void*       stage_mapped;
     void*       ubo_mapped[RENDERER_FRAMES_IN_FLIGHT];
     void*       ssbo_mapped[RENDERER_FRAMES_IN_FLIGHT];
+    void*       dcmd_mapped[RENDERER_FRAMES_IN_FLIGHT];
+    void*       draw_mapped[RENDERER_FRAMES_IN_FLIGHT];
 };
 
 typedef struct renderer_mesh_t renderer_mesh_t;
@@ -166,8 +180,8 @@ internal void renderer_create_descriptor_pool();
 internal void renderer_create_sync_primitives();
 internal void renderer_create_resources();
 
-internal void renderer_create_meshes(mesh_t* m, i32 count);
 internal void renderer_create_nodes(renderer_node_t* nodes, renderer_ssbo_t* node_ssbo, i32 node_count);
+internal void renderer_create_meshes(mesh_t* m, i32 count);
 
 internal void renderer_create_depth_resources();
 internal void renderer_create_buffer(VkBuffer* buffer, VkDeviceSize size, VkBufferUsageFlags usage);

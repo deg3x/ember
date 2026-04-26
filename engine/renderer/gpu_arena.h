@@ -4,8 +4,10 @@
 #define GPU_MEM_SIZE_MESH MB(512)
 #define GPU_MEM_SIZE_TEX  MB(512)
 #define GPU_MEM_SIZE_STG  MB(32)
-#define GPU_MEM_SIZE_UBO  KB(4)
+#define GPU_MEM_SIZE_UBO  KB(8)
 #define GPU_MEM_SIZE_SSBO MB(32)
+#define GPU_MEM_SIZE_DCMD MB(8)
+#define GPU_MEM_SIZE_DRAW MB(8)
 
 #define GPU_MEM_SIZE_VERTEX (GPU_MEM_SIZE_MESH / 2)
 #define GPU_MEM_SIZE_INDEX  (GPU_MEM_SIZE_MESH / 2)
@@ -18,6 +20,8 @@ enum
     GPU_MEM_TYPE_stg,
     GPU_MEM_TYPE_ubo,
     GPU_MEM_TYPE_ssbo,
+    GPU_MEM_TYPE_dcmd,
+    GPU_MEM_TYPE_draw,
     GPU_MEM_TYPE_count
 };
 

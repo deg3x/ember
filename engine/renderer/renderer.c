@@ -377,12 +377,12 @@ internal void renderer_create_device()
 
     // TODO(KB): Connect this to the feature check in ...device_is_suitable()
     VkPhysicalDeviceFeatures feats = {0};
-    feats.samplerAnisotropy = VK_TRUE;
+    feats.samplerAnisotropy        = VK_TRUE;
 
     VkPhysicalDeviceVulkan13Features feats_13 = {0};
-    feats_13.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES;
-    feats_13.dynamicRendering = VK_TRUE;
-    feats_13.synchronization2 = VK_TRUE;
+    feats_13.sType                            = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES;
+    feats_13.dynamicRendering                 = VK_TRUE;
+    feats_13.synchronization2                 = VK_TRUE;
 
     VkDeviceCreateInfo device_info      = {0};
     device_info.sType                   = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
@@ -539,6 +539,8 @@ internal void renderer_create_resources()
     VkBufferUsageFlags flags_stg  = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
     VkBufferUsageFlags flags_ubo  = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
     VkBufferUsageFlags flags_ssbo = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+    VkBufferUsageFlags flags_dcmd = VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT;
+    VkBufferUsageFlags flags_draw = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
 
     renderer_create_buffer(&g_renderer.buffers.vertex_buf, GPU_MEM_SIZE_VERTEX, flags_vert);
     renderer_create_buffer(&g_renderer.buffers.index_buf, GPU_MEM_SIZE_INDEX, flags_idx);
@@ -548,6 +550,8 @@ internal void renderer_create_resources()
     {
         renderer_create_buffer(&g_renderer.buffers.ubo_buf[i], GPU_MEM_SIZE_UBO / RENDERER_FRAMES_IN_FLIGHT, flags_ubo);
         renderer_create_buffer(&g_renderer.buffers.ssbo_buf[i], GPU_MEM_SIZE_SSBO / RENDERER_FRAMES_IN_FLIGHT, flags_ssbo);
+        renderer_create_buffer(&g_renderer.buffers.dcmd_buf[i], GPU_MEM_SIZE_DCMD / RENDERER_FRAMES_IN_FLIGHT, flags_dcmd);
+        renderer_create_buffer(&g_renderer.buffers.draw_buf[i], GPU_MEM_SIZE_DRAW / RENDERER_FRAMES_IN_FLIGHT, flags_draw);
     }
 
     g_renderer.buffers.vertex_mem = renderer_create_buffer_memory(g_renderer.buffers.vertex_buf, GPU_MEM_TYPE_mesh);
@@ -569,6 +573,8 @@ internal void renderer_create_resources()
     {
         g_renderer.buffers.ubo_mem[i]  = renderer_create_buffer_memory(g_renderer.buffers.ubo_buf[i], GPU_MEM_TYPE_ubo);
         g_renderer.buffers.ssbo_mem[i] = renderer_create_buffer_memory(g_renderer.buffers.ssbo_buf[i], GPU_MEM_TYPE_ssbo);
+        g_renderer.buffers.dcmd_mem[i] = renderer_create_buffer_memory(g_renderer.buffers.dcmd_buf[i], GPU_MEM_TYPE_dcmd);
+        g_renderer.buffers.draw_mem[i] = renderer_create_buffer_memory(g_renderer.buffers.draw_buf[i], GPU_MEM_TYPE_draw);
 
         vk_result = vkMapMemory(
             g_renderer.device,
@@ -588,6 +594,28 @@ internal void renderer_create_resources()
             GPU_MEM_SIZE_SSBO,
             0,
             &g_renderer.buffers.ssbo_mapped[i]
+        );
+
+        EMBER_ASSERT(vk_result == VK_SUCCESS);
+
+        vk_result = vkMapMemory(
+            g_renderer.device,
+            g_renderer.buffers.dcmd_mem[i]->memory,
+            g_renderer.buffers.dcmd_mem[i]->offset,
+            GPU_MEM_SIZE_DCMD,
+            0,
+            &g_renderer.buffers.dcmd_mapped[i]
+        );
+
+        EMBER_ASSERT(vk_result == VK_SUCCESS);
+
+        vk_result = vkMapMemory(
+            g_renderer.device,
+            g_renderer.buffers.draw_mem[i]->memory,
+            g_renderer.buffers.draw_mem[i]->offset,
+            GPU_MEM_SIZE_DRAW,
+            0,
+            &g_renderer.buffers.draw_mapped[i]
         );
 
         EMBER_ASSERT(vk_result == VK_SUCCESS);
@@ -876,7 +904,7 @@ internal gpu_mem_t* renderer_create_image_memory(VkImage image, gpu_mem_type_t m
 
 internal void renderer_pipeline_create_descriptor_set_layout(renderer_pipeline_t* pipeline)
 {
-    VkDescriptorSetLayoutBinding bindings[2] = {0};
+    VkDescriptorSetLayoutBinding bindings[3] = {0};
     bindings[0].binding                      = 0;
     bindings[0].descriptorCount              = 1;
     bindings[0].descriptorType               = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
@@ -888,6 +916,12 @@ internal void renderer_pipeline_create_descriptor_set_layout(renderer_pipeline_t
     bindings[1].descriptorType               = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
     bindings[1].stageFlags                   = VK_SHADER_STAGE_VERTEX_BIT;
     bindings[1].pImmutableSamplers           = NULL;
+
+    bindings[2].binding                      = 2;
+    bindings[2].descriptorCount              = 1;
+    bindings[2].descriptorType               = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+    bindings[2].stageFlags                   = VK_SHADER_STAGE_VERTEX_BIT;
+    bindings[2].pImmutableSamplers           = NULL;
 
     VkDescriptorSetLayoutCreateInfo binding_info = {0};
     binding_info.sType                           = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
@@ -926,26 +960,42 @@ internal void renderer_pipeline_create_descriptor_sets(renderer_pipeline_t* pipe
         ssbo_info.offset                 = 0;
         ssbo_info.range                  = GPU_MEM_SIZE_SSBO / RENDERER_FRAMES_IN_FLIGHT;
 
-        VkWriteDescriptorSet write_set[2] = {0};
-        write_set[0].sType                = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        write_set[0].dstSet               = pipeline->descriptor_sets[i];
-        write_set[0].dstBinding           = 0;
-        write_set[0].dstArrayElement      = 0;
-        write_set[0].descriptorCount      = 1;
-        write_set[0].descriptorType       = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-        write_set[0].pImageInfo           = NULL;
-        write_set[0].pBufferInfo          = &ubo_info;
-        write_set[0].pTexelBufferView     = NULL;
+        VkDescriptorBufferInfo draw_info = {0};
+        draw_info.buffer                 = g_renderer.buffers.draw_buf[i];
+        draw_info.offset                 = 0;
+        draw_info.range                  = GPU_MEM_SIZE_DRAW / RENDERER_FRAMES_IN_FLIGHT;
 
-        write_set[1].sType                = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        write_set[1].dstSet               = pipeline->descriptor_sets[i];
-        write_set[1].dstBinding           = 1;
-        write_set[1].dstArrayElement      = 0;
-        write_set[1].descriptorCount      = 1;
-        write_set[1].descriptorType       = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-        write_set[1].pImageInfo           = NULL;
-        write_set[1].pBufferInfo          = &ssbo_info;
-        write_set[1].pTexelBufferView     = NULL;
+        VkWriteDescriptorSet write_set[3] = {0};
+
+        write_set[0].sType            = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        write_set[0].dstSet           = pipeline->descriptor_sets[i];
+        write_set[0].dstBinding       = 0;
+        write_set[0].dstArrayElement  = 0;
+        write_set[0].descriptorCount  = 1;
+        write_set[0].descriptorType   = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+        write_set[0].pImageInfo       = NULL;
+        write_set[0].pBufferInfo      = &ubo_info;
+        write_set[0].pTexelBufferView = NULL;
+
+        write_set[1].sType            = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        write_set[1].dstSet           = pipeline->descriptor_sets[i];
+        write_set[1].dstBinding       = 1;
+        write_set[1].dstArrayElement  = 0;
+        write_set[1].descriptorCount  = 1;
+        write_set[1].descriptorType   = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+        write_set[1].pImageInfo       = NULL;
+        write_set[1].pBufferInfo      = &ssbo_info;
+        write_set[1].pTexelBufferView = NULL;
+
+        write_set[2].sType            = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        write_set[2].dstSet           = pipeline->descriptor_sets[i];
+        write_set[2].dstBinding       = 2;
+        write_set[2].dstArrayElement  = 0;
+        write_set[2].descriptorCount  = 1;
+        write_set[2].descriptorType   = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+        write_set[2].pImageInfo       = NULL;
+        write_set[2].pBufferInfo      = &draw_info;
+        write_set[2].pTexelBufferView = NULL;
 
         vkUpdateDescriptorSets(g_renderer.device, ARRAY_COUNT(write_set), write_set, 0, NULL);
     }
@@ -953,17 +1003,12 @@ internal void renderer_pipeline_create_descriptor_sets(renderer_pipeline_t* pipe
 
 internal void renderer_pipeline_create_graphics_pipeline_layout(renderer_pipeline_t* pipeline)
 {
-    VkPushConstantRange push_constant_range = {0};
-    push_constant_range.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-    push_constant_range.offset     = 0;
-    push_constant_range.size       = sizeof(renderer_push_constant_t);
-
     VkPipelineLayoutCreateInfo layout_info = {0};
     layout_info.sType                      = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
     layout_info.setLayoutCount             = 1;
     layout_info.pSetLayouts                = &pipeline->descriptor_set_layout;
-    layout_info.pushConstantRangeCount     = 1;
-    layout_info.pPushConstantRanges        = &push_constant_range;
+    layout_info.pushConstantRangeCount     = 0;
+    layout_info.pPushConstantRanges        = NULL;
 
     VkResult create_result = vkCreatePipelineLayout(g_renderer.device, &layout_info, NULL, &pipeline->graphics_pipeline_layout);
     EMBER_ASSERT(create_result == VK_SUCCESS);
@@ -1382,6 +1427,7 @@ internal void renderer_command_buffer_record(renderer_pipeline_t* pipeline, u32 
         NULL
     );
 
+    i32 idx = 0;
     for (i32 i = 0; i < g_renderer.node_count; i++)
     {
         renderer_node_t node = g_renderer.node_data[i];
@@ -1390,18 +1436,22 @@ internal void renderer_command_buffer_record(renderer_pipeline_t* pipeline, u32 
         {
             renderer_mesh_t mesh = g_renderer.mesh_data[node.mesh_id + j];
 
-            vkCmdPushConstants(
-                cmd,
-                g_renderer.pipelines->graphics_pipeline_layout,
-                VK_SHADER_STAGE_VERTEX_BIT,
-                0,
-                sizeof(renderer_push_constant_t),
-                &i
-            );
+            renderer_dcmd_data_t* dcmd_data = (renderer_dcmd_data_t *)g_renderer.buffers.dcmd_mapped[buffer_id];
+            renderer_draw_data_t* draw_data = (renderer_draw_data_t *)g_renderer.buffers.draw_mapped[buffer_id];
 
-            vkCmdDrawIndexed(cmd, mesh.index_count, 1, mesh.index_offset, mesh.vertex_offset, 0);
+            dcmd_data[idx].indexCount    = mesh.index_count;
+            dcmd_data[idx].firstIndex    = mesh.index_offset;
+            dcmd_data[idx].vertexOffset  = mesh.vertex_offset;
+            dcmd_data[idx].instanceCount = 1;
+            dcmd_data[idx].firstInstance = idx;
+
+            draw_data[idx].transform_id  = i;
+
+            idx += 1;
         }
     }
+
+    vkCmdDrawIndexedIndirect(cmd, g_renderer.buffers.dcmd_buf[buffer_id], 0, idx, sizeof(renderer_dcmd_data_t));
 
     vkCmdEndRendering(cmd);
 
