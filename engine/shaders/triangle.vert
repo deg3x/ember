@@ -31,6 +31,8 @@ void main()
 
     gl_Position = ubo.proj * ubo.view * model * vec4(position, 1.0);
 
+    mat4 model_adj = transpose(determinant(model) * inverse(model));
+
     frag_color  = color;
-    frag_normal = normal;
+    frag_normal = normalize(model_adj * vec4(normal, 1.0)).xyz;
 }

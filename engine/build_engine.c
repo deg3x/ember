@@ -29,6 +29,7 @@
 #endif
 
 #include "core/types.h"
+#include "core/mesh.h"
 
 #include "math/math_core.h"
 #include "math/vector.h"
@@ -59,6 +60,8 @@
 #else
     #error Platform not supported.
 #endif
+
+#include "core/mesh.c"
 
 #include "math/math_core.c"
 #include "math/vector.c"

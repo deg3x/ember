@@ -148,15 +148,6 @@ struct vertex_t
     vec2_t uv;
 };
 
-typedef struct mesh_t mesh_t;
-struct mesh_t
-{
-    vertex_t* vertices;
-    i32*    indices;
-    i32     vertex_count;
-    i32     index_count;
-};
-
 typedef struct sampler_t sampler_t;
 struct sampler_t
 {

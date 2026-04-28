@@ -223,7 +223,7 @@ internal void renderer_pipeline_create_graphics_pipeline(renderer_pipeline_t* pi
     rasterizer_info.polygonMode                            = VK_POLYGON_MODE_FILL;
     rasterizer_info.lineWidth                              = 1.0f;
     rasterizer_info.cullMode                               = VK_CULL_MODE_BACK_BIT;
-    rasterizer_info.frontFace                              = VK_FRONT_FACE_CLOCKWISE;
+    rasterizer_info.frontFace                              = VK_FRONT_FACE_COUNTER_CLOCKWISE;
     rasterizer_info.depthBiasEnable                        = VK_FALSE;
     rasterizer_info.depthBiasConstantFactor                = 0.0f;
     rasterizer_info.depthBiasClamp                         = 0.0f;

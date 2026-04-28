@@ -434,29 +434,29 @@ internal mat4_t mat4_look_at(vec3_t* eye, vec3_t* target, vec3_t* up)
     vec3_t up_cross_fw   = vec3_cross(up, &forward);
     vec3_t right         = vec3_norm(&up_cross_fw);
     vec3_t fw_cross_r    = vec3_cross(&forward, &right);
-    vec3_t localUp       = vec3_norm(&fw_cross_r);
+    vec3_t local_up      = vec3_norm(&fw_cross_r);
 
     mat4_t result;
 
-    result.m[0][0] = -right.x;
-    result.m[0][1] =  localUp.x;
-    result.m[0][2] =  forward.x;
-    result.m[0][3] =  0.0f;
+    result.m[0][0] = right.x;
+    result.m[0][1] = local_up.x;
+    result.m[0][2] = forward.x;
+    result.m[0][3] = 0.0f;
 
-    result.m[1][0] = -right.y;
-    result.m[1][1] =  localUp.y;
-    result.m[1][2] =  forward.y;
-    result.m[1][3] =  0.0f;
+    result.m[1][0] = right.y;
+    result.m[1][1] = local_up.y;
+    result.m[1][2] = forward.y;
+    result.m[1][3] = 0.0f;
 
-    result.m[2][0] = -right.z;
-    result.m[2][1] =  localUp.z;
-    result.m[2][2] =  forward.z;
-    result.m[2][3] =  0.0f;
+    result.m[2][0] = right.z;
+    result.m[2][1] = local_up.z;
+    result.m[2][2] = forward.z;
+    result.m[2][3] = 0.0f;
 
-    result.m[3][0] =  vec3_dot(&right, eye);
-    result.m[3][1] = -vec3_dot(&localUp, eye);
+    result.m[3][0] = -vec3_dot(&right, eye);
+    result.m[3][1] = -vec3_dot(&local_up, eye);
     result.m[3][2] = -vec3_dot(&forward, eye);
-    result.m[3][3] =  1.0f;
+    result.m[3][3] = 1.0f;
 
     return result;
 }
