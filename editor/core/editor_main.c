@@ -5,11 +5,6 @@ inline void program_main()
 
 inline void editor_main()
 {
-    g_program_state.is_running = EMBER_TRUE;
-    g_program_state.timer      = platform_timer_init();
-
-    platform_init();
-
     platform_hnd_t window_handle = platform_gfx_wnd_create("Ember Engine");
 
     renderer_init(window_handle);
