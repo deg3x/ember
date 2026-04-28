@@ -18,7 +18,6 @@ internal void renderer_init(platform_hnd_t window_handle)
     renderer_create_descriptor_pool();
     renderer_create_sync_primitives();
     renderer_resources_init();
-    renderer_resources_create_depth();
 
     g_renderer.mesh_data = MEMORY_PUSH_ZERO(g_renderer.host_arena, renderer_mesh_t, RENDERER_MESH_COUNT_MAX);
     g_renderer.node_data = MEMORY_PUSH_ZERO(g_renderer.host_arena, renderer_node_t, RENDERER_NODE_COUNT_MAX);

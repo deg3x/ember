@@ -77,6 +77,9 @@ global i32                  g_platform_input_map[256];
 internal void platform_init();
 internal void platform_abort(i32 exit_code);
 
+internal void platform_console_init();
+internal void platform_console_destroy();
+
 internal platform_timer_t platform_timer_init();
 internal void             platform_timer_update(platform_timer_t* timer);
 internal f64              platform_timer_since_start(platform_timer_t timer);
@@ -101,6 +104,7 @@ internal platform_hnd_t platform_get_instance_handle();
 
 internal void                platform_gfx_process_events();
 internal platform_hnd_t      platform_gfx_wnd_create(const c8* title);
+internal void                platform_gfx_wnd_show(platform_hnd_t window_handle);
 internal platform_wnd_size_t platform_gfx_wnd_get_size(platform_hnd_t window_handle);
 internal platform_wnd_size_t platform_gfx_wnd_client_get_size(platform_hnd_t window_handle);
 internal b32                 platform_gfx_wnd_is_minimized(platform_hnd_t window_handle);

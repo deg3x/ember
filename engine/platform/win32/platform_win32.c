@@ -14,20 +14,6 @@ internal void platform_init()
     g_platform_info.perf_cnt_freq_inv = 1.0 / (f64)g_platform_info.perf_cnt_freq;
 
     //////////////////////////////////////////
-    // NOTE(KB): Console initialization
-#if EMBER_BUILD_CONSOLE
-    AllocConsole();
-
-    g_program_state.h_stdin.hnd  = GetStdHandle(STD_INPUT_HANDLE);
-    g_program_state.h_stdout.hnd = GetStdHandle(STD_OUTPUT_HANDLE);
-    g_program_state.h_stderr.hnd = GetStdHandle(STD_ERROR_HANDLE);
-
-    freopen("CONIN$", "r", stdin);
-    freopen("CONOUT$", "w", stdout);
-    freopen("CONOUT$", "w", stderr);
-#endif
-
-    //////////////////////////////////////////
     // NOTE(KB): GFX initialization
     g_win32_gfx_state.instance = GetModuleHandle(NULL);
 
@@ -140,6 +126,25 @@ internal void platform_init()
 internal void platform_abort(i32 exit_code)
 {
     ExitProcess(exit_code);
+}
+
+
+internal void platform_console_init()
+{
+    AllocConsole();
+
+    g_program_state.h_stdin.hnd  = GetStdHandle(STD_INPUT_HANDLE);
+    g_program_state.h_stdout.hnd = GetStdHandle(STD_OUTPUT_HANDLE);
+    g_program_state.h_stderr.hnd = GetStdHandle(STD_ERROR_HANDLE);
+
+    freopen("CONIN$", "r", stdin);
+    freopen("CONOUT$", "w", stdout);
+    freopen("CONOUT$", "w", stderr);
+}
+
+internal void platform_console_destroy()
+{
+    FreeConsole();
 }
 
 internal platform_timer_t platform_timer_init()
@@ -437,6 +442,11 @@ internal platform_hnd_t platform_gfx_wnd_create(const c8* window_name)
     return handle;
 }
 
+internal void platform_gfx_wnd_show(platform_hnd_t window_handle)
+{
+    ShowWindow((HWND)window_handle.hnd, SW_SHOW);
+}
+
 internal platform_wnd_size_t platform_gfx_wnd_get_size(platform_hnd_t window_handle)
 {
     platform_wnd_size_t result = {0};
@@ -593,33 +603,15 @@ int WINAPI WinMain(HINSTANCE instance, HINSTANCE prev_instance, LPSTR cmd_line, 
 
     platform_init();
 
-    platform_hnd_t window_handle = platform_gfx_wnd_create("Ember Engine");
+#if EMBER_BUILD_CONSOLE
+    platform_console_init();
+#endif
 
-    renderer_init(window_handle);
+    program_main();
 
-    world_t main_world = world_init();
-    (void)main_world;
-
-    ShowWindow((HWND)window_handle.hnd, SW_SHOW);
-
-    for(;;)
-    {
-        platform_gfx_process_events();
-        platform_timer_update(&g_program_state.timer);
-
-        // f32_t delta_time = (f32_t)platform_timer_delta(&g_program_state.timer);
-
-        if (!g_program_state.is_running)
-        {
-            break;
-        }
-
-        renderer_update(window_handle);
-    }
-
-    renderer_destroy();
-
-    FreeConsole();
+#if EMBER_BUILD_CONSOLE
+    platform_console_destroy();
+#endif
 
     return 0;
 }

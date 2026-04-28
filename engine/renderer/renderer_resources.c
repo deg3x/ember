@@ -32,54 +32,56 @@ internal void renderer_resources_init()
 
     EMBER_ASSERT(vk_result == VK_SUCCESS);
 
-        g_renderer.resources.ubo_mem  = renderer_resources_create_buffer_memory(g_renderer.resources.ubo_buf, GPU_MEM_TYPE_ubo);
-        g_renderer.resources.ssbo_mem = renderer_resources_create_buffer_memory(g_renderer.resources.ssbo_buf, GPU_MEM_TYPE_ssbo);
-        g_renderer.resources.dcmd_mem = renderer_resources_create_buffer_memory(g_renderer.resources.dcmd_buf, GPU_MEM_TYPE_dcmd);
-        g_renderer.resources.draw_mem = renderer_resources_create_buffer_memory(g_renderer.resources.draw_buf, GPU_MEM_TYPE_draw);
+    g_renderer.resources.ubo_mem  = renderer_resources_create_buffer_memory(g_renderer.resources.ubo_buf, GPU_MEM_TYPE_ubo);
+    g_renderer.resources.ssbo_mem = renderer_resources_create_buffer_memory(g_renderer.resources.ssbo_buf, GPU_MEM_TYPE_ssbo);
+    g_renderer.resources.dcmd_mem = renderer_resources_create_buffer_memory(g_renderer.resources.dcmd_buf, GPU_MEM_TYPE_dcmd);
+    g_renderer.resources.draw_mem = renderer_resources_create_buffer_memory(g_renderer.resources.draw_buf, GPU_MEM_TYPE_draw);
 
-        vk_result = vkMapMemory(
-            g_renderer.device,
-            g_renderer.resources.ubo_mem->memory,
-            g_renderer.resources.ubo_mem->offset,
-            GPU_MEM_SIZE_UBO,
-            0,
-            &g_renderer.resources.ubo_mapped
-        );
+    vk_result = vkMapMemory(
+        g_renderer.device,
+        g_renderer.resources.ubo_mem->memory,
+        g_renderer.resources.ubo_mem->offset,
+        GPU_MEM_SIZE_UBO,
+        0,
+        &g_renderer.resources.ubo_mapped
+    );
 
-        EMBER_ASSERT(vk_result == VK_SUCCESS);
+    EMBER_ASSERT(vk_result == VK_SUCCESS);
 
-        vk_result = vkMapMemory(
-            g_renderer.device,
-            g_renderer.resources.ssbo_mem->memory,
-            g_renderer.resources.ssbo_mem->offset,
-            GPU_MEM_SIZE_SSBO,
-            0,
-            &g_renderer.resources.ssbo_mapped
-        );
+    vk_result = vkMapMemory(
+        g_renderer.device,
+        g_renderer.resources.ssbo_mem->memory,
+        g_renderer.resources.ssbo_mem->offset,
+        GPU_MEM_SIZE_SSBO,
+        0,
+        &g_renderer.resources.ssbo_mapped
+    );
 
-        EMBER_ASSERT(vk_result == VK_SUCCESS);
+    EMBER_ASSERT(vk_result == VK_SUCCESS);
 
-        vk_result = vkMapMemory(
-            g_renderer.device,
-            g_renderer.resources.dcmd_mem->memory,
-            g_renderer.resources.dcmd_mem->offset,
-            GPU_MEM_SIZE_DCMD,
-            0,
-            &g_renderer.resources.dcmd_mapped
-        );
+    vk_result = vkMapMemory(
+        g_renderer.device,
+        g_renderer.resources.dcmd_mem->memory,
+        g_renderer.resources.dcmd_mem->offset,
+        GPU_MEM_SIZE_DCMD,
+        0,
+        &g_renderer.resources.dcmd_mapped
+    );
 
-        EMBER_ASSERT(vk_result == VK_SUCCESS);
+    EMBER_ASSERT(vk_result == VK_SUCCESS);
 
-        vk_result = vkMapMemory(
-            g_renderer.device,
-            g_renderer.resources.draw_mem->memory,
-            g_renderer.resources.draw_mem->offset,
-            GPU_MEM_SIZE_DRAW,
-            0,
-            &g_renderer.resources.draw_mapped
-        );
+    vk_result = vkMapMemory(
+        g_renderer.device,
+        g_renderer.resources.draw_mem->memory,
+        g_renderer.resources.draw_mem->offset,
+        GPU_MEM_SIZE_DRAW,
+        0,
+        &g_renderer.resources.draw_mapped
+    );
 
-        EMBER_ASSERT(vk_result == VK_SUCCESS);
+    EMBER_ASSERT(vk_result == VK_SUCCESS);
+
+    renderer_resources_create_depth();
 }
 
 internal void renderer_resources_destroy()

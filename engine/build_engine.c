@@ -17,6 +17,7 @@
 // H_FILES
 
 #include "engine_defs.h"
+#include "core/program_main.h"
 
 #include "platform/platform.h"
 #if PLATFORM_WINDOWS

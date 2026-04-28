@@ -1,5 +1,22 @@
 @echo off
 
+:::::::: BATCH ARGUMENTS ::::::::
+set argc=0
+for %%a in (%*) do (
+    set "%%~a=1"
+    set /A argc+=1
+)
+
+if "%argc%"=="0" (
+    set debug=1
+    set editor=1
+)
+
+if not "release"=="1" (
+    set debug=1
+)
+
+:::::::: GLOBAL VARIABLES ::::::::
 set program=ember.exe
 set sources=./engine/build_engine.c
 set depends=user32.lib shell32.lib vulkan-1.lib
@@ -18,18 +35,26 @@ set defines_rel=/DBUILD_DEBUG=0 /DEMBER_PROFILING_ENABLED=0 /DEMBER_BUILD_CONSOL
 set cmp_opt_rel=/W4 /02 /wd4996 /Fe%bin_dir_rel%%program% /Fo:%lnk_dir_rel% /I%VULKAN_SDK%\Include %defines_rel%
 set lnk_opt_rel=/link /SUBSYSTEM:WINDOWS /INCREMENTAL:NO /LIBPATH:%VULKAN_SDK%\Lib
 
-if /i "%~1"=="release" (
+if /i "%editor%"=="1" (
+    set sources=./editor/build_editor.c
+
+    echo [i] Building EMBER EDITOR
+)
+
+if /i "%release%"=="1" (
     if not exist %bin_dir_rel% mkdir %bin_dir_rel%
     if not exist %lnk_dir_rel% mkdir %lnk_dir_rel%
 
-    echo Building in RELEASE mode
+    echo     Configuration: RELEASE
     cl %cmp_opt_rel% %sources% %depends% %lnk_opt_rel%
-) else (
+) else if /i "%debug%"=="1" (
     if not exist %bin_dir_dbg% mkdir %bin_dir_dbg%
     if not exist %lnk_dir_dbg% mkdir %lnk_dir_dbg%
 
-    echo Building in DEBUG mode
+    echo     Configuration: DEBUG
     cl %cmp_opt_dbg% %sources% %depends% %lnk_opt_dbg%
+) else (
+    exit /b 1
 )
 
 call compile_shaders.bat
