@@ -63,7 +63,7 @@ internal void renderer_update(platform_hnd_t window_handle)
     renderer_ubo_t ubo;
 
     f32 time          = (f32)platform_timer_since_start(g_program_state.timer);
-    vec3_t camera_pos = {0.0f, 3.0f, 3.0f};
+    vec3_t camera_pos = {0.0f, 1.5f, 2.0f};
     camera_pos        = vec3_rotate_axis(&camera_pos, &VEC3_UP, time * 0.3f);
 
     ubo.view = mat4_look_at(
