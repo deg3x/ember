@@ -85,6 +85,9 @@ internal void             platform_timer_update(platform_timer_t* timer);
 internal f64              platform_timer_since_start(platform_timer_t timer);
 internal f64              platform_timer_delta(platform_timer_t timer);
 
+internal b32  platform_cursor_set_pos(platform_hnd_t window_handle, i32 x, i32 y);
+internal void platform_cursor_set_vis(b32 visible);
+
 internal void* platform_mem_reserve(u64 size);
 internal void* platform_mem_reserve_large(u64 size);
 internal b32   platform_mem_commit(void* ptr, u64 size);

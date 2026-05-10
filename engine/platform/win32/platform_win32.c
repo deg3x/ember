@@ -182,6 +182,28 @@ internal f64 platform_timer_delta(platform_timer_t timer)
     return delta_time;
 }
 
+internal b32 platform_cursor_set_pos(platform_hnd_t window_handle, i32 x, i32 y)
+{
+    POINT p = {x, y};
+
+    // NOTE(KB): We need to transform from window to screen coords
+    ClientToScreen(window_handle.hnd, &p);
+
+    return SetCursorPos(p.x, p.y);
+}
+
+internal void platform_cursor_set_vis(b32 visible)
+{
+    if (visible == EMBER_FALSE)
+    {
+        while (ShowCursor(FALSE) >= 0) {}
+
+        return;
+    }
+
+    ShowCursor(TRUE);
+}
+
 internal void* platform_mem_reserve(u64 size)
 {
     void* result = VirtualAlloc(NULL, size, MEM_RESERVE, PAGE_READWRITE);
@@ -519,39 +541,51 @@ internal LRESULT CALLBACK win32_wnd_msg_callback(HWND hwnd, UINT msg, WPARAM w_p
 
             return 0;
         }
+        case WM_KILLFOCUS:
+        {
+            ReleaseCapture();
+
+            return 0;
+        }
         case WM_LBUTTONUP:
         {
             g_input_state.keys[INPUT_KEY_lmb] = 0;
+            ReleaseCapture();
 
             return 0;
         }
         case WM_RBUTTONUP:
         {
             g_input_state.keys[INPUT_KEY_rmb] = 0;
+            ReleaseCapture();
 
             return 0;
         }
         case WM_MBUTTONUP:
         {
             g_input_state.keys[INPUT_KEY_mmb] = 0;
+            ReleaseCapture();
 
             return 0;
         }
         case WM_LBUTTONDOWN:
         {
             g_input_state.keys[INPUT_KEY_lmb] = 1;
+            SetCapture(hwnd);
 
             return 0;
         }
         case WM_RBUTTONDOWN:
         {
             g_input_state.keys[INPUT_KEY_rmb] = 1;
+            SetCapture(hwnd);
 
             return 0;
         }
         case WM_MBUTTONDOWN:
         {
             g_input_state.keys[INPUT_KEY_mmb] = 1;
+            SetCapture(hwnd);
 
             return 0;
         }
