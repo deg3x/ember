@@ -308,7 +308,7 @@ internal vec3_t vec3_cross(vec3_t* lhs, vec3_t* rhs)
 
 internal vec3_t vec3_rotate_quat(vec3_t* vector, quat_t* q)
 {
-    quat_t vec_q = {vector->x, vector->y, vector->z, 1.0f};
+    quat_t vec_q = {vector->x, vector->y, vector->z, 0.0f};
     quat_t conj  = quat_conj(q);
     quat_t res_q = quat_mul(q, &vec_q);
     res_q        = quat_mul(&res_q, &conj);

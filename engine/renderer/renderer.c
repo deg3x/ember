@@ -30,16 +30,14 @@ internal void renderer_init(platform_hnd_t window_handle)
 
 internal void renderer_update(platform_hnd_t window_handle)
 {
-    persist u32 frame_id = 0;
-
-    vkWaitForFences(g_renderer.device, 1, &g_renderer.fence_in_flight[frame_id], VK_TRUE, UINT64_MAX);
+    vkWaitForFences(g_renderer.device, 1, &g_renderer.fence_in_flight[g_renderer_frame_id], VK_TRUE, UINT64_MAX);
 
     u32 img_id;
     VkResult vk_result = vkAcquireNextImageKHR(
         g_renderer.device,
         g_renderer.swapchain,
         UINT64_MAX,
-        g_renderer.sem_img_avail[frame_id],
+        g_renderer.sem_img_avail[g_renderer_frame_id],
         VK_NULL_HANDLE,
         &img_id
     );
@@ -55,49 +53,28 @@ internal void renderer_update(platform_hnd_t window_handle)
         EMBER_ASSERT(vk_result == VK_SUCCESS || vk_result == VK_SUBOPTIMAL_KHR);
     }
 
-    vkResetFences(g_renderer.device, 1, &g_renderer.fence_in_flight[frame_id]);
-    vkResetCommandBuffer(g_renderer.command_buffers[frame_id], 0);
+    vkResetFences(g_renderer.device, 1, &g_renderer.fence_in_flight[g_renderer_frame_id]);
+    vkResetCommandBuffer(g_renderer.command_buffers[g_renderer_frame_id], 0);
 
-    renderer_command_buffer_record(&g_renderer.pipelines[0], frame_id, img_id);
-
-    renderer_ubo_t ubo;
-
-    f32 time          = (f32)platform_timer_since_start(g_program_state.timer);
-    vec3_t camera_pos = {0.0f, 1.5f, 2.0f};
-    camera_pos        = vec3_rotate_axis(&camera_pos, &VEC3_UP, time * 0.3f);
-
-    ubo.view = mat4_look_at(
-        &camera_pos,
-        &(vec3_t){0.0f, 0.0f, 0.0f},
-        &(vec3_t){0.0f, 1.0f, 0.0f}
-    );
-
-    platform_wnd_size_t client_size = platform_gfx_wnd_client_get_size(window_handle);
-
-    f32 aspect = (f32)client_size.width / (f32)client_size.height;
-
-    ubo.proj = mat4_persp(30.0f, aspect, 0.01f, 1000.0f);
-
-    void* dest = (u8 *)g_renderer.resources.ubo_mapped + frame_id * FRAME_SIZE(GPU_MEM_SIZE_UBO);
-    memcpy(dest, &ubo, sizeof(ubo));
+    renderer_command_buffer_record(&g_renderer.pipelines[0], g_renderer_frame_id, img_id);
 
     VkSemaphoreSubmitInfo wait_sem_info = {0};
     wait_sem_info.sType                 = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO;
-    wait_sem_info.semaphore             = g_renderer.sem_img_avail[frame_id];
+    wait_sem_info.semaphore             = g_renderer.sem_img_avail[g_renderer_frame_id];
     wait_sem_info.value                 = 0;
     wait_sem_info.stageMask             = VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
     wait_sem_info.deviceIndex           = 0;
 
     VkSemaphoreSubmitInfo sgnl_sem_info = {0};
     sgnl_sem_info.sType                 = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO;
-    sgnl_sem_info.semaphore             = g_renderer.sem_render_end[frame_id];
+    sgnl_sem_info.semaphore             = g_renderer.sem_render_end[g_renderer_frame_id];
     sgnl_sem_info.value                 = 0;
     sgnl_sem_info.stageMask             = VK_PIPELINE_STAGE_2_ALL_GRAPHICS_BIT;
     sgnl_sem_info.deviceIndex           = 0;
 
     VkCommandBufferSubmitInfo cmd_submit_info = {0};
     cmd_submit_info.sType                     = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO;
-    cmd_submit_info.commandBuffer             = g_renderer.command_buffers[frame_id];
+    cmd_submit_info.commandBuffer             = g_renderer.command_buffers[g_renderer_frame_id];
     cmd_submit_info.deviceMask                = 0;
 
     VkSubmitInfo2 submit_info            = {0};
@@ -109,13 +86,13 @@ internal void renderer_update(platform_hnd_t window_handle)
     submit_info.signalSemaphoreInfoCount = 1;
     submit_info.pSignalSemaphoreInfos    = &sgnl_sem_info;
 
-    vk_result = vkQueueSubmit2(g_renderer.graphics_queue, 1, &submit_info, g_renderer.fence_in_flight[frame_id]);
+    vk_result = vkQueueSubmit2(g_renderer.graphics_queue, 1, &submit_info, g_renderer.fence_in_flight[g_renderer_frame_id]);
     EMBER_ASSERT(vk_result == VK_SUCCESS);
 
     VkPresentInfoKHR present_info   = {0};
     present_info.sType              = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
     present_info.waitSemaphoreCount = 1;
-    present_info.pWaitSemaphores    = &g_renderer.sem_render_end[frame_id];
+    present_info.pWaitSemaphores    = &g_renderer.sem_render_end[g_renderer_frame_id];
     present_info.swapchainCount     = 1;
     present_info.pSwapchains        = &g_renderer.swapchain;
     present_info.pImageIndices      = &img_id;
@@ -132,7 +109,7 @@ internal void renderer_update(platform_hnd_t window_handle)
         EMBER_ASSERT(vk_result == VK_SUCCESS);
     }
 
-    frame_id = (frame_id + 1) % RENDERER_FRAMES_IN_FLIGHT;
+    g_renderer_frame_id = (g_renderer_frame_id + 1) % RENDERER_FRAMES_IN_FLIGHT;
 }
 
 internal void renderer_destroy()
@@ -165,6 +142,21 @@ internal void renderer_destroy()
     vkDestroyInstance(g_renderer.instance, NULL);
 
     cpu_arena_release(g_renderer.host_arena);
+}
+
+internal void renderer_update_ubo(transform_t* camera_trs, camera_t* camera)
+{
+    renderer_ubo_t ubo;
+
+    vec3_t camera_fw   = transform_fw(camera_trs);
+    vec3_t camera_up   = transform_up(camera_trs);
+    vec3_t camera_look = vec3_add(&camera_trs->position, &camera_fw);
+
+    ubo.view = mat4_look_at(&camera_trs->position, &camera_look, &camera_up);
+    ubo.proj = mat4_persp(camera->fov, camera->aspect, camera->clip_near, camera->clip_far);
+
+    void* dest = (u8 *)g_renderer.resources.ubo_mapped + g_renderer_frame_id * FRAME_SIZE(GPU_MEM_SIZE_UBO);
+    memcpy(dest, &ubo, sizeof(ubo));
 }
 
 internal void renderer_create_instance()
@@ -532,11 +524,12 @@ internal void renderer_command_buffer_record(renderer_pipeline_t* pipeline, u32 
     rendering_info.pDepthAttachment     = &depth_attachment;
     rendering_info.pStencilAttachment   = NULL;
 
+    // NOTE(KB): We invert viewport Y because vulkan
     VkViewport viewport = {0};
     viewport.x          = 0.0f;
-    viewport.y          = 0.0f;
+    viewport.y          = (f32)g_renderer.swapchain_extent.height;
     viewport.width      = (f32)g_renderer.swapchain_extent.width;
-    viewport.height     = (f32)g_renderer.swapchain_extent.height;
+    viewport.height     = (f32)g_renderer.swapchain_extent.height * -1.0f;
     viewport.minDepth   = 0.0f;
     viewport.maxDepth   = 1.0f;
 

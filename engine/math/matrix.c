@@ -385,25 +385,26 @@ internal mat4_t mat4_model(vec3_t* position, quat_t* rotation, vec3_t* scale)
     mat4_t scl_matrix = mat4_scale(scale);
 
     mat4_t result = mat4_translation(position);
-    result      = mat4_mul(&result, &rot_matrix);
-    result      = mat4_mul(&result, &scl_matrix);
+    result        = mat4_mul(&result, &rot_matrix);
+    result        = mat4_mul(&result, &scl_matrix);
 
     return result;
 }
 
-internal mat4_t mat4_persp(f32 fov_x, f32 aspect_ratio, f32 clip_near, f32 clip_far)
+internal mat4_t mat4_persp(f32 fov, f32 aspect_ratio, f32 clip_near, f32 clip_far)
 {
-    f32 inv_half_fov_tan = 1.0f / math_tan(fov_x * 0.5f);
-    f32 inv_aspect_ratio = 1.0f / aspect_ratio;
-    f32 far_minus_near   = clip_far - clip_near;
+    f32 fov_rad              = fov * MATH_DEG2RAD;
+    f32 inv_half_fov_tan     = 1.0f / math_tan(fov_rad * 0.5f);
+    f32 inv_aspect_ratio     = 1.0f / aspect_ratio;
+    f32 far_div_far_min_near = clip_far / (clip_far - clip_near);
 
     mat4_t result = {0};
 
     result.m[0][0] = inv_half_fov_tan * inv_aspect_ratio;
     result.m[1][1] = inv_half_fov_tan;
-    result.m[2][2] = (clip_far + clip_near) / far_minus_near;
+    result.m[2][2] = far_div_far_min_near;
     result.m[2][3] = 1.0f;
-    result.m[3][2] = -2.0f * clip_far * clip_near / far_minus_near;
+    result.m[3][2] = -clip_near * far_div_far_min_near;
 
     return result;
 }

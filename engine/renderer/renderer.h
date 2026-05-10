@@ -45,9 +45,12 @@ struct renderer_t
 
 global renderer_t g_renderer = {0};
 
+global u32 g_renderer_frame_id = 0;
+
 internal void renderer_init(platform_hnd_t window_handle);
 internal void renderer_update(platform_hnd_t window_handle);
 internal void renderer_destroy();
+internal void renderer_update_ubo(transform_t* camera_trs, camera_t* camera);
 
 internal void renderer_create_instance();
 internal void renderer_create_surface(platform_hnd_t window_handle);

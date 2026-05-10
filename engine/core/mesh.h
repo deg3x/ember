@@ -5,9 +5,9 @@ typedef struct mesh_t mesh_t;
 struct mesh_t
 {
     vertex_t* vertices;
-    i32*    indices;
-    i32     vertex_count;
-    i32     index_count;
+    i32*      indices;
+    i32       vertex_count;
+    i32       index_count;
 };
 
 global mesh_t g_mesh_rect = {

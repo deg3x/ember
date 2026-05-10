@@ -24,7 +24,7 @@ internal mat4_t mat4_rotation(vec3_t* axis, f32 angle);
 internal mat4_t mat4_scale(vec3_t* scale);
 
 internal mat4_t mat4_model(vec3_t* position, quat_t* rotation, vec3_t* scale);
-internal mat4_t mat4_persp(f32 fov_x, f32 aspect_ratio, f32 clip_near, f32 clip_far);
+internal mat4_t mat4_persp(f32 fov, f32 aspect_ratio, f32 clip_near, f32 clip_far);
 internal mat4_t mat4_ortho(f32 clip_left, f32 clip_right, f32 clip_bottom, f32 clip_top, f32 clip_near, f32 clip_far);
 internal mat4_t mat4_look_at(vec3_t* eye, vec3_t* target, vec3_t* up);
 

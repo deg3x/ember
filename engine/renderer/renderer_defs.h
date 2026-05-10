@@ -73,6 +73,7 @@ global const c8* g_instance_extensions[] = {
 
 global const c8* g_device_extensions[] = {
     VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+    VK_KHR_MAINTENANCE1_EXTENSION_NAME,
 };
 
 #endif // RENDERER_DEFS_H

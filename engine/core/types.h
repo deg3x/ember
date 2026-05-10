@@ -113,14 +113,17 @@ union mat4_t
 
 #pragma warning(pop)
 
-#define VEC2_ZERO     (vec2_t){0.0f, 0.0f}
-#define VEC3_ZERO     (vec3_t){0.0f, 0.0f, 0.0f}
-#define VEC3_ONE      (vec3_t){1.0f, 1.0f, 1.0f}
-#define VEC3_UP       (vec3_t){0.0f, 1.0f, 0.0f}
-#define VEC3_RIGHT    (vec3_t){1.0f, 0.0f, 0.0f}
-#define VEC3_FORWARD  (vec3_t){0.0f, 0.0f, 1.0f}
-#define VEC4_ZERO     (vec4_t){0.0f, 0.0f, 0.0f, 0.0f}
-#define QUAT_IDENTITY (quat_t){0.0f, 0.0f, 0.0f, 1.0f}
+#define VEC2_ZERO     (vec2_t){ 0.0f,  0.0f}
+#define VEC3_ZERO     (vec3_t){ 0.0f,  0.0f,  0.0f}
+#define VEC3_ONE      (vec3_t){ 1.0f,  1.0f,  1.0f}
+#define VEC3_UP       (vec3_t){ 0.0f,  1.0f,  0.0f}
+#define VEC3_DOWN     (vec3_t){ 0.0f, -1.0f,  0.0f}
+#define VEC3_RIGHT    (vec3_t){ 1.0f,  0.0f,  0.0f}
+#define VEC3_LEFT     (vec3_t){-1.0f,  0.0f,  0.0f}
+#define VEC3_FORWARD  (vec3_t){ 0.0f,  0.0f,  1.0f}
+#define VEC3_BACK     (vec3_t){ 0.0f,  0.0f, -1.0f}
+#define VEC4_ZERO     (vec4_t){ 0.0f,  0.0f,  0.0f, 0.0f}
+#define QUAT_IDENTITY (quat_t){ 0.0f,  0.0f,  0.0f, 1.0f}
 #define MAT4_IDENTITY (mat4_t)  \
     {                           \
         1.0f, 0.0f, 0.0f, 0.0f, \
@@ -137,6 +140,19 @@ enum
 {
     COORD_SPACE_local,
     COORD_SPACE_world
+};
+
+typedef struct camera_t camera_t;
+struct camera_t
+{
+    f32 fov;
+    f32 aspect;
+    f32 clip_near;
+    f32 clip_far;
+    f32 clip_left;
+    f32 clip_right;
+    f32 clip_bottom;
+    f32 clip_top;
 };
 
 typedef struct vertex_t vertex_t;
