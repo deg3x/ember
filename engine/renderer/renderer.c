@@ -420,7 +420,7 @@ internal void renderer_create_sync_primitives()
     }
 }
 
-internal void renderer_create_nodes(renderer_node_t* nodes, renderer_ssbo_t* node_ssbo, i32 node_count)
+internal i32 renderer_create_nodes(renderer_node_t* nodes, renderer_ssbo_t* node_ssbo, i32 node_count)
 {
     memcpy(g_renderer.node_data + g_renderer.node_count, nodes, node_count * sizeof(renderer_node_t));
 
@@ -431,7 +431,11 @@ internal void renderer_create_nodes(renderer_node_t* nodes, renderer_ssbo_t* nod
         memcpy(dst, node_ssbo, node_count * sizeof(renderer_ssbo_t));
     }
 
+    i32 result = g_renderer.node_count;
+
     g_renderer.node_count += node_count;
+
+    return result;
 }
 
 internal void renderer_create_meshes(mesh_t* m, i32 count)
@@ -468,6 +472,19 @@ internal void renderer_create_meshes(mesh_t* m, i32 count)
         );
 
         g_renderer.mesh_count += 1;
+    }
+}
+
+internal void renderer_update_model(i32 id, mat4_t* model)
+{
+    for (i32 i = 0; i < RENDERER_FRAMES_IN_FLIGHT; i++)
+    {
+        u8* dst = (u8*)g_renderer.resources.ssbo_mapped +
+                  i * FRAME_SIZE(GPU_MEM_SIZE_SSBO) +
+                  id * sizeof(renderer_ssbo_t) +
+                  offsetof(renderer_ssbo_t, transform);
+
+        memcpy(dst, model, sizeof(mat4_t));
     }
 }
 

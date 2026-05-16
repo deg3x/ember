@@ -9,6 +9,8 @@ struct transform_t
     vec3_t scale;
 };
 
+internal transform_t transform_from_mat4(mat4_t* matrix);
+
 internal vec3_t transform_fw(transform_t* transform);
 internal vec3_t transform_bk(transform_t* transform);
 internal vec3_t transform_up(transform_t* transform);

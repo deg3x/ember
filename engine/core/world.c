@@ -4,9 +4,10 @@ internal world_t world_init()
 
     cpu_arena_params_t params = { WORLD_MEM_SIZE, WORLD_MEM_SIZE, 0 };
 
-    result.arena            = cpu_arena_init(&params);
-    result.nodes.transforms = MEMORY_PUSH_ZERO(result.arena, mat4_t, WORLD_COUNT_TRANSFORMS);
-    result.nodes.parents    = MEMORY_PUSH_ZERO(result.arena, i32, WORLD_COUNT_PARENTS);
+    result.arena              = cpu_arena_init(&params);
+    result.nodes.transforms   = MEMORY_PUSH_ZERO(result.arena, mat4_t, WORLD_NODE_COUNT);
+    result.nodes.renderer_ids = MEMORY_PUSH_ZERO(result.arena, i32, WORLD_NODE_COUNT);
+    result.nodes.parents      = MEMORY_PUSH_ZERO(result.arena, i32, WORLD_NODE_COUNT);
 
     return result;
 }
@@ -52,11 +53,13 @@ internal world_entity_t world_load_model(world_t* world, const c8* file)
 
         if (mesh_id < 0)
         {
+            world->nodes.renderer_ids[node_id] = -1;
+
             continue;
         }
 
         renderer_ssbo_t ssbo = {
-            world_node_transform(world, node_id, COORD_SPACE_world)
+            world_node_model(world, node_id, COORD_SPACE_world)
         };
 
         renderer_node_t node = {
@@ -64,7 +67,7 @@ internal world_entity_t world_load_model(world_t* world, const c8* file)
             gltf.mesh_primitives[mesh_id]
         };
 
-        renderer_create_nodes(&node, &ssbo, 1);
+        world->nodes.renderer_ids[node_id] = renderer_create_nodes(&node, &ssbo, 1);
     }
 
     renderer_create_meshes(gltf.meshes, gltf.primitive_count);
@@ -107,17 +110,17 @@ internal world_entity_t world_entity_create(world_t* world, mesh_t* meshes, i32 
     return ret;
 }
 
-internal mat4_t world_node_transform(world_t* world, i32 id, coord_space_t space)
+internal mat4_t world_node_model(world_t* world, i32 node_id, coord_space_t space)
 {
-    mat4_t result = world->nodes.transforms[id];
+    mat4_t result = world->nodes.transforms[node_id];
 
     if (space == COORD_SPACE_local)
     {
         return result;
     }
 
-    i32 current = id;
-    i32 parent  = world->nodes.parents[id]; 
+    i32 current = node_id;
+    i32 parent  = world->nodes.parents[node_id]; 
 
     while (parent >= 0)
     {
@@ -127,4 +130,38 @@ internal mat4_t world_node_transform(world_t* world, i32 id, coord_space_t space
     }
 
     return result;
+}
+
+internal void world_entity_set_transform(world_t* world, world_entity_t entity, transform_t* transform)
+{
+    mat4_t model = mat4_model(&transform->position, &transform->rotation, &transform->scale);
+
+    world->nodes.transforms[entity.id] = model;
+
+    for (i32 i = 0; i < world->nodes.count; i++)
+    {
+        i32 current = -1;
+        i32 parent  = i;
+        b32 update  = EMBER_FALSE;
+
+        while (parent >= 0)
+        {
+            if (parent == entity.id)
+            {
+                update = EMBER_TRUE;
+
+                break;
+            }
+
+            current = parent;
+            parent  = world->nodes.parents[current];
+        }
+
+        if (update)
+        {
+            model = world_node_model(world, i, COORD_SPACE_world);
+
+            renderer_update_model(world->nodes.renderer_ids[i], &model);
+        }
+    }
 }

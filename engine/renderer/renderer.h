@@ -62,8 +62,9 @@ internal void renderer_create_command_buffers();
 internal void renderer_create_descriptor_pool();
 internal void renderer_create_sync_primitives();
 
-internal void renderer_create_nodes(renderer_node_t* nodes, renderer_ssbo_t* node_ssbo, i32 node_count);
+internal i32  renderer_create_nodes(renderer_node_t* nodes, renderer_ssbo_t* node_ssbo, i32 node_count);
 internal void renderer_create_meshes(mesh_t* m, i32 count);
+internal void renderer_update_model(i32 id, mat4_t* model);
 
 internal void renderer_command_buffer_record(renderer_pipeline_t* pipeline, u32 buffer_id, u32 img_id);
 
