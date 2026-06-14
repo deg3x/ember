@@ -30,6 +30,7 @@
 
 #include "core/types.h"
 
+#include "core/logger.h"
 #include "core/transform.h"
 #include "core/mesh.h"
 
@@ -63,6 +64,7 @@
     #error Platform not supported.
 #endif
 
+#include "core/logger.c"
 #include "core/mesh.c"
 #include "core/transform.c"
 

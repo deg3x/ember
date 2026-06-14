@@ -55,6 +55,14 @@ typedef char     c8;
 #define TO_GB(n) (((u64)n) >> 30)
 #define TO_TB(n) (((u64)n) >> 40)
 
+#define ENDIANNESS_SWAP_16(v) ((((v) & 0x00000000000000FF) << 0x08) | (((v) & 0x000000000000FF00) >> 0x08))
+#define ENDIANNESS_SWAP_32(v) ((((v) & 0x000000000000FF00) << 0x08) | (((v) & 0x0000000000FF0000) >> 0x08)  \
+                            |  (((v) & 0x00000000000000FF) << 0x18) | (((v) & 0x00000000FF000000) >> 0x18))
+#define ENDIANNESS_SWAP_64(v) ((((v) & 0x00000000FF000000) << 0x08) | (((v) & 0x000000FF00000000) >> 0x08)  \
+                            |  (((v) & 0x0000000000FF0000) << 0x10) | (((v) & 0x0000FF0000000000) >> 0x10)  \
+                            |  (((v) & 0x000000000000FF00) << 0x18) | (((v) & 0x00FF000000000000) >> 0x18)  \
+                            |  (((v) & 0x00000000000000FF) << 0x20) | (((v) & 0xFF00000000000000) >> 0x20))
+
 #define ARRAY_COUNT(a) (sizeof(a) / sizeof(a[0]))
 
 #define MEMORY_ZERO(p, s) memset((p), 0, (s));
