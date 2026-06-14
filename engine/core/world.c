@@ -83,7 +83,8 @@ internal world_entity_t world_load_model(world_t* world, const c8* file)
 
 internal world_entity_t world_entity_create(world_t* world, mesh_t* meshes, i32 mesh_count, mat4_t* transform)
 {
-    mat4_t trs = transform != NULL ? *transform : MAT4_IDENTITY;
+    i32 node_id = world->nodes.count;
+    mat4_t trs  = transform != NULL ? *transform : MAT4_IDENTITY;
 
     if (meshes != NULL && mesh_count > 0)
     {
@@ -96,8 +97,12 @@ internal world_entity_t world_entity_create(world_t* world, mesh_t* meshes, i32 
             trs
         };
 
-        renderer_create_nodes(&node, &ssbo, 1);
+        world->nodes.renderer_ids[node_id] = renderer_create_nodes(&node, &ssbo, 1);
         renderer_create_meshes(meshes, mesh_count);
+    }
+    else
+    {
+        world->nodes.renderer_ids[node_id] = -1;
     }
 
     memcpy(world->nodes.transforms + world->nodes.count, &trs, sizeof(mat4_t));
@@ -161,7 +166,11 @@ internal void world_entity_set_transform(world_t* world, world_entity_t entity, 
         {
             model = world_node_model(world, i, COORD_SPACE_world);
 
-            renderer_update_model(world->nodes.renderer_ids[i], &model);
+            i32 rnd_id = world->nodes.renderer_ids[i];
+            if (rnd_id >= 0)
+            {
+                renderer_update_model(rnd_id, &model);
+            }
         }
     }
 }

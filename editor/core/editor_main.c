@@ -85,7 +85,7 @@ inline void editor_camera_update(transform_t* camera_trs)
         mouse_pos_last = g_input_state.mouse_pos;
     }
 
-    f32 camera_speed_rot = 2.0f;
+    f32 camera_speed_rot = 0.5f;
     f32 delta_time       = (f32)platform_timer_delta(g_program_state.timer);
     f32 mouse_scroll     = g_input_state.mouse_scroll.y;
 
