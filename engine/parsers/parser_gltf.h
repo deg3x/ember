@@ -70,7 +70,8 @@ struct gltf_primitive_t
     i32 position;
     i32 normal;
     i32 tangent;
-    i32 texcoord;
+    i32 texcoord0;
+    i32 texcoord1;
     i32 color;
     i32 joints;
     i32 weights;
@@ -217,6 +218,7 @@ struct gltf_data_t
     i32*         mesh_ids;
     i32*         mesh_offsets;
     i32*         mesh_primitives;
+    b8*          mesh_has_tangents;
     mesh_t*      meshes;
     texture_t*   textures;
     material_t*  materials;

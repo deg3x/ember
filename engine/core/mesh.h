@@ -11,6 +11,8 @@ struct mesh_t
     i32       material_id;
 };
 
+internal void mesh_generate_tangents(mesh_t* mesh);
+
 global mesh_t g_mesh_rect = {
     (vertex_t []) {
         {{-0.5f, -0.5f, 0.0f}, {0.0f, 0.0f, -1.0f}, {1.0f, 1.0f, 1.0f}, {0.0f, 0.0f}},

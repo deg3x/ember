@@ -304,15 +304,25 @@ internal void renderer_pipeline_create_graphics_pipeline(renderer_pipeline_t* pi
     vertex_attr[RENDERER_VATTR_TYPE_normal].offset                           = offsetof(vertex_t, normal);
     vertex_attr[RENDERER_VATTR_TYPE_normal].format                           = VK_FORMAT_R32G32B32_SFLOAT;
 
+    vertex_attr[RENDERER_VATTR_TYPE_tangent].binding                         = 0;
+    vertex_attr[RENDERER_VATTR_TYPE_tangent].location                        = 2;
+    vertex_attr[RENDERER_VATTR_TYPE_tangent].offset                          = offsetof(vertex_t, tangent);
+    vertex_attr[RENDERER_VATTR_TYPE_tangent].format                          = VK_FORMAT_R32G32B32A32_SFLOAT;
+
     vertex_attr[RENDERER_VATTR_TYPE_color].binding                           = 0;
-    vertex_attr[RENDERER_VATTR_TYPE_color].location                          = 2;
+    vertex_attr[RENDERER_VATTR_TYPE_color].location                          = 3;
     vertex_attr[RENDERER_VATTR_TYPE_color].offset                            = offsetof(vertex_t, color);
     vertex_attr[RENDERER_VATTR_TYPE_color].format                            = VK_FORMAT_R32G32B32_SFLOAT;
 
-    vertex_attr[RENDERER_VATTR_TYPE_uv].binding                              = 0;
-    vertex_attr[RENDERER_VATTR_TYPE_uv].location                             = 3;
-    vertex_attr[RENDERER_VATTR_TYPE_uv].offset                               = offsetof(vertex_t, uv);
-    vertex_attr[RENDERER_VATTR_TYPE_uv].format                               = VK_FORMAT_R32G32_SFLOAT;
+    vertex_attr[RENDERER_VATTR_TYPE_uv0].binding                             = 0;
+    vertex_attr[RENDERER_VATTR_TYPE_uv0].location                            = 4;
+    vertex_attr[RENDERER_VATTR_TYPE_uv0].offset                              = offsetof(vertex_t, uv0);
+    vertex_attr[RENDERER_VATTR_TYPE_uv0].format                              = VK_FORMAT_R32G32_SFLOAT;
+
+    vertex_attr[RENDERER_VATTR_TYPE_uv1].binding                             = 0;
+    vertex_attr[RENDERER_VATTR_TYPE_uv1].location                            = 5;
+    vertex_attr[RENDERER_VATTR_TYPE_uv1].offset                              = offsetof(vertex_t, uv1);
+    vertex_attr[RENDERER_VATTR_TYPE_uv1].format                              = VK_FORMAT_R32G32_SFLOAT;
 
     VkPipelineVertexInputStateCreateInfo vertex_input_info = {0};
     vertex_input_info.sType                                = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;

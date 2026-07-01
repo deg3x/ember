@@ -2,13 +2,13 @@
 
 #extension GL_EXT_nonuniform_qualifier : enable
 
-struct DrawData
+struct draw_data_t
 {
     int transform_id;
     int material_id;
 };
 
-struct Material
+struct material_t
 {
     vec4  color;
     vec3  color_em;
@@ -20,6 +20,12 @@ struct Material
     float alpha_cutoff;
     float normal_scale;
     int   double_sided;
+
+    int   use_tex_al;
+    int   use_tex_mr;
+    int   use_tex_nm;
+    int   use_tex_ao;
+    int   use_tex_em;
 
     int   tex_id_al;
     int   tex_id_mr;
@@ -36,31 +42,50 @@ struct Material
 
 layout(std430, set = 0, binding = 2) readonly buffer DrawDataBuffer
 {
-    DrawData draw_info[];
+    draw_data_t draw_info[];
 };
 
 layout(std430, set = 0, binding = 3) readonly buffer MaterialBuffer
 {
-    Material materials[];
+    material_t materials[];
 };
 
 layout(set = 1, binding = 0) uniform sampler2D textures[];
 
 layout(location = 0) in vec3 frag_color;
-layout(location = 1) in vec3 world_normal;
-layout(location = 2) in vec2 frag_uv;
-layout(location = 3) flat in uint instance_id;
+layout(location = 1) in mat3 tbn;
+layout(location = 4) in vec2 frag_uvs[2];
+layout(location = 6) flat in uint instance_id;
 
 layout(location = 0) out vec4 out_color;
 
 void main()
 {
-    int id_mat    = draw_info[instance_id].material_id;
-    int id_albedo = materials[id_mat].tex_id_al;
+    int id_mat     = draw_info[instance_id].material_id;
+    material_t mat = materials[id_mat];
 
-    vec4 tex_al       = texture(textures[nonuniformEXT(id_albedo)], frag_uv);
+    int id_albedo = mat.tex_id_al;
+    int id_normal = mat.tex_id_nm;
+
+    vec2 uvs_al = frag_uvs[mat.tex_uv_al];
+    vec2 uvs_mr = frag_uvs[mat.tex_uv_mr];
+    vec2 uvs_nm = frag_uvs[mat.tex_uv_nm];
+    vec2 uvs_ao = frag_uvs[mat.tex_uv_ao];
+    vec2 uvs_em = frag_uvs[mat.tex_uv_em];
+
+    vec4 tex_al = texture(textures[nonuniformEXT(id_albedo)], uvs_al);
+    vec3 tex_nm = normalize(texture(textures[nonuniformEXT(id_normal)], uvs_nm).rgb * 2.0 - 1.0);
+
+    float check = step(0.5, dot(cross(tbn[0], tbn[1]), tbn[2]));
+
+    tex_nm = normalize((check * tbn + (1 - check) * mat3(-tbn[0], tbn[1], tbn[2])) * tex_nm);
+
+    vec4 albedo = mat.use_tex_al * tex_al * mat.color + (1 - mat.use_tex_al) * mat.color;
+    vec3 normal = mat.use_tex_nm * normalize(tex_nm) + (1 - mat.use_tex_nm) * tbn[2];
+
     vec3 light_dir    = normalize(vec3(-0.25, -1.0, -0.45));
-    float light_alpha = clamp(dot(normalize(world_normal), -light_dir), 0.0, 1.0);
+    float light_alpha = clamp(dot(normalize(normal), -light_dir), 0.0, 1.0);
 
-    out_color = vec4(tex_al.rgb * frag_color * light_alpha, 1.0);
+    out_color = vec4(albedo.rgb * frag_color * light_alpha, 1.0);
+    //out_color = vec4(normal, 1.0);
 }

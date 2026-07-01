@@ -74,49 +74,41 @@ internal world_entity_t world_load_model(world_t* world, const c8* file)
     {
         material_t* mat = &gltf.materials[i];
 
-        if (mat->tex_id_al >= 0)
-        {
-            mat->tex_id_al += g_renderer.tex_count;
-        }
-
-        if (mat->tex_id_mr >= 0)
-        {
-            mat->tex_id_mr += g_renderer.tex_count;
-        }
-
-        if (mat->tex_id_nm >= 0)
-        {
-            mat->tex_id_nm += g_renderer.tex_count;
-        }
-
-        if (mat->tex_id_ao >= 0)
-        {
-            mat->tex_id_ao += g_renderer.tex_count;
-        }
-
-        if (mat->tex_id_em >= 0)
-        {
-            mat->tex_id_em += g_renderer.tex_count;
-        }
+        mat->tex_id_al += (mat->tex_id_al >= 0) ? g_renderer.tex_count : 0;
+        mat->tex_id_mr += (mat->tex_id_mr >= 0) ? g_renderer.tex_count : 0;
+        mat->tex_id_nm += (mat->tex_id_nm >= 0) ? g_renderer.tex_count : 0;
+        mat->tex_id_ao += (mat->tex_id_ao >= 0) ? g_renderer.tex_count : 0;
+        mat->tex_id_em += (mat->tex_id_em >= 0) ? g_renderer.tex_count : 0;
 
         mat->tex_id_al = CLAMP(mat->tex_id_al, 0, RENDERER_TEX_COUNT_MAX);
         mat->tex_id_mr = CLAMP(mat->tex_id_mr, 0, RENDERER_TEX_COUNT_MAX);
         mat->tex_id_nm = CLAMP(mat->tex_id_nm, 0, RENDERER_TEX_COUNT_MAX);
         mat->tex_id_ao = CLAMP(mat->tex_id_ao, 0, RENDERER_TEX_COUNT_MAX);      
         mat->tex_id_em = CLAMP(mat->tex_id_em, 0, RENDERER_TEX_COUNT_MAX);
+
+        // NOTE(KB): Hitting these asserts means its time to parse extra UV channels from the gltf
+        EMBER_ASSERT(mat->tex_uv_al <= 1);
+        EMBER_ASSERT(mat->tex_uv_mr <= 1);
+        EMBER_ASSERT(mat->tex_uv_nm <= 1);
+        EMBER_ASSERT(mat->tex_uv_ao <= 1);
+        EMBER_ASSERT(mat->tex_uv_em <= 1);
     }
 
-    for (i32 i = 0; i < gltf.mesh_count; i++)
+    for (i32 i = 0; i < gltf.primitive_count; i++)
     {
         mesh_t* mesh = &gltf.meshes[i];
-        i32 mat_id   = mesh->material_id;
 
-        if (mat_id >= 0)
+        if (mesh->material_id >= 0)
         {
-            mat_id += g_renderer.mat_count;
+            mesh->material_id += g_renderer.mat_count;
         }
 
-        mesh->material_id = CLAMP(mat_id, 0, RENDERER_MAT_COUNT_MAX);
+        mesh->material_id = CLAMP(mesh->material_id, 0, RENDERER_MAT_COUNT_MAX);
+
+        if (!gltf.mesh_has_tangents[i])
+        {
+            mesh_generate_tangents(mesh);
+        }
     }
 
     for (i32 i = 0; i < gltf.texture_count; i++)
@@ -138,7 +130,7 @@ internal world_entity_t world_load_model(world_t* world, const c8* file)
             width,
             height,
             (u8*)pixels,
-            width * height * channels,
+            width * height * 4,
             RENDERER_IMG_FORMAT_rgba_srgb,
             RENDERER_IMG_TILING_optimal,
             RENDERER_IMG_USAGE_FLAGS_transfer_dst | RENDERER_IMG_USAGE_FLAGS_sampled

@@ -286,7 +286,7 @@ internal void renderer_resources_create_sampler()
     sampler_info.addressModeW            = VK_SAMPLER_ADDRESS_MODE_REPEAT;
     sampler_info.anisotropyEnable        = VK_FALSE;
     sampler_info.maxAnisotropy           = properties.limits.maxSamplerAnisotropy;
-    sampler_info.borderColor             = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
+    sampler_info.borderColor             = VK_BORDER_COLOR_INT_OPAQUE_WHITE;
     sampler_info.unnormalizedCoordinates = VK_FALSE;
     sampler_info.compareEnable           = VK_FALSE;
     sampler_info.compareOp               = VK_COMPARE_OP_ALWAYS;

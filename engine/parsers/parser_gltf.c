@@ -160,7 +160,8 @@ internal gltf_json_t gltf_parse_chunk_json(gltf_parser_t* parser, u32 chunk_leng
                 i32 position;
                 i32 normal;
                 i32 tangent;
-                i32 texcoord;
+                i32 texcoord0;
+                i32 texcoord1;
                 i32 color;
                 i32 joints;
                 i32 weights;
@@ -187,21 +188,23 @@ internal gltf_json_t gltf_parse_chunk_json(gltf_parser_t* parser, u32 chunk_leng
 
                     json_entry_t* attributes = json_find_child(current_prim, &attributes_buffer);
 
-                    b32 position_is_valid = json_child_value(parser->arena, attributes, JSON_VALUE_TYPE_i32, &position, "POSITION");
-                    b32 normal_is_valid   = json_child_value(parser->arena, attributes, JSON_VALUE_TYPE_i32, &normal, "NORMAL");
-                    b32 tangent_is_valid  = json_child_value(parser->arena, attributes, JSON_VALUE_TYPE_i32, &tangent, "TANGENT");
-                    b32 texcoord_is_valid = json_child_value(parser->arena, attributes, JSON_VALUE_TYPE_i32, &texcoord, "TEXCOORD_0");
-                    b32 color_is_valid    = json_child_value(parser->arena, attributes, JSON_VALUE_TYPE_i32, &color, "COLOR_0");
-                    b32 joints_is_valid   = json_child_value(parser->arena, attributes, JSON_VALUE_TYPE_i32, &joints, "JOINTS_0");
-                    b32 weights_is_valid  = json_child_value(parser->arena, attributes, JSON_VALUE_TYPE_i32, &weights, "WEIGHTS_0");
-                    b32 indices_is_valid  = json_child_value(parser->arena, current_prim, JSON_VALUE_TYPE_i32, &indices, "indices");
-                    b32 material_is_valid = json_child_value(parser->arena, current_prim, JSON_VALUE_TYPE_i32, &material, "material");
-                    b32 mode_is_valid     = json_child_value(parser->arena, current_prim, JSON_VALUE_TYPE_i32, &mode, "mode");
+                    b32 position_is_valid  = json_child_value(parser->arena, attributes, JSON_VALUE_TYPE_i32, &position, "POSITION");
+                    b32 normal_is_valid    = json_child_value(parser->arena, attributes, JSON_VALUE_TYPE_i32, &normal, "NORMAL");
+                    b32 tangent_is_valid   = json_child_value(parser->arena, attributes, JSON_VALUE_TYPE_i32, &tangent, "TANGENT");
+                    b32 texcoord0_is_valid = json_child_value(parser->arena, attributes, JSON_VALUE_TYPE_i32, &texcoord0, "TEXCOORD_0");
+                    b32 texcoord1_is_valid = json_child_value(parser->arena, attributes, JSON_VALUE_TYPE_i32, &texcoord1, "TEXCOORD_1");
+                    b32 color_is_valid     = json_child_value(parser->arena, attributes, JSON_VALUE_TYPE_i32, &color, "COLOR_0");
+                    b32 joints_is_valid    = json_child_value(parser->arena, attributes, JSON_VALUE_TYPE_i32, &joints, "JOINTS_0");
+                    b32 weights_is_valid   = json_child_value(parser->arena, attributes, JSON_VALUE_TYPE_i32, &weights, "WEIGHTS_0");
+                    b32 indices_is_valid   = json_child_value(parser->arena, current_prim, JSON_VALUE_TYPE_i32, &indices, "indices");
+                    b32 material_is_valid  = json_child_value(parser->arena, current_prim, JSON_VALUE_TYPE_i32, &material, "material");
+                    b32 mode_is_valid      = json_child_value(parser->arena, current_prim, JSON_VALUE_TYPE_i32, &mode, "mode");
 
                     result.meshes[i].primitives[j].position  = position_is_valid ? position : -1;
                     result.meshes[i].primitives[j].normal    = normal_is_valid ? normal : -1;
                     result.meshes[i].primitives[j].tangent   = tangent_is_valid ? tangent : -1;
-                    result.meshes[i].primitives[j].texcoord  = texcoord_is_valid ? texcoord : -1;
+                    result.meshes[i].primitives[j].texcoord0 = texcoord0_is_valid ? texcoord0 : -1;
+                    result.meshes[i].primitives[j].texcoord1 = texcoord1_is_valid ? texcoord1 : -1;
                     result.meshes[i].primitives[j].color     = color_is_valid ? color : -1;
                     result.meshes[i].primitives[j].joints    = joints_is_valid ? joints : -1;
                     result.meshes[i].primitives[j].weights   = weights_is_valid ? weights : -1;
@@ -594,21 +597,22 @@ internal gltf_data_t gltf_parse_chunk_binary(gltf_parser_t* parser, u32 chunk_le
 
     EMBER_ASSERT(json_data != NULL);
 
-    result.transforms       = MEMORY_PUSH(parser->arena, mat4_t, json_data->node_count);
-    result.children         = MEMORY_PUSH(parser->arena, i32*, json_data->node_count);
-    result.children_count   = MEMORY_PUSH(parser->arena, i32, json_data->node_count);
-    result.parents          = MEMORY_PUSH(parser->arena, i32, json_data->node_count);
-    result.mesh_ids         = MEMORY_PUSH(parser->arena, i32, json_data->node_count);
-    result.mesh_offsets     = MEMORY_PUSH(parser->arena, i32, json_data->mesh_count);
-    result.mesh_primitives  = MEMORY_PUSH(parser->arena, i32, json_data->mesh_count);
-    result.meshes           = MEMORY_PUSH(parser->arena, mesh_t, json_data->primitive_count);
-    result.textures         = MEMORY_PUSH(parser->arena, texture_t, json_data->texture_count);
-    result.materials        = MEMORY_PUSH(parser->arena, material_t, json_data->material_count);
-    result.node_count       = json_data->node_count;
-    result.mesh_count       = json_data->mesh_count;
-    result.primitive_count  = json_data->primitive_count;
-    result.texture_count    = json_data->texture_count;
-    result.material_count   = json_data->material_count;
+    result.transforms        = MEMORY_PUSH_ZERO(parser->arena, mat4_t, json_data->node_count);
+    result.children          = MEMORY_PUSH_ZERO(parser->arena, i32*, json_data->node_count);
+    result.children_count    = MEMORY_PUSH_ZERO(parser->arena, i32, json_data->node_count);
+    result.parents           = MEMORY_PUSH_ZERO(parser->arena, i32, json_data->node_count);
+    result.mesh_ids          = MEMORY_PUSH_ZERO(parser->arena, i32, json_data->node_count);
+    result.mesh_offsets      = MEMORY_PUSH_ZERO(parser->arena, i32, json_data->mesh_count);
+    result.mesh_primitives   = MEMORY_PUSH_ZERO(parser->arena, i32, json_data->mesh_count);
+    result.mesh_has_tangents = MEMORY_PUSH_ZERO(parser->arena, b8, json_data->primitive_count);
+    result.meshes            = MEMORY_PUSH_ZERO(parser->arena, mesh_t, json_data->primitive_count);
+    result.textures          = MEMORY_PUSH_ZERO(parser->arena, texture_t, json_data->texture_count);
+    result.materials         = MEMORY_PUSH_ZERO(parser->arena, material_t, json_data->material_count);
+    result.node_count        = json_data->node_count;
+    result.mesh_count        = json_data->mesh_count;
+    result.primitive_count   = json_data->primitive_count;
+    result.texture_count     = json_data->texture_count;
+    result.material_count    = json_data->material_count;
 
     // NOTE(KB): Convert node data to output format
     for (i32 node_idx = 0; node_idx < json_data->node_count; node_idx++)
@@ -636,6 +640,11 @@ internal gltf_data_t gltf_parse_chunk_binary(gltf_parser_t* parser, u32 chunk_le
         result.materials[mat_idx].alpha_cutoff = mat->alpha_cutoff;
         result.materials[mat_idx].normal_scale = mat->tex_nm_scale;
         result.materials[mat_idx].double_sided = mat->double_sided;
+        result.materials[mat_idx].use_tex_al   = !!(mat->pbr_tex_clr_id >= 0);
+        result.materials[mat_idx].use_tex_mr   = !!(mat->pbr_tex_mr_id >= 0);
+        result.materials[mat_idx].use_tex_nm   = !!(mat->tex_nm_id >= 0);
+        result.materials[mat_idx].use_tex_ao   = !!(mat->tex_ao_id >= 0);
+        result.materials[mat_idx].use_tex_em   = !!(mat->tex_em_id >= 0);
         result.materials[mat_idx].tex_id_al    = mat->pbr_tex_clr_id;
         result.materials[mat_idx].tex_id_mr    = mat->pbr_tex_mr_id;
         result.materials[mat_idx].tex_id_nm    = mat->tex_nm_id;
@@ -728,7 +737,9 @@ internal gltf_data_t gltf_parse_chunk_binary(gltf_parser_t* parser, u32 chunk_le
         {
             i32 acs_pos = json_data->meshes[mesh_idx].primitives[prim_idx].position;
             i32 acs_nrm = json_data->meshes[mesh_idx].primitives[prim_idx].normal;
-            i32 acs_uvs = json_data->meshes[mesh_idx].primitives[prim_idx].texcoord;
+            i32 acs_tan = json_data->meshes[mesh_idx].primitives[prim_idx].tangent;
+            i32 acs_uv0 = json_data->meshes[mesh_idx].primitives[prim_idx].texcoord0;
+            i32 acs_uv1 = json_data->meshes[mesh_idx].primitives[prim_idx].texcoord1;
             i32 acs_ids = json_data->meshes[mesh_idx].primitives[prim_idx].indices;
 
             i32 data_offset_pos = json_data->buffer_views[json_data->accessors[acs_pos].buffer_view_id].byte_offset
@@ -737,15 +748,15 @@ internal gltf_data_t gltf_parse_chunk_binary(gltf_parser_t* parser, u32 chunk_le
             i32 data_offset_nrm = json_data->buffer_views[json_data->accessors[acs_nrm].buffer_view_id].byte_offset
                                 + json_data->accessors[acs_nrm].byte_offset;
 
-            i32 data_offset_uvs = json_data->buffer_views[json_data->accessors[acs_uvs].buffer_view_id].byte_offset
-                                + json_data->accessors[acs_uvs].byte_offset;
+            i32 data_offset_uv0 = json_data->buffer_views[json_data->accessors[acs_uv0].buffer_view_id].byte_offset
+                                + json_data->accessors[acs_uv0].byte_offset;
 
             i32 data_offset_ids = json_data->buffer_views[json_data->accessors[acs_ids].buffer_view_id].byte_offset
-                                  + json_data->accessors[acs_ids].byte_offset;
+                                + json_data->accessors[acs_ids].byte_offset;
 
             EMBER_ASSERT(
                 (json_data->accessors[acs_pos].count == json_data->accessors[acs_nrm].count) &&
-                (json_data->accessors[acs_pos].count == json_data->accessors[acs_uvs].count)
+                (json_data->accessors[acs_pos].count == json_data->accessors[acs_uv0].count)
             );
 
             result.meshes[mesh_offset].material_id  = json_data->meshes[mesh_idx].primitives[prim_idx].material;
@@ -786,14 +797,48 @@ internal gltf_data_t gltf_parse_chunk_binary(gltf_parser_t* parser, u32 chunk_le
             );
 
             gltf_parse_components(
-                (data + data_offset_uvs),
+                (data + data_offset_uv0),
                 result.meshes[mesh_offset].vertices,
                 result.meshes[mesh_offset].vertex_count,
-                offsetof(vertex_t, uv),
+                offsetof(vertex_t, uv0),
                 sizeof(vertex_t),
-                json_data->accessors[acs_uvs].component_type,
-                json_data->accessors[acs_uvs].type
+                json_data->accessors[acs_uv0].component_type,
+                json_data->accessors[acs_uv0].type
             );
+
+            if (acs_tan >= 0)
+            {
+                i32 data_offset_tan = json_data->buffer_views[json_data->accessors[acs_tan].buffer_view_id].byte_offset
+                                    + json_data->accessors[acs_tan].byte_offset;
+
+                gltf_parse_components(
+                    (data + data_offset_tan),
+                    result.meshes[mesh_offset].vertices,
+                    result.meshes[mesh_offset].vertex_count,
+                    offsetof(vertex_t, tangent),
+                    sizeof(vertex_t),
+                    json_data->accessors[acs_tan].component_type,
+                    json_data->accessors[acs_tan].type
+                );
+
+                result.mesh_has_tangents[mesh_offset] = EMBER_TRUE;
+            }
+
+            if (acs_uv1 >= 0)
+            {
+                i32 data_offset_uv1 = json_data->buffer_views[json_data->accessors[acs_uv1].buffer_view_id].byte_offset
+                                    + json_data->accessors[acs_uv1].byte_offset;
+
+                gltf_parse_components(
+                    (data + data_offset_uv1),
+                    result.meshes[mesh_offset].vertices,
+                    result.meshes[mesh_offset].vertex_count,
+                    offsetof(vertex_t, uv1),
+                    sizeof(vertex_t),
+                    json_data->accessors[acs_uv1].component_type,
+                    json_data->accessors[acs_uv1].type
+                );
+            }
 
             // NOTE(): Manually write to the color value
             for (i32 i = 0; i < result.meshes[mesh_offset].vertex_count; i++)

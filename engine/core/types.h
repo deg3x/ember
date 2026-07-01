@@ -160,8 +160,10 @@ struct vertex_t
 {
     vec3_t position;
     vec3_t normal;
+    vec4_t tangent;
     vec3_t color;
-    vec2_t uv;
+    vec2_t uv0;
+    vec2_t uv1;
 };
 
 typedef struct sampler_t sampler_t;
@@ -196,6 +198,12 @@ struct material_t
     f32      normal_scale;
     b32      double_sided;
 
+    b32      use_tex_al;
+    b32      use_tex_mr;
+    b32      use_tex_nm;
+    b32      use_tex_ao;
+    b32      use_tex_em;
+
     i32      tex_id_al;
     i32      tex_id_mr;
     i32      tex_id_nm;
@@ -207,6 +215,8 @@ struct material_t
     i32      tex_uv_nm;
     i32      tex_uv_ao;
     i32      tex_uv_em;
+
+    i32      _padding[3];
 };
 
 #endif // TYPES_H
