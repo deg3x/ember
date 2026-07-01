@@ -37,10 +37,14 @@ struct renderer_t
     renderer_pipeline_t* pipelines;
     renderer_mesh_t*     mesh_data;
     renderer_node_t*     node_data;
+    renderer_tex_t*      tex_data;
+    material_t*          mat_data;
 
     i32                  pipeline_count;
     i32                  mesh_count;
     i32                  node_count;
+    i32                  tex_count;
+    i32                  mat_count;
 };
 
 global renderer_t g_renderer = {0};
@@ -59,12 +63,14 @@ internal void renderer_create_queue_ids();
 internal void renderer_create_device();
 internal void renderer_create_command_pool();
 internal void renderer_create_command_buffers();
-internal void renderer_create_descriptor_pool();
 internal void renderer_create_sync_primitives();
 
-internal i32  renderer_create_nodes(renderer_node_t* nodes, renderer_ssbo_t* node_ssbo, i32 node_count);
+internal i32  renderer_create_nodes(renderer_node_t* nodes, renderer_ssbo_t* node_ssbo, i32 count);
 internal void renderer_create_meshes(mesh_t* m, i32 count);
-internal void renderer_update_model(i32 id, mat4_t* model);
+internal void renderer_create_textures(renderer_tex_info_t* tex_info, i32 count);
+internal void renderer_create_materials(material_t* mats, i32 count);
+internal void renderer_update_trs(i32 id, mat4_t* model, i32 count);
+internal void renderer_update_materials(i32 id, material_t* material, i32 count);
 
 internal void renderer_command_buffer_record(renderer_pipeline_t* pipeline, u32 buffer_id, u32 img_id);
 

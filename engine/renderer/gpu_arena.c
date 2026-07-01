@@ -11,6 +11,7 @@ internal gpu_arena_t gpu_arena_init(VkPhysicalDevice physical_device, VkDevice d
     u32 mem_idx_ssbo = U32_MAX;
     u32 mem_idx_dcmd = U32_MAX;
     u32 mem_idx_draw = U32_MAX;
+    u32 mem_idx_mats = U32_MAX;
 
     VkMemoryPropertyFlags flags_mesh = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
     VkMemoryPropertyFlags flags_tex  = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
@@ -19,6 +20,7 @@ internal gpu_arena_t gpu_arena_init(VkPhysicalDevice physical_device, VkDevice d
     VkMemoryPropertyFlags flags_ssbo = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
     VkMemoryPropertyFlags flags_dcmd = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
     VkMemoryPropertyFlags flags_draw = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+    VkMemoryPropertyFlags flags_mats = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
 
     for (u32 i = 0; i < ret.mem_props.memoryTypeCount; i++)
     {
@@ -29,6 +31,7 @@ internal gpu_arena_t gpu_arena_init(VkPhysicalDevice physical_device, VkDevice d
         b32 flag_check_ssbo = (ret.mem_props.memoryTypes[i].propertyFlags & flags_ssbo) == flags_ssbo;
         b32 flag_check_dcmd = (ret.mem_props.memoryTypes[i].propertyFlags & flags_dcmd) == flags_dcmd;
         b32 flag_check_draw = (ret.mem_props.memoryTypes[i].propertyFlags & flags_draw) == flags_draw;
+        b32 flag_check_mats = (ret.mem_props.memoryTypes[i].propertyFlags & flags_mats) == flags_mats;
 
         if (flag_check_mesh && mem_idx_mesh == U32_MAX)
         {
@@ -65,13 +68,19 @@ internal gpu_arena_t gpu_arena_init(VkPhysicalDevice physical_device, VkDevice d
             mem_idx_draw = i;
         }
 
+        if (flag_check_mats && mem_idx_mats == U32_MAX)
+        {
+            mem_idx_mats = i;
+        }
+
         if (mem_idx_mesh != U32_MAX &&
             mem_idx_tex  != U32_MAX &&
             mem_idx_stg  != U32_MAX &&
             mem_idx_ubo  != U32_MAX &&
             mem_idx_ssbo != U32_MAX &&
             mem_idx_dcmd != U32_MAX &&
-            mem_idx_draw != U32_MAX)
+            mem_idx_draw != U32_MAX &&
+            mem_idx_mats != U32_MAX)
         {
             break;
         }
@@ -84,6 +93,7 @@ internal gpu_arena_t gpu_arena_init(VkPhysicalDevice physical_device, VkDevice d
     EMBER_ASSERT(mem_idx_ssbo != U32_MAX);
     EMBER_ASSERT(mem_idx_dcmd != U32_MAX);
     EMBER_ASSERT(mem_idx_draw != U32_MAX);
+    EMBER_ASSERT(mem_idx_mats != U32_MAX);
 
     VkMemoryAllocateInfo alloc_info_mesh = {0};
     alloc_info_mesh.sType                = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
@@ -120,6 +130,11 @@ internal gpu_arena_t gpu_arena_init(VkPhysicalDevice physical_device, VkDevice d
     alloc_info_draw.allocationSize       = GPU_MEM_SIZE_DRAW;
     alloc_info_draw.memoryTypeIndex      = mem_idx_draw;
 
+    VkMemoryAllocateInfo alloc_info_mats = {0};
+    alloc_info_mats.sType                = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+    alloc_info_mats.allocationSize       = GPU_MEM_SIZE_MATS;
+    alloc_info_mats.memoryTypeIndex      = mem_idx_mats;
+
     VkResult vk_result;
 
     vk_result = vkAllocateMemory(device, &alloc_info_mesh, NULL, &ret.blocks[GPU_MEM_TYPE_mesh].memory);
@@ -143,6 +158,9 @@ internal gpu_arena_t gpu_arena_init(VkPhysicalDevice physical_device, VkDevice d
     vk_result = vkAllocateMemory(device, &alloc_info_draw, NULL, &ret.blocks[GPU_MEM_TYPE_draw].memory);
     EMBER_ASSERT(vk_result == VK_SUCCESS);
 
+    vk_result = vkAllocateMemory(device, &alloc_info_mats, NULL, &ret.blocks[GPU_MEM_TYPE_mats].memory);
+    EMBER_ASSERT(vk_result == VK_SUCCESS);
+
     ret.blocks[GPU_MEM_TYPE_mesh].position = 0;
     ret.blocks[GPU_MEM_TYPE_tex].position  = 0;
     ret.blocks[GPU_MEM_TYPE_stg].position  = 0;
@@ -150,6 +168,7 @@ internal gpu_arena_t gpu_arena_init(VkPhysicalDevice physical_device, VkDevice d
     ret.blocks[GPU_MEM_TYPE_ssbo].position = 0;
     ret.blocks[GPU_MEM_TYPE_dcmd].position = 0;
     ret.blocks[GPU_MEM_TYPE_draw].position = 0;
+    ret.blocks[GPU_MEM_TYPE_mats].position = 0;
     ret.blocks[GPU_MEM_TYPE_mesh].size     = GPU_MEM_SIZE_MESH;
     ret.blocks[GPU_MEM_TYPE_tex].size      = GPU_MEM_SIZE_TEX;
     ret.blocks[GPU_MEM_TYPE_stg].size      = GPU_MEM_SIZE_STG;
@@ -157,6 +176,7 @@ internal gpu_arena_t gpu_arena_init(VkPhysicalDevice physical_device, VkDevice d
     ret.blocks[GPU_MEM_TYPE_ssbo].size     = GPU_MEM_SIZE_SSBO;
     ret.blocks[GPU_MEM_TYPE_dcmd].size     = GPU_MEM_SIZE_DCMD;
     ret.blocks[GPU_MEM_TYPE_draw].size     = GPU_MEM_SIZE_DRAW;
+    ret.blocks[GPU_MEM_TYPE_mats].size     = GPU_MEM_SIZE_MATS;
     ret.blocks[GPU_MEM_TYPE_mesh].mem_idx  = mem_idx_mesh;
     ret.blocks[GPU_MEM_TYPE_tex].mem_idx   = mem_idx_tex;
     ret.blocks[GPU_MEM_TYPE_stg].mem_idx   = mem_idx_stg;
@@ -164,6 +184,7 @@ internal gpu_arena_t gpu_arena_init(VkPhysicalDevice physical_device, VkDevice d
     ret.blocks[GPU_MEM_TYPE_ssbo].mem_idx  = mem_idx_ssbo;
     ret.blocks[GPU_MEM_TYPE_dcmd].mem_idx  = mem_idx_dcmd;
     ret.blocks[GPU_MEM_TYPE_draw].mem_idx  = mem_idx_draw;
+    ret.blocks[GPU_MEM_TYPE_mats].mem_idx  = mem_idx_mats;
 
     cpu_arena_params_t host_arena_params = { KB(32), KB(32), 0 };
 

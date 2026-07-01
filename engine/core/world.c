@@ -70,6 +70,86 @@ internal world_entity_t world_load_model(world_t* world, const c8* file)
         world->nodes.renderer_ids[node_id] = renderer_create_nodes(&node, &ssbo, 1);
     }
 
+    for (i32 i = 0; i < gltf.material_count; i++)
+    {
+        material_t* mat = &gltf.materials[i];
+
+        if (mat->tex_id_al >= 0)
+        {
+            mat->tex_id_al += g_renderer.tex_count;
+        }
+
+        if (mat->tex_id_mr >= 0)
+        {
+            mat->tex_id_mr += g_renderer.tex_count;
+        }
+
+        if (mat->tex_id_nm >= 0)
+        {
+            mat->tex_id_nm += g_renderer.tex_count;
+        }
+
+        if (mat->tex_id_ao >= 0)
+        {
+            mat->tex_id_ao += g_renderer.tex_count;
+        }
+
+        if (mat->tex_id_em >= 0)
+        {
+            mat->tex_id_em += g_renderer.tex_count;
+        }
+
+        mat->tex_id_al = CLAMP(mat->tex_id_al, 0, RENDERER_TEX_COUNT_MAX);
+        mat->tex_id_mr = CLAMP(mat->tex_id_mr, 0, RENDERER_TEX_COUNT_MAX);
+        mat->tex_id_nm = CLAMP(mat->tex_id_nm, 0, RENDERER_TEX_COUNT_MAX);
+        mat->tex_id_ao = CLAMP(mat->tex_id_ao, 0, RENDERER_TEX_COUNT_MAX);      
+        mat->tex_id_em = CLAMP(mat->tex_id_em, 0, RENDERER_TEX_COUNT_MAX);
+    }
+
+    for (i32 i = 0; i < gltf.mesh_count; i++)
+    {
+        mesh_t* mesh = &gltf.meshes[i];
+        i32 mat_id   = mesh->material_id;
+
+        if (mat_id >= 0)
+        {
+            mat_id += g_renderer.mat_count;
+        }
+
+        mesh->material_id = CLAMP(mat_id, 0, RENDERER_MAT_COUNT_MAX);
+    }
+
+    for (i32 i = 0; i < gltf.texture_count; i++)
+    {
+        i32 width;
+        i32 height;
+        i32 channels;
+
+        stbi_uc* pixels = stbi_load_from_memory(
+            gltf.textures[i].data,
+            gltf.textures[i].size,
+            &width,
+            &height,
+            &channels,
+            STBI_rgb_alpha
+        );
+
+        renderer_tex_info_t tex_info = {
+            width,
+            height,
+            (u8*)pixels,
+            width * height * channels,
+            RENDERER_IMG_FORMAT_rgba_srgb,
+            RENDERER_IMG_TILING_optimal,
+            RENDERER_IMG_USAGE_FLAGS_transfer_dst | RENDERER_IMG_USAGE_FLAGS_sampled
+        };
+
+        renderer_create_textures(&tex_info, 1);
+
+        stbi_image_free(pixels);
+    }
+
+    renderer_create_materials(gltf.materials, gltf.material_count);
     renderer_create_meshes(gltf.meshes, gltf.primitive_count);
 
     world->nodes.count += gltf.node_count;
@@ -169,7 +249,7 @@ internal void world_entity_set_transform(world_t* world, world_entity_t entity, 
             i32 rnd_id = world->nodes.renderer_ids[i];
             if (rnd_id >= 0)
             {
-                renderer_update_model(rnd_id, &model);
+                renderer_update_trs(rnd_id, &model, 1);
             }
         }
     }

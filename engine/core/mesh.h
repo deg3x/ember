@@ -8,6 +8,7 @@ struct mesh_t
     i32*      indices;
     i32       vertex_count;
     i32       index_count;
+    i32       material_id;
 };
 
 global mesh_t g_mesh_rect = {
@@ -22,7 +23,8 @@ global mesh_t g_mesh_rect = {
         2, 1, 3
     },
     4,
-    6
+    6,
+    0
 };
 
 global mesh_t g_mesh_cube = {
@@ -73,7 +75,8 @@ global mesh_t g_mesh_cube = {
         22, 21, 23
     },
     24,
-    36
+    36,
+    0
 };
 
 #endif // MESH_H

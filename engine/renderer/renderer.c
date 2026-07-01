@@ -4,6 +4,14 @@ internal void renderer_init(platform_hnd_t window_handle)
 
     g_renderer.host_arena = cpu_arena_init(&params);
 
+    g_renderer.mesh_data = MEMORY_PUSH_ZERO(g_renderer.host_arena, renderer_mesh_t, RENDERER_MESH_COUNT_MAX);
+    g_renderer.node_data = MEMORY_PUSH_ZERO(g_renderer.host_arena, renderer_node_t, RENDERER_NODE_COUNT_MAX);
+    g_renderer.tex_data  = MEMORY_PUSH_ZERO(g_renderer.host_arena, renderer_tex_t, RENDERER_TEX_COUNT_MAX);
+    g_renderer.mat_data  = MEMORY_PUSH_ZERO(g_renderer.host_arena, material_t, RENDERER_MAT_COUNT_MAX);
+
+    g_renderer.pipelines      = MEMORY_PUSH_ZERO(g_renderer.host_arena, renderer_pipeline_t, 1);
+    g_renderer.pipeline_count = 1;
+
     renderer_create_instance();
     renderer_create_surface(window_handle);
     renderer_create_physical_device();
@@ -15,17 +23,39 @@ internal void renderer_init(platform_hnd_t window_handle)
     renderer_swapchain_init(window_handle);
     renderer_create_command_pool();
     renderer_create_command_buffers();
-    renderer_create_descriptor_pool();
     renderer_create_sync_primitives();
     renderer_resources_init();
 
-    g_renderer.mesh_data = MEMORY_PUSH_ZERO(g_renderer.host_arena, renderer_mesh_t, RENDERER_MESH_COUNT_MAX);
-    g_renderer.node_data = MEMORY_PUSH_ZERO(g_renderer.host_arena, renderer_node_t, RENDERER_NODE_COUNT_MAX);
-
-    g_renderer.pipelines      = MEMORY_PUSH_ZERO(g_renderer.host_arena, renderer_pipeline_t, 1);
-    g_renderer.pipeline_count = 1;
-
     renderer_pipeline_init(g_renderer.pipelines);
+
+    // NOTE(KB): Load default texture
+    i32 width;
+    i32 height;
+    i32 channels;
+
+    stbi_uc* pixels = stbi_load("./data/default.png", &width, &height, &channels, STBI_rgb_alpha);
+
+    EMBER_ASSERT(pixels != NULL);
+
+    renderer_tex_info_t tex_info = {
+        width,
+        height,
+        (u8*)pixels,
+        width * height * channels,
+        RENDERER_IMG_FORMAT_rgba_srgb,
+        RENDERER_IMG_TILING_optimal,
+        RENDERER_IMG_USAGE_FLAGS_transfer_dst | RENDERER_IMG_USAGE_FLAGS_sampled
+    };
+
+    renderer_create_textures(&tex_info, 1);
+
+    stbi_image_free(pixels);
+
+    // NOTE(KB): Create default material
+    material_t material = {0};
+    material.color      = (color4_t){1.0f, 1.0f, 1.0f, 1.0f};
+    
+    renderer_create_materials(&material, 1);
 }
 
 internal void renderer_update(platform_hnd_t window_handle)
@@ -130,7 +160,6 @@ internal void renderer_destroy()
         renderer_pipeline_destroy(g_renderer.pipelines + i);
     }
 
-    vkDestroyDescriptorPool(g_renderer.device, g_renderer.descriptor_pool, NULL);
     vkDestroyCommandPool(g_renderer.device, g_renderer.command_pool, NULL);
 
     renderer_swapchain_destroy();
@@ -329,15 +358,26 @@ internal void renderer_create_device()
     // TODO(KB): Connect this to the feature check in ...device_is_suitable()
     VkPhysicalDeviceFeatures feats = {0};
     feats.samplerAnisotropy        = VK_TRUE;
+    feats.multiDrawIndirect        = VK_TRUE;
 
     VkPhysicalDeviceVulkan13Features feats_13 = {0};
     feats_13.sType                            = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES;
     feats_13.dynamicRendering                 = VK_TRUE;
     feats_13.synchronization2                 = VK_TRUE;
 
+    VkPhysicalDeviceVulkan12Features feats_12             = {0};
+    feats_12.sType                                        = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES;
+    feats_12.pNext                                        = &feats_13;
+    feats_12.descriptorIndexing                           = VK_TRUE;
+    feats_12.runtimeDescriptorArray                       = VK_TRUE;
+    feats_12.descriptorBindingPartiallyBound              = VK_TRUE;
+    feats_12.descriptorBindingVariableDescriptorCount     = VK_TRUE;
+    feats_12.descriptorBindingSampledImageUpdateAfterBind = VK_TRUE;
+    feats_12.shaderSampledImageArrayNonUniformIndexing    = VK_TRUE;
+
     VkDeviceCreateInfo device_info      = {0};
     device_info.sType                   = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-    device_info.pNext                   = &feats_13;
+    device_info.pNext                   = &feats_12;
     device_info.queueCreateInfoCount    = queue_count;
     device_info.pQueueCreateInfos       = queue_infos;
     device_info.pEnabledFeatures        = &feats;
@@ -380,22 +420,6 @@ internal void renderer_create_command_buffers()
     EMBER_ASSERT(alloc_result == VK_SUCCESS);
 }
 
-internal void renderer_create_descriptor_pool()
-{
-    VkDescriptorPoolSize pool_sizes[1] = {0};
-    pool_sizes[0].type                 = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    pool_sizes[0].descriptorCount      = RENDERER_FRAMES_IN_FLIGHT;
-
-    VkDescriptorPoolCreateInfo pool_info = {0};
-    pool_info.sType                      = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
-    pool_info.poolSizeCount              = ARRAY_COUNT(pool_sizes);
-    pool_info.pPoolSizes                 = pool_sizes;
-    pool_info.maxSets                    = RENDERER_FRAMES_IN_FLIGHT;
-
-    VkResult vk_result = vkCreateDescriptorPool(g_renderer.device, &pool_info, NULL, &g_renderer.descriptor_pool);
-    EMBER_ASSERT(vk_result == VK_SUCCESS);
-}
-
 internal void renderer_create_sync_primitives()
 {
     VkSemaphoreCreateInfo sem_info = {0};
@@ -420,20 +444,20 @@ internal void renderer_create_sync_primitives()
     }
 }
 
-internal i32 renderer_create_nodes(renderer_node_t* nodes, renderer_ssbo_t* node_ssbo, i32 node_count)
+internal i32 renderer_create_nodes(renderer_node_t* nodes, renderer_ssbo_t* node_ssbo, i32 count)
 {
-    memcpy(g_renderer.node_data + g_renderer.node_count, nodes, node_count * sizeof(renderer_node_t));
+    memcpy(g_renderer.node_data + g_renderer.node_count, nodes, count * sizeof(renderer_node_t));
 
     for (i32 i = 0; i < RENDERER_FRAMES_IN_FLIGHT; i++)
     {
         u8* dst = (u8*)g_renderer.resources.ssbo_mapped + i * FRAME_SIZE(GPU_MEM_SIZE_SSBO) + g_renderer.node_count * sizeof(renderer_ssbo_t);
 
-        memcpy(dst, node_ssbo, node_count * sizeof(renderer_ssbo_t));
+        memcpy(dst, node_ssbo, count * sizeof(renderer_ssbo_t));
     }
 
     i32 result = g_renderer.node_count;
 
-    g_renderer.node_count += node_count;
+    g_renderer.node_count += count;
 
     return result;
 }
@@ -452,6 +476,7 @@ internal void renderer_create_meshes(mesh_t* m, i32 count)
         new_mesh->index_offset  = last->index_offset + last->index_count;
         new_mesh->vertex_count  = m[i].vertex_count;
         new_mesh->index_count   = m[i].index_count;
+        new_mesh->material_id   = m[i].material_id;
 
         memcpy(g_renderer.resources.stage_mapped, m[i].vertices, vertex_size);
         renderer_resources_copy_buffer(
@@ -475,16 +500,95 @@ internal void renderer_create_meshes(mesh_t* m, i32 count)
     }
 }
 
-internal void renderer_update_model(i32 id, mat4_t* model)
+internal void renderer_create_textures(renderer_tex_info_t* tex_info, i32 count)
+{
+    for (i32 i = 0; i < count; i++)
+    {
+        i32 img_id = g_renderer.tex_count + i;
+
+        renderer_resources_create_image(
+            &g_renderer.resources.images[img_id],
+            tex_info[i].width,
+            tex_info[i].height,
+            tex_info[i].usage_flags,
+            tex_info[i].tiling,
+            tex_info[i].format
+        );
+
+        renderer_resources_create_image_memory(g_renderer.resources.images[img_id], GPU_MEM_TYPE_tex);
+
+        renderer_resources_image_layout_transition(
+            g_renderer.resources.images[img_id],
+            VK_IMAGE_LAYOUT_UNDEFINED,
+            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL
+        );
+
+        memcpy(g_renderer.resources.stage_mapped, tex_info[i].pixels, tex_info[i].pixels_size);
+        renderer_resources_copy_image(
+            g_renderer.resources.stage_buf,
+            g_renderer.resources.images[img_id],
+            tex_info[i].width,
+            tex_info[i].height
+        );
+
+        renderer_resources_image_layout_transition(
+            g_renderer.resources.images[img_id],
+            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+            VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL
+        );
+
+        renderer_resources_create_image_view(
+            g_renderer.resources.images[img_id],
+            &g_renderer.resources.image_views[img_id],
+            tex_info[i].format,
+            VK_IMAGE_ASPECT_COLOR_BIT
+        );
+
+        i32 sampler_id = 0;
+
+        g_renderer.tex_data[img_id].image_id   = img_id;
+        g_renderer.tex_data[img_id].sampler_id = sampler_id;
+
+        renderer_pipeline_update_texture_bindings(&g_renderer.pipelines[0], img_id, img_id, sampler_id, 1);
+    }
+
+    g_renderer.tex_count            += count;
+    g_renderer.resources.image_count = g_renderer.tex_count;
+}
+
+internal void renderer_create_materials(material_t* mats, i32 count)
+{
+    for (i32 i = 0; i < count; i++)
+    {
+        u8* dest = (u8*)(g_renderer.mat_data + g_renderer.mat_count);
+        memcpy(dest, mats, count * sizeof(material_t));
+    }
+
+    renderer_update_materials(g_renderer.mat_count, mats, count);
+
+    g_renderer.mat_count += count;
+}
+
+internal void renderer_update_trs(i32 id, mat4_t* model, i32 count)
 {
     for (i32 i = 0; i < RENDERER_FRAMES_IN_FLIGHT; i++)
     {
         u8* dst = (u8*)g_renderer.resources.ssbo_mapped +
                   i * FRAME_SIZE(GPU_MEM_SIZE_SSBO) +
-                  id * sizeof(renderer_ssbo_t) +
-                  offsetof(renderer_ssbo_t, transform);
+                  id * sizeof(renderer_ssbo_t);
+                  //+ offsetof(renderer_ssbo_t, transform);
 
-        memcpy(dst, model, sizeof(mat4_t));
+        memcpy(dst, model, count * sizeof(mat4_t));
+    }
+}
+
+internal void renderer_update_materials(i32 id, material_t* material, i32 count)
+{
+    for (i32 i = 0; i < RENDERER_FRAMES_IN_FLIGHT; i++)
+    {
+        u8* dst = (u8*)g_renderer.resources.mats_mapped + i * FRAME_SIZE(GPU_MEM_SIZE_MATS) + id * sizeof(material_t);
+
+        memcpy(dst, material, count * sizeof(material_t));
     }
 }
 
@@ -591,13 +695,18 @@ internal void renderer_command_buffer_record(renderer_pipeline_t* pipeline, u32 
     vkCmdBindVertexBuffers(cmd, 0, 1, &g_renderer.resources.vertex_buf, offsets);
     vkCmdBindIndexBuffer(cmd, g_renderer.resources.index_buf, 0, VK_INDEX_TYPE_UINT32);
 
+    VkDescriptorSet desc_sets[2] = {
+        pipeline->descriptor_set_frame[buffer_id],
+        pipeline->descriptor_set_global
+    };
+
     vkCmdBindDescriptorSets(
         cmd,
         VK_PIPELINE_BIND_POINT_GRAPHICS,
         pipeline->graphics_pipeline_layout,
         0,
-        1,
-        &pipeline->descriptor_sets[buffer_id],
+        ARRAY_COUNT(desc_sets),
+        desc_sets,
         0,
         NULL
     );
@@ -624,6 +733,7 @@ internal void renderer_command_buffer_record(renderer_pipeline_t* pipeline, u32 
             dcmd_data[idx].firstInstance = idx;
 
             draw_data[idx].transform_id  = i;
+            draw_data[idx].material_id   = mesh.material_id;
 
             idx += 1;
         }

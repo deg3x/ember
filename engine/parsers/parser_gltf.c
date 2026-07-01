@@ -748,6 +748,7 @@ internal gltf_data_t gltf_parse_chunk_binary(gltf_parser_t* parser, u32 chunk_le
                 (json_data->accessors[acs_pos].count == json_data->accessors[acs_uvs].count)
             );
 
+            result.meshes[mesh_offset].material_id  = json_data->meshes[mesh_idx].primitives[prim_idx].material;
             result.meshes[mesh_offset].vertex_count = json_data->accessors[acs_pos].count;
             result.meshes[mesh_offset].index_count  = json_data->accessors[acs_ids].count;
 

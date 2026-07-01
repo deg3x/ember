@@ -13,7 +13,13 @@
     #error Vulkan support is required
 #endif
 
-/////////////
+///////////////
+// THIRD PARTY
+
+#define STB_IMAGE_IMPLEMENTATION
+#include "../third_party/stb/stb_image.h"
+
+///////////////
 // H_FILES
 
 #include "engine_defs.h"
@@ -54,7 +60,7 @@
 
 #include "core/world.h"
 
-/////////////
+///////////////
 // C_FILES
 
 #include "platform/platform.c"

@@ -1,6 +1,7 @@
 internal void renderer_pipeline_init(renderer_pipeline_t* pipeline)
 {
-    renderer_pipeline_create_descriptor_set_layout(pipeline);
+    renderer_pipeline_create_descriptor_pool();
+    renderer_pipeline_create_descriptor_set_layouts(pipeline);
     renderer_pipeline_create_descriptor_sets(pipeline);
     renderer_pipeline_create_graphics_pipeline_layout(pipeline);
     renderer_pipeline_create_graphics_pipeline(pipeline);
@@ -18,53 +19,137 @@ internal void renderer_pipeline_destroy(renderer_pipeline_t* pipeline)
     //{
     //    vkFreeDescriptorSets(g_renderer.device, g_renderer.descriptor_pool, RENDERER_FRAMES_IN_FLIGHT, pipeline->descriptor_sets);
     //}
-    vkDestroyDescriptorSetLayout(g_renderer.device, pipeline->descriptor_set_layout, NULL);
+    vkDestroyDescriptorSetLayout(g_renderer.device, pipeline->descriptor_set_layout_frame, NULL);
+    vkDestroyDescriptorSetLayout(g_renderer.device, pipeline->descriptor_set_layout_global, NULL);
+    vkDestroyDescriptorPool(g_renderer.device, g_renderer.descriptor_pool, NULL);
 }
 
-internal void renderer_pipeline_create_descriptor_set_layout(renderer_pipeline_t* pipeline)
+internal void renderer_pipeline_create_descriptor_pool()
 {
-    VkDescriptorSetLayoutBinding bindings[3] = {0};
-    bindings[0].binding                      = 0;
-    bindings[0].descriptorCount              = 1;
-    bindings[0].descriptorType               = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-    bindings[0].stageFlags                   = VK_SHADER_STAGE_VERTEX_BIT;
-    bindings[0].pImmutableSamplers           = NULL;
+    VkDescriptorPoolSize pool_sizes[3] = {0};
+    pool_sizes[0].type                 = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    pool_sizes[0].descriptorCount      = RENDERER_FRAMES_IN_FLIGHT;
+    pool_sizes[1].type                 = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+    pool_sizes[1].descriptorCount      = 3 * RENDERER_FRAMES_IN_FLIGHT;
+    pool_sizes[2].type                 = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    pool_sizes[2].descriptorCount      = RENDERER_TEX_COUNT_MAX;
 
-    bindings[1].binding                      = 1;
-    bindings[1].descriptorCount              = 1;
-    bindings[1].descriptorType               = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-    bindings[1].stageFlags                   = VK_SHADER_STAGE_VERTEX_BIT;
-    bindings[1].pImmutableSamplers           = NULL;
+    VkDescriptorPoolCreateInfo pool_info = {0};
+    pool_info.sType                      = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+    pool_info.flags                      = VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT;
+    pool_info.poolSizeCount              = ARRAY_COUNT(pool_sizes);
+    pool_info.pPoolSizes                 = pool_sizes;
+    pool_info.maxSets                    = RENDERER_FRAMES_IN_FLIGHT + 1;
 
-    bindings[2].binding                      = 2;
-    bindings[2].descriptorCount              = 1;
-    bindings[2].descriptorType               = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-    bindings[2].stageFlags                   = VK_SHADER_STAGE_VERTEX_BIT;
-    bindings[2].pImmutableSamplers           = NULL;
+    VkResult vk_result = vkCreateDescriptorPool(g_renderer.device, &pool_info, NULL, &g_renderer.descriptor_pool);
+    EMBER_ASSERT(vk_result == VK_SUCCESS);
+}
 
-    VkDescriptorSetLayoutCreateInfo binding_info = {0};
-    binding_info.sType                           = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-    binding_info.bindingCount                    = ARRAY_COUNT(bindings);
-    binding_info.pBindings                       = bindings;
+internal void renderer_pipeline_create_descriptor_set_layouts(renderer_pipeline_t* pipeline)
+{
+    VkDescriptorSetLayoutBinding bindings_frame[4] = {0};
+    bindings_frame[0].binding                      = 0;
+    bindings_frame[0].descriptorCount              = 1;
+    bindings_frame[0].descriptorType               = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    bindings_frame[0].stageFlags                   = VK_SHADER_STAGE_VERTEX_BIT;
+    bindings_frame[0].pImmutableSamplers           = NULL;
 
-    VkResult create_result = vkCreateDescriptorSetLayout(g_renderer.device, &binding_info, NULL, &pipeline->descriptor_set_layout);
+    bindings_frame[1].binding                      = 1;
+    bindings_frame[1].descriptorCount              = 1;
+    bindings_frame[1].descriptorType               = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+    bindings_frame[1].stageFlags                   = VK_SHADER_STAGE_VERTEX_BIT;
+    bindings_frame[1].pImmutableSamplers           = NULL;
+
+    bindings_frame[2].binding                      = 2;
+    bindings_frame[2].descriptorCount              = 1;
+    bindings_frame[2].descriptorType               = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+    bindings_frame[2].stageFlags                   = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+    bindings_frame[2].pImmutableSamplers           = NULL;
+
+    bindings_frame[3].binding                      = 3;
+    bindings_frame[3].descriptorCount              = 1;
+    bindings_frame[3].descriptorType               = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+    bindings_frame[3].stageFlags                   = VK_SHADER_STAGE_FRAGMENT_BIT;
+    bindings_frame[3].pImmutableSamplers           = NULL;
+
+    VkDescriptorSetLayoutCreateInfo binding_frame_info = {0};
+    binding_frame_info.sType                           = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+    binding_frame_info.bindingCount                    = ARRAY_COUNT(bindings_frame);
+    binding_frame_info.pBindings                       = bindings_frame;
+
+    VkResult create_result = vkCreateDescriptorSetLayout(
+        g_renderer.device,
+        &binding_frame_info,
+        NULL,
+        &pipeline->descriptor_set_layout_frame
+    );
+    EMBER_ASSERT(create_result == VK_SUCCESS);
+
+    VkDescriptorSetLayoutBinding bindings_global[1] = {0};
+    bindings_global[0].binding                      = 0;
+    bindings_global[0].descriptorCount              = RENDERER_TEX_COUNT_MAX;
+    bindings_global[0].descriptorType               = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    bindings_global[0].stageFlags                   = VK_SHADER_STAGE_FRAGMENT_BIT;
+    bindings_global[0].pImmutableSamplers           = NULL;
+
+    VkDescriptorBindingFlags binding_flags[1] = {
+        VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT
+        | VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT
+        | VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT,
+    };
+
+    VkDescriptorSetLayoutBindingFlagsCreateInfo flags_info = {0};
+    flags_info.sType                                       = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO;
+    flags_info.bindingCount                                = ARRAY_COUNT(bindings_global);
+    flags_info.pBindingFlags                               = binding_flags;
+
+    VkDescriptorSetLayoutCreateInfo binding_global_info = {0};
+    binding_global_info.sType                           = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+    binding_global_info.pNext                           = &flags_info;
+    binding_global_info.bindingCount                    = ARRAY_COUNT(bindings_global);
+    binding_global_info.pBindings                       = bindings_global;
+    binding_global_info.flags                           = VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT_EXT;
+
+    create_result = vkCreateDescriptorSetLayout(
+        g_renderer.device,
+        &binding_global_info,
+        NULL,
+        &pipeline->descriptor_set_layout_global
+    );
     EMBER_ASSERT(create_result == VK_SUCCESS);
 }
 
 internal void renderer_pipeline_create_descriptor_sets(renderer_pipeline_t* pipeline)
 {
     VkDescriptorSetLayout layouts[RENDERER_FRAMES_IN_FLIGHT] = {
-        pipeline->descriptor_set_layout,
-        pipeline->descriptor_set_layout
+        pipeline->descriptor_set_layout_frame,
+        pipeline->descriptor_set_layout_frame
     };
 
-    VkDescriptorSetAllocateInfo alloc_info = {0};
-    alloc_info.sType                       = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
-    alloc_info.descriptorPool              = g_renderer.descriptor_pool;
-    alloc_info.descriptorSetCount          = RENDERER_FRAMES_IN_FLIGHT;
-    alloc_info.pSetLayouts                 = layouts;
+    VkDescriptorSetAllocateInfo alloc_info_frame = {0};
+    alloc_info_frame.sType                       = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+    alloc_info_frame.descriptorPool              = g_renderer.descriptor_pool;
+    alloc_info_frame.descriptorSetCount          = RENDERER_FRAMES_IN_FLIGHT;
+    alloc_info_frame.pSetLayouts                 = layouts;
 
-    VkResult vk_result = vkAllocateDescriptorSets(g_renderer.device, &alloc_info, pipeline->descriptor_sets);
+    VkResult vk_result = vkAllocateDescriptorSets(g_renderer.device, &alloc_info_frame, pipeline->descriptor_set_frame);
+    EMBER_ASSERT(vk_result == VK_SUCCESS);
+
+    u32 descriptor_counts = RENDERER_TEX_COUNT_MAX;
+
+    VkDescriptorSetVariableDescriptorCountAllocateInfo desc_count_alloc_info = {0};
+    desc_count_alloc_info.sType                                              = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_VARIABLE_DESCRIPTOR_COUNT_ALLOCATE_INFO;
+    desc_count_alloc_info.descriptorSetCount                                 = 1;
+    desc_count_alloc_info.pDescriptorCounts                                  = &descriptor_counts;
+
+    VkDescriptorSetAllocateInfo alloc_info_global = {0};
+    alloc_info_global.sType                       = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+    alloc_info_global.pNext                       = &desc_count_alloc_info;
+    alloc_info_global.descriptorPool              = g_renderer.descriptor_pool;
+    alloc_info_global.descriptorSetCount          = 1;
+    alloc_info_global.pSetLayouts                 = &pipeline->descriptor_set_layout_global;
+
+    vk_result = vkAllocateDescriptorSets(g_renderer.device, &alloc_info_global, &pipeline->descriptor_set_global);
     EMBER_ASSERT(vk_result == VK_SUCCESS);
 
     for (u32 i = 0; i < RENDERER_FRAMES_IN_FLIGHT; i++)
@@ -72,6 +157,7 @@ internal void renderer_pipeline_create_descriptor_sets(renderer_pipeline_t* pipe
         u64 size_ubo  = FRAME_SIZE(GPU_MEM_SIZE_UBO);
         u64 size_ssbo = FRAME_SIZE(GPU_MEM_SIZE_SSBO);
         u64 size_draw = FRAME_SIZE(GPU_MEM_SIZE_DRAW);
+        u64 size_mats = FRAME_SIZE(GPU_MEM_SIZE_MATS);
 
         VkDescriptorBufferInfo ubo_info = {0};
         ubo_info.buffer                 = g_renderer.resources.ubo_buf;
@@ -88,10 +174,15 @@ internal void renderer_pipeline_create_descriptor_sets(renderer_pipeline_t* pipe
         draw_info.offset                 = i * size_draw;
         draw_info.range                  = size_draw;
 
-        VkWriteDescriptorSet write_set[3] = {0};
+        VkDescriptorBufferInfo mats_info = {0};
+        mats_info.buffer                 = g_renderer.resources.mats_buf;
+        mats_info.offset                 = i * size_mats;
+        mats_info.range                  = size_mats;
+
+        VkWriteDescriptorSet write_set[4] = {0};
 
         write_set[0].sType            = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        write_set[0].dstSet           = pipeline->descriptor_sets[i];
+        write_set[0].dstSet           = pipeline->descriptor_set_frame[i];
         write_set[0].dstBinding       = 0;
         write_set[0].dstArrayElement  = 0;
         write_set[0].descriptorCount  = 1;
@@ -101,7 +192,7 @@ internal void renderer_pipeline_create_descriptor_sets(renderer_pipeline_t* pipe
         write_set[0].pTexelBufferView = NULL;
 
         write_set[1].sType            = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        write_set[1].dstSet           = pipeline->descriptor_sets[i];
+        write_set[1].dstSet           = pipeline->descriptor_set_frame[i];
         write_set[1].dstBinding       = 1;
         write_set[1].dstArrayElement  = 0;
         write_set[1].descriptorCount  = 1;
@@ -111,7 +202,7 @@ internal void renderer_pipeline_create_descriptor_sets(renderer_pipeline_t* pipe
         write_set[1].pTexelBufferView = NULL;
 
         write_set[2].sType            = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        write_set[2].dstSet           = pipeline->descriptor_sets[i];
+        write_set[2].dstSet           = pipeline->descriptor_set_frame[i];
         write_set[2].dstBinding       = 2;
         write_set[2].dstArrayElement  = 0;
         write_set[2].descriptorCount  = 1;
@@ -120,16 +211,51 @@ internal void renderer_pipeline_create_descriptor_sets(renderer_pipeline_t* pipe
         write_set[2].pBufferInfo      = &draw_info;
         write_set[2].pTexelBufferView = NULL;
 
+        write_set[3].sType            = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+        write_set[3].dstSet           = pipeline->descriptor_set_frame[i];
+        write_set[3].dstBinding       = 3;
+        write_set[3].dstArrayElement  = 0;
+        write_set[3].descriptorCount  = 1;
+        write_set[3].descriptorType   = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+        write_set[3].pImageInfo       = NULL;
+        write_set[3].pBufferInfo      = &mats_info;
+        write_set[3].pTexelBufferView = NULL;
+
         vkUpdateDescriptorSets(g_renderer.device, ARRAY_COUNT(write_set), write_set, 0, NULL);
     }
 }
 
+internal void renderer_pipeline_update_texture_bindings(renderer_pipeline_t* pipeline, i32 tex_id, i32 img_id, i32 smpl_id, i32 count)
+{
+    VkDescriptorImageInfo image_info = {0};
+    image_info.imageLayout           = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+    image_info.imageView             = g_renderer.resources.image_views[img_id];
+    image_info.sampler               = g_renderer.resources.samplers[smpl_id];
+
+    VkWriteDescriptorSet write_set = {0};
+    write_set.sType            = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    write_set.dstSet           = pipeline->descriptor_set_global;
+    write_set.dstBinding       = 0;
+    write_set.dstArrayElement  = tex_id;
+    write_set.descriptorCount  = count;
+    write_set.descriptorType   = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+    write_set.pImageInfo       = &image_info;
+    write_set.pBufferInfo      = NULL;
+    write_set.pTexelBufferView = NULL;
+
+    vkUpdateDescriptorSets(g_renderer.device, 1, &write_set, 0, NULL);
+}
+
 internal void renderer_pipeline_create_graphics_pipeline_layout(renderer_pipeline_t* pipeline)
 {
+    VkDescriptorSetLayout layouts[2] = {
+        pipeline->descriptor_set_layout_frame,
+        pipeline->descriptor_set_layout_global
+    };
     VkPipelineLayoutCreateInfo layout_info = {0};
     layout_info.sType                      = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-    layout_info.setLayoutCount             = 1;
-    layout_info.pSetLayouts                = &pipeline->descriptor_set_layout;
+    layout_info.setLayoutCount             = 2;
+    layout_info.pSetLayouts                = layouts;
     layout_info.pushConstantRangeCount     = 0;
     layout_info.pPushConstantRanges        = NULL;
 

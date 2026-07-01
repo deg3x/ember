@@ -7,6 +7,7 @@ internal void renderer_resources_init()
     VkBufferUsageFlags flags_ssbo = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
     VkBufferUsageFlags flags_dcmd = VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT;
     VkBufferUsageFlags flags_draw = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+    VkBufferUsageFlags flags_mats = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
 
     renderer_resources_create_buffer(&g_renderer.resources.vertex_buf, GPU_MEM_SIZE_VERTEX, flags_vert);
     renderer_resources_create_buffer(&g_renderer.resources.index_buf, GPU_MEM_SIZE_INDEX, flags_idx);
@@ -16,6 +17,7 @@ internal void renderer_resources_init()
     renderer_resources_create_buffer(&g_renderer.resources.ssbo_buf, GPU_MEM_SIZE_SSBO, flags_ssbo);
     renderer_resources_create_buffer(&g_renderer.resources.dcmd_buf, GPU_MEM_SIZE_DCMD, flags_dcmd);
     renderer_resources_create_buffer(&g_renderer.resources.draw_buf, GPU_MEM_SIZE_DRAW, flags_draw);
+    renderer_resources_create_buffer(&g_renderer.resources.mats_buf, GPU_MEM_SIZE_MATS, flags_mats);
 
     g_renderer.resources.vertex_mem = renderer_resources_create_buffer_memory(g_renderer.resources.vertex_buf, GPU_MEM_TYPE_mesh);
     g_renderer.resources.index_mem  = renderer_resources_create_buffer_memory(g_renderer.resources.index_buf, GPU_MEM_TYPE_mesh);
@@ -36,6 +38,7 @@ internal void renderer_resources_init()
     g_renderer.resources.ssbo_mem = renderer_resources_create_buffer_memory(g_renderer.resources.ssbo_buf, GPU_MEM_TYPE_ssbo);
     g_renderer.resources.dcmd_mem = renderer_resources_create_buffer_memory(g_renderer.resources.dcmd_buf, GPU_MEM_TYPE_dcmd);
     g_renderer.resources.draw_mem = renderer_resources_create_buffer_memory(g_renderer.resources.draw_buf, GPU_MEM_TYPE_draw);
+    g_renderer.resources.mats_mem = renderer_resources_create_buffer_memory(g_renderer.resources.mats_buf, GPU_MEM_TYPE_mats);
 
     vk_result = vkMapMemory(
         g_renderer.device,
@@ -81,7 +84,24 @@ internal void renderer_resources_init()
 
     EMBER_ASSERT(vk_result == VK_SUCCESS);
 
+    vk_result = vkMapMemory(
+        g_renderer.device,
+        g_renderer.resources.mats_mem->memory,
+        g_renderer.resources.mats_mem->offset,
+        GPU_MEM_SIZE_MATS,
+        0,
+        &g_renderer.resources.mats_mapped
+    );
+
+    EMBER_ASSERT(vk_result == VK_SUCCESS);
+
     renderer_resources_create_depth();
+
+    g_renderer.resources.images      = MEMORY_PUSH(g_renderer.host_arena, VkImage, RENDERER_TEX_COUNT_MAX);
+    g_renderer.resources.image_views = MEMORY_PUSH(g_renderer.host_arena, VkImageView, RENDERER_TEX_COUNT_MAX);
+    g_renderer.resources.samplers    = MEMORY_PUSH(g_renderer.host_arena, VkSampler, RENDERER_SAMPLER_COUNT_MAX);
+
+    renderer_resources_create_sampler();
 }
 
 internal void renderer_resources_destroy()
@@ -106,6 +126,17 @@ internal void renderer_resources_destroy()
 
     vkDestroyBuffer(g_renderer.device, g_renderer.resources.vertex_buf, NULL);
     vkDestroyBuffer(g_renderer.device, g_renderer.resources.index_buf, NULL);
+
+    for (i32 i = 0; i < g_renderer.resources.image_count; i++)
+    {
+        vkDestroyImageView(g_renderer.device, g_renderer.resources.image_views[i], NULL);
+        vkDestroyImage(g_renderer.device, g_renderer.resources.images[i], NULL);
+    }
+
+    for (i32 i = 0; i < g_renderer.resources.sampler_count; i++)
+    {
+        vkDestroySampler(g_renderer.device, g_renderer.resources.samplers[i], NULL);
+    }
 }
 
 internal void renderer_resources_create_depth()
@@ -150,21 +181,7 @@ internal void renderer_resources_create_depth()
         VK_IMAGE_ASPECT_DEPTH_BIT
     );
 
-    VkCommandBufferAllocateInfo alloc_info = {0};
-    alloc_info.sType                       = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-    alloc_info.level                       = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-    alloc_info.commandPool                 = g_renderer.command_pool;
-    alloc_info.commandBufferCount          = 1;
-
-    VkCommandBuffer cmd_buffer;
-    VkResult vk_result = vkAllocateCommandBuffers(g_renderer.device, &alloc_info, &cmd_buffer);
-    EMBER_ASSERT(vk_result == VK_SUCCESS);
-
-    VkCommandBufferBeginInfo begin_info = {0};
-    begin_info.sType                    = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    begin_info.flags                    = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-
-    vkBeginCommandBuffer(cmd_buffer, &begin_info);
+    VkCommandBuffer cmd_buffer = renderer_resources_cmd_buffer_one_time_begin();
 
     VkImageMemoryBarrier2 image_barrier           = {0};
     image_barrier.sType                           = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2;
@@ -191,21 +208,7 @@ internal void renderer_resources_create_depth()
 
     vkCmdPipelineBarrier2(cmd_buffer, &dependency_info);
 
-    vkEndCommandBuffer(cmd_buffer);
-
-    VkCommandBufferSubmitInfo cmd_buffer_info = {0};
-    cmd_buffer_info.sType                     = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO;
-    cmd_buffer_info.commandBuffer             = cmd_buffer;
-
-    VkSubmitInfo2 submit_info          = {0};
-    submit_info.sType                  = VK_STRUCTURE_TYPE_SUBMIT_INFO_2;
-    submit_info.commandBufferInfoCount = 1;
-    submit_info.pCommandBufferInfos    = &cmd_buffer_info;
-
-    vkQueueSubmit2(g_renderer.graphics_queue, 1, &submit_info, VK_NULL_HANDLE);
-    vkQueueWaitIdle(g_renderer.graphics_queue);
-
-    vkFreeCommandBuffers(g_renderer.device, g_renderer.command_pool, 1, &cmd_buffer);
+    renderer_resources_cmd_buffer_one_time_end(cmd_buffer);
 }
 
 internal void renderer_resources_create_buffer(VkBuffer* buffer, VkDeviceSize size, VkBufferUsageFlags usage)
@@ -267,23 +270,90 @@ internal void renderer_resources_create_image_view(VkImage image, VkImageView* v
     EMBER_ASSERT(vk_result == VK_SUCCESS);
 }
 
-internal void renderer_resources_copy_buffer(VkBuffer src, VkBuffer dst, VkDeviceSize offset_src, VkDeviceSize offset_dst, VkDeviceSize size)
+internal void renderer_resources_create_sampler()
 {
-    VkCommandBufferAllocateInfo alloc_info = {0};
-    alloc_info.sType                       = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-    alloc_info.level                       = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-    alloc_info.commandPool                 = g_renderer.command_pool;
-    alloc_info.commandBufferCount          = 1;
+    // TODO(KB): For now we only create one sampler
+    //           Parameterize this in the future
+    VkPhysicalDeviceProperties properties;
+    vkGetPhysicalDeviceProperties(g_renderer.physical_device, &properties);
 
-    VkCommandBuffer cmd_buffer;
-    VkResult vk_result = vkAllocateCommandBuffers(g_renderer.device, &alloc_info, &cmd_buffer);
+    VkSamplerCreateInfo sampler_info     = {0};
+    sampler_info.sType                   = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+    sampler_info.magFilter               = VK_FILTER_LINEAR;
+    sampler_info.minFilter               = VK_FILTER_LINEAR;
+    sampler_info.addressModeU            = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+    sampler_info.addressModeV            = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+    sampler_info.addressModeW            = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+    sampler_info.anisotropyEnable        = VK_FALSE;
+    sampler_info.maxAnisotropy           = properties.limits.maxSamplerAnisotropy;
+    sampler_info.borderColor             = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
+    sampler_info.unnormalizedCoordinates = VK_FALSE;
+    sampler_info.compareEnable           = VK_FALSE;
+    sampler_info.compareOp               = VK_COMPARE_OP_ALWAYS;
+    sampler_info.mipmapMode              = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+    sampler_info.mipLodBias              = 0.0f;
+    sampler_info.minLod                  = 0.0f;
+    sampler_info.maxLod                  = 0.0f;
+
+    VkResult vk_result = vkCreateSampler(g_renderer.device, &sampler_info, NULL, &g_renderer.resources.samplers[g_renderer.resources.sampler_count]);
     EMBER_ASSERT(vk_result == VK_SUCCESS);
 
-    VkCommandBufferBeginInfo begin_info = {0};
-    begin_info.sType                    = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    begin_info.flags                    = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+    g_renderer.resources.sampler_count += 1;
+}
 
-    vkBeginCommandBuffer(cmd_buffer, &begin_info);
+internal void renderer_resources_image_layout_transition(VkImage image, VkImageLayout layout_src, VkImageLayout layout_dst)
+{
+    VkCommandBuffer cmd_buffer = renderer_resources_cmd_buffer_one_time_begin();
+
+    VkImageMemoryBarrier img_barrier            = {0};
+    img_barrier.sType                           = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+    img_barrier.oldLayout                       = layout_src;
+    img_barrier.newLayout                       = layout_dst;
+    img_barrier.srcQueueFamilyIndex             = VK_QUEUE_FAMILY_IGNORED;
+    img_barrier.dstQueueFamilyIndex             = VK_QUEUE_FAMILY_IGNORED;
+    img_barrier.image                           = image;
+    img_barrier.srcAccessMask                   = 0;
+    img_barrier.dstAccessMask                   = 0;
+    img_barrier.subresourceRange.aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT;
+    img_barrier.subresourceRange.baseArrayLayer = 0;
+    img_barrier.subresourceRange.baseMipLevel   = 0;
+    img_barrier.subresourceRange.layerCount     = 1;
+    img_barrier.subresourceRange.levelCount     = 1;
+
+    VkPipelineStageFlags stage_src = {0};
+    VkPipelineStageFlags stage_dst = {0};
+
+    // TODO(KB): This is taken straight from the vk tutorial and I really dislike it.
+    //           Fix in the future...
+    if (layout_src == VK_IMAGE_LAYOUT_UNDEFINED && layout_dst == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL)
+    {
+        img_barrier.srcAccessMask = 0;
+        img_barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+
+        stage_src = VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT;
+        stage_dst = VK_PIPELINE_STAGE_TRANSFER_BIT;
+    }
+    else if (layout_src == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL && layout_dst == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
+    {
+        img_barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+        img_barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+
+        stage_src = VK_PIPELINE_STAGE_TRANSFER_BIT;
+        stage_dst = VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+    }
+    else
+    {
+        EMBER_ASSERT(EMBER_FALSE);
+    }
+
+    vkCmdPipelineBarrier(cmd_buffer, stage_src, stage_dst, 0, 0, NULL, 0, NULL, 1, &img_barrier);
+
+    renderer_resources_cmd_buffer_one_time_end(cmd_buffer);
+}
+
+internal void renderer_resources_copy_buffer(VkBuffer src, VkBuffer dst, VkDeviceSize offset_src, VkDeviceSize offset_dst, VkDeviceSize size)
+{
+    VkCommandBuffer cmd_buffer = renderer_resources_cmd_buffer_one_time_begin();
 
     VkBufferCopy copy_region = {0};
     copy_region.srcOffset    = offset_src;
@@ -292,21 +362,27 @@ internal void renderer_resources_copy_buffer(VkBuffer src, VkBuffer dst, VkDevic
 
     vkCmdCopyBuffer(cmd_buffer, src, dst, 1, &copy_region);
 
-    vkEndCommandBuffer(cmd_buffer);
+    renderer_resources_cmd_buffer_one_time_end(cmd_buffer);
+}
 
-    VkCommandBufferSubmitInfo cmd_buffer_info = {0};
-    cmd_buffer_info.sType                     = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO;
-    cmd_buffer_info.commandBuffer             = cmd_buffer;
+internal void renderer_resources_copy_image(VkBuffer src, VkImage dst, u32 width, u32 height)
+{
+    VkCommandBuffer cmd_buffer = renderer_resources_cmd_buffer_one_time_begin();
 
-    VkSubmitInfo2 submit_info          = {0};
-    submit_info.sType                  = VK_STRUCTURE_TYPE_SUBMIT_INFO_2;
-    submit_info.commandBufferInfoCount = 1;
-    submit_info.pCommandBufferInfos    = &cmd_buffer_info;
+    VkBufferImageCopy copy_region               = {0};
+    copy_region.bufferOffset                    = 0;
+    copy_region.bufferRowLength                 = 0;
+    copy_region.bufferImageHeight               = 0;
+    copy_region.imageSubresource.aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT;
+    copy_region.imageSubresource.baseArrayLayer = 0;
+    copy_region.imageSubresource.mipLevel       = 0;
+    copy_region.imageSubresource.layerCount     = 1;
+    copy_region.imageOffset                     = (VkOffset3D){0};
+    copy_region.imageExtent                     = (VkExtent3D){width, height, 1};
 
-    vkQueueSubmit2(g_renderer.graphics_queue, 1, &submit_info, VK_NULL_HANDLE);
-    vkQueueWaitIdle(g_renderer.graphics_queue);
+    vkCmdCopyBufferToImage(cmd_buffer, src, dst, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &copy_region);
 
-    vkFreeCommandBuffers(g_renderer.device, g_renderer.command_pool, 1, &cmd_buffer);
+    renderer_resources_cmd_buffer_one_time_end(cmd_buffer);
 }
 
 internal gpu_mem_t* renderer_resources_create_buffer_memory(VkBuffer buffer, gpu_mem_type_t mem_type)
@@ -335,4 +411,44 @@ internal gpu_mem_t* renderer_resources_create_image_memory(VkImage image, gpu_me
     vkBindImageMemory(g_renderer.device, image, alloc->memory, alloc->offset);
 
     return alloc;
+}
+
+internal VkCommandBuffer renderer_resources_cmd_buffer_one_time_begin()
+{
+    VkCommandBufferAllocateInfo alloc_info = {0};
+    alloc_info.sType                       = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+    alloc_info.level                       = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+    alloc_info.commandPool                 = g_renderer.command_pool;
+    alloc_info.commandBufferCount          = 1;
+
+    VkCommandBuffer cmd_buffer;
+    VkResult vk_result = vkAllocateCommandBuffers(g_renderer.device, &alloc_info, &cmd_buffer);
+    EMBER_ASSERT(vk_result == VK_SUCCESS);
+
+    VkCommandBufferBeginInfo begin_info = {0};
+    begin_info.sType                    = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    begin_info.flags                    = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+
+    vkBeginCommandBuffer(cmd_buffer, &begin_info);
+
+    return cmd_buffer;
+}
+
+internal void renderer_resources_cmd_buffer_one_time_end(VkCommandBuffer cmd_buffer)
+{
+    vkEndCommandBuffer(cmd_buffer);
+
+    VkCommandBufferSubmitInfo cmd_buffer_info = {0};
+    cmd_buffer_info.sType                     = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO;
+    cmd_buffer_info.commandBuffer             = cmd_buffer;
+
+    VkSubmitInfo2 submit_info          = {0};
+    submit_info.sType                  = VK_STRUCTURE_TYPE_SUBMIT_INFO_2;
+    submit_info.commandBufferInfoCount = 1;
+    submit_info.pCommandBufferInfos    = &cmd_buffer_info;
+
+    vkQueueSubmit2(g_renderer.graphics_queue, 1, &submit_info, VK_NULL_HANDLE);
+    vkQueueWaitIdle(g_renderer.graphics_queue);
+
+    vkFreeCommandBuffers(g_renderer.device, g_renderer.command_pool, 1, &cmd_buffer);
 }
