@@ -4,7 +4,6 @@ internal void renderer_pipeline_init(renderer_pipeline_t* pipeline)
     renderer_pipeline_create_descriptor_set_layouts(pipeline);
     renderer_pipeline_create_descriptor_sets(pipeline);
     renderer_pipeline_create_graphics_pipeline_layout(pipeline);
-    renderer_pipeline_create_graphics_pipeline(pipeline);
 }
 
 internal void renderer_pipeline_destroy(renderer_pipeline_t* pipeline)
@@ -263,14 +262,18 @@ internal void renderer_pipeline_create_graphics_pipeline_layout(renderer_pipelin
     EMBER_ASSERT(create_result == VK_SUCCESS);
 }
 
-internal void renderer_pipeline_create_graphics_pipeline(renderer_pipeline_t* pipeline)
+internal void renderer_pipeline_create_graphics_pipeline(renderer_pipeline_t* pipeline, renderer_pipeline_create_info_t* info)
 {
+    EMBER_ASSERT(info != NULL);
+    EMBER_ASSERT(info->shader_vert != NULL);
+    EMBER_ASSERT(info->shader_frag != NULL);
+
     cpu_scratch_t scratch = cpu_scratch_begin(g_renderer.host_arena);
     u8* vert              = MEMORY_PUSH(scratch.arena, u8, KB(16));
     u8* frag              = MEMORY_PUSH(scratch.arena, u8, KB(16));
 
-    u64 vert_size = platform_file_data("../triangle_vert.spv", vert);
-    u64 frag_size = platform_file_data("../triangle_frag.spv", frag);
+    u64 vert_size = platform_file_data(info->shader_vert, vert);
+    u64 frag_size = platform_file_data(info->shader_frag, frag);
 
     VkShaderModule vert_module = renderer_pipeline_create_shader_module(vert, vert_size);
     VkShaderModule frag_module = renderer_pipeline_create_shader_module(frag, frag_size);

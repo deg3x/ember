@@ -26,7 +26,7 @@ inline void editor_main()
     camera_trs.rotation = QUAT_IDENTITY;
     camera_trs.scale    = VEC3_ONE;
 
-    world_entity_t cube  = world_entity_create(&world, &g_mesh_cube, 1, &MAT4_IDENTITY);
+    world_entity_t cube  = world_entity_create(&world, &g_mesh_quad, 1, &MAT4_IDENTITY);
     transform_t cube_trs = transform_from_mat4(&world.nodes.transforms[cube.id]);
 
     for(;;)

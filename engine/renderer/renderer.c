@@ -28,6 +28,13 @@ internal void renderer_init(platform_hnd_t window_handle)
 
     renderer_pipeline_init(g_renderer.pipelines);
 
+    renderer_pipeline_create_info_t info = {
+        "../triangle_vert.spv",
+        "../triangle_frag.spv",
+    };
+
+    renderer_pipeline_create_graphics_pipeline(g_renderer.pipelines, &info);
+
     // NOTE(KB): Load default texture
     i32 width;
     i32 height;
@@ -54,6 +61,7 @@ internal void renderer_init(platform_hnd_t window_handle)
     // NOTE(KB): Create default material
     material_t material = {0};
     material.color      = (color4_t){1.0f, 1.0f, 1.0f, 1.0f};
+    material.use_tex_al = 1;
     
     renderer_create_materials(&material, 1);
 }

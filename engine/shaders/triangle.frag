@@ -52,9 +52,9 @@ layout(std430, set = 0, binding = 3) readonly buffer MaterialBuffer
 
 layout(set = 1, binding = 0) uniform sampler2D textures[];
 
-layout(location = 0) in vec3 frag_color;
+layout(location = 0) in vec3 color;
 layout(location = 1) in mat3 tbn;
-layout(location = 4) in vec2 frag_uvs[2];
+layout(location = 4) in vec2 uvs[2];
 layout(location = 6) flat in uint instance_id;
 
 layout(location = 0) out vec4 out_color;
@@ -67,11 +67,11 @@ void main()
     int id_albedo = mat.tex_id_al;
     int id_normal = mat.tex_id_nm;
 
-    vec2 uvs_al = frag_uvs[mat.tex_uv_al];
-    vec2 uvs_mr = frag_uvs[mat.tex_uv_mr];
-    vec2 uvs_nm = frag_uvs[mat.tex_uv_nm];
-    vec2 uvs_ao = frag_uvs[mat.tex_uv_ao];
-    vec2 uvs_em = frag_uvs[mat.tex_uv_em];
+    vec2 uvs_al = uvs[mat.tex_uv_al];
+    vec2 uvs_mr = uvs[mat.tex_uv_mr];
+    vec2 uvs_nm = uvs[mat.tex_uv_nm];
+    vec2 uvs_ao = uvs[mat.tex_uv_ao];
+    vec2 uvs_em = uvs[mat.tex_uv_em];
 
     vec4 tex_al = texture(textures[nonuniformEXT(id_albedo)], uvs_al);
     vec3 tex_nm = normalize(texture(textures[nonuniformEXT(id_normal)], uvs_nm).rgb * 2.0 - 1.0);
@@ -86,6 +86,6 @@ void main()
     vec3 light_dir    = normalize(vec3(-0.25, -1.0, -0.45));
     float light_alpha = clamp(dot(normalize(normal), -light_dir), 0.0, 1.0);
 
-    out_color = vec4(albedo.rgb * frag_color * light_alpha, 1.0);
+    out_color = vec4(albedo.rgb * color * light_alpha, 1.0);
     //out_color = vec4(normal, 1.0);
 }

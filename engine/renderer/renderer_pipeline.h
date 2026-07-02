@@ -12,6 +12,13 @@ struct renderer_pipeline_t
     VkPipeline            graphics_pipeline;
 };
 
+typedef struct renderer_pipeline_create_info_t renderer_pipeline_create_info_t;
+struct renderer_pipeline_create_info_t
+{
+    const c8* shader_vert;
+    const c8* shader_frag;
+};
+
 internal void renderer_pipeline_init(renderer_pipeline_t* state);
 internal void renderer_pipeline_destroy(renderer_pipeline_t* state);
 
@@ -20,7 +27,7 @@ internal void           renderer_pipeline_create_descriptor_set_layouts(renderer
 internal void           renderer_pipeline_create_descriptor_sets(renderer_pipeline_t* pipeline);
 internal void           renderer_pipeline_update_texture_bindings(renderer_pipeline_t* pipeline, i32 tex_id, i32 img_id, i32 smpl_id, i32 count);
 internal void           renderer_pipeline_create_graphics_pipeline_layout(renderer_pipeline_t* pipeline);
-internal void           renderer_pipeline_create_graphics_pipeline(renderer_pipeline_t* pipeline);
+internal void           renderer_pipeline_create_graphics_pipeline(renderer_pipeline_t* pipeline, renderer_pipeline_create_info_t* info);
 internal VkShaderModule renderer_pipeline_create_shader_module(const u8* code, u64 code_size);
 
 #endif // RENDERER_PIPELINE_H
