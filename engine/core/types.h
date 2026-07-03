@@ -15,6 +15,12 @@
 #define SAMPLER_WRAP_CLAMP_TO_EDGE       1
 #define SAMPLER_WRAP_MIRRORED_REPEAT     2
 
+#define TEXTURE_TYPE_ALBEDO              0
+#define TEXTURE_TYPE_METALIC_ROUGHNESS   1
+#define TEXTURE_TYPE_NORMAL              2
+#define TEXTURE_TYPE_AMBIENT_OCCLUSION   3
+#define TEXTURE_TYPE_EMISSION            4
+
 #pragma warning(push)
 #pragma warning(disable: 4201)
 

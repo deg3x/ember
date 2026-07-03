@@ -126,12 +126,16 @@ internal world_entity_t world_load_model(world_t* world, const c8* file)
             STBI_rgb_alpha
         );
 
+        renderer_img_format_t format = gltf.textures[i].type == TEXTURE_TYPE_NORMAL
+                                     ? RENDERER_IMG_FORMAT_rgba_unorm
+                                     : RENDERER_IMG_FORMAT_rgba_srgb;
+
         renderer_tex_info_t tex_info = {
             width,
             height,
             (u8*)pixels,
             width * height * 4,
-            RENDERER_IMG_FORMAT_rgba_srgb,
+            format,
             RENDERER_IMG_TILING_optimal,
             RENDERER_IMG_USAGE_FLAGS_transfer_dst | RENDERER_IMG_USAGE_FLAGS_sampled
         };

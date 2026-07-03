@@ -26,8 +26,8 @@ inline void editor_main()
     camera_trs.rotation = QUAT_IDENTITY;
     camera_trs.scale    = VEC3_ONE;
 
-    world_entity_t cube  = world_entity_create(&world, &g_mesh_quad, 1, &MAT4_IDENTITY);
-    transform_t cube_trs = transform_from_mat4(&world.nodes.transforms[cube.id]);
+    world_entity_t quad  = world_entity_create(&world, &g_mesh_quad, 1, &MAT4_IDENTITY);
+    transform_t quad_trs = transform_from_mat4(&world.nodes.transforms[quad.id]);
 
     for(;;)
     {
@@ -39,10 +39,10 @@ inline void editor_main()
         quat_t rot = quat_from_axis_angle(&VEC3_UP, delta_time);
         f32 scale  = 1.5f + 0.5f * math_cos(3.0f * (f32)platform_timer_since_start(g_program_state.timer));
 
-        cube_trs.rotation = quat_mul(&rot, &cube_trs.rotation);
-        cube_trs.scale    = (vec3_t){scale, scale, scale};
+        quad_trs.rotation = quat_mul(&rot, &quad_trs.rotation);
+        quad_trs.scale    = (vec3_t){scale, scale, scale};
 
-        world_entity_set_transform(&world, cube, &cube_trs);
+        world_entity_set_transform(&world, quad, &quad_trs);
 
         if (!g_program_state.is_running)
         {

@@ -74,18 +74,21 @@ void main()
     vec2 uvs_em = uvs[mat.tex_uv_em];
 
     vec4 tex_al = texture(textures[nonuniformEXT(id_albedo)], uvs_al);
-    vec3 tex_nm = normalize(texture(textures[nonuniformEXT(id_normal)], uvs_nm).rgb * 2.0 - 1.0);
-
+    vec3 tex_nm = texture(textures[nonuniformEXT(id_normal)], uvs_nm).rgb * 2.0 - 1.0;
+    tex_nm.xy  *= mat.normal_scale;
+    tex_nm      = normalize(tex_nm);
     float check = step(0.5, dot(cross(tbn[0], tbn[1]), tbn[2]));
+    tex_nm      = normalize((check * tbn + (1 - check) * mat3(-tbn[0], tbn[1], tbn[2])) * tex_nm);
 
-    tex_nm = normalize((check * tbn + (1 - check) * mat3(-tbn[0], tbn[1], tbn[2])) * tex_nm);
+    vec4 albedo = mat.use_tex_al > 0.5 ? tex_al : mat.color;
+    vec3 normal = mat.use_tex_nm > 0.5 ? tex_nm : tbn[2];
 
-    vec4 albedo = mat.use_tex_al * tex_al * mat.color + (1 - mat.use_tex_al) * mat.color;
-    vec3 normal = mat.use_tex_nm * normalize(tex_nm) + (1 - mat.use_tex_nm) * tbn[2];
+    if (albedo.a < mat.alpha_cutoff)
+        discard;
 
     vec3 light_dir    = normalize(vec3(-0.25, -1.0, -0.45));
     float light_alpha = clamp(dot(normalize(normal), -light_dir), 0.0, 1.0);
 
-    out_color = vec4(albedo.rgb * color * light_alpha, 1.0);
+    out_color = vec4(albedo.rgb * color * mat.color.rgb * light_alpha, 1.0f);
     //out_color = vec4(normal, 1.0);
 }

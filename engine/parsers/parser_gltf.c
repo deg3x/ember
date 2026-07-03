@@ -626,37 +626,6 @@ internal gltf_data_t gltf_parse_chunk_binary(gltf_parser_t* parser, u32 chunk_le
         result.mesh_ids[node_idx]       = node->mesh;
     }
 
-    // NOTE(KB): Convert material data to output format
-    for (i32 mat_idx = 0; mat_idx < json_data->material_count; mat_idx++)
-    {
-        gltf_material_t* mat = &json_data->materials[mat_idx];
-
-        result.materials[mat_idx].color        = *((color4_t*)mat->pbr_clr);
-        result.materials[mat_idx].color_em     = *((color3_t*)mat->emissive);
-        result.materials[mat_idx].metal        = mat->pbr_metal;
-        result.materials[mat_idx].rough        = mat->pbr_rough;
-        result.materials[mat_idx].ao           = mat->tex_ao_str;
-        result.materials[mat_idx].alpha_mode   = mat->alpha_mode;
-        result.materials[mat_idx].alpha_cutoff = mat->alpha_cutoff;
-        result.materials[mat_idx].normal_scale = mat->tex_nm_scale;
-        result.materials[mat_idx].double_sided = mat->double_sided;
-        result.materials[mat_idx].use_tex_al   = !!(mat->pbr_tex_clr_id >= 0);
-        result.materials[mat_idx].use_tex_mr   = !!(mat->pbr_tex_mr_id >= 0);
-        result.materials[mat_idx].use_tex_nm   = !!(mat->tex_nm_id >= 0);
-        result.materials[mat_idx].use_tex_ao   = !!(mat->tex_ao_id >= 0);
-        result.materials[mat_idx].use_tex_em   = !!(mat->tex_em_id >= 0);
-        result.materials[mat_idx].tex_id_al    = mat->pbr_tex_clr_id;
-        result.materials[mat_idx].tex_id_mr    = mat->pbr_tex_mr_id;
-        result.materials[mat_idx].tex_id_nm    = mat->tex_nm_id;
-        result.materials[mat_idx].tex_id_ao    = mat->tex_ao_id;
-        result.materials[mat_idx].tex_id_em    = mat->tex_em_id;
-        result.materials[mat_idx].tex_uv_al    = mat->pbr_tex_clr_uv;
-        result.materials[mat_idx].tex_uv_mr    = mat->pbr_tex_mr_uv;
-        result.materials[mat_idx].tex_uv_nm    = mat->tex_nm_uv;
-        result.materials[mat_idx].tex_uv_ao    = mat->tex_ao_uv;
-        result.materials[mat_idx].tex_uv_em    = mat->tex_em_uv;
-    }
-
     // NOTE(KB): Convert image/texture data to output format
     for (i32 texture_idx = 0; texture_idx < json_data->texture_count; texture_idx++)
     {
@@ -665,7 +634,7 @@ internal gltf_data_t gltf_parse_chunk_binary(gltf_parser_t* parser, u32 chunk_le
         gltf_image_t* image     = &json_data->images[tex->image];
         gltf_buffer_view_t view = json_data->buffer_views[image->buffer_view_id];
 
-        result.textures[texture_idx].type = image->mime_type;
+        //result.textures[texture_idx].mime = image->mime_type;
         result.textures[texture_idx].size = view.byte_length;
 
         if (sampler->min_filter > GLTF_MIN_FILTER_LIN)
@@ -722,6 +691,73 @@ internal gltf_data_t gltf_parse_chunk_binary(gltf_parser_t* parser, u32 chunk_le
         }
 
         result.textures[texture_idx].data = (data + view.byte_offset);
+    }
+
+    // NOTE(KB): Convert material data to output format
+    for (i32 mat_idx = 0; mat_idx < json_data->material_count; mat_idx++)
+    {
+        gltf_material_t* mat = &json_data->materials[mat_idx];
+
+        result.materials[mat_idx].color        = *((color4_t*)mat->pbr_clr);
+        result.materials[mat_idx].color_em     = *((color3_t*)mat->emissive);
+        result.materials[mat_idx].metal        = mat->pbr_metal;
+        result.materials[mat_idx].rough        = mat->pbr_rough;
+        result.materials[mat_idx].ao           = mat->tex_ao_str;
+        result.materials[mat_idx].alpha_mode   = mat->alpha_mode;
+        result.materials[mat_idx].alpha_cutoff = mat->alpha_cutoff;
+        result.materials[mat_idx].normal_scale = mat->tex_nm_scale;
+        result.materials[mat_idx].double_sided = mat->double_sided;
+        result.materials[mat_idx].use_tex_al   = !!(mat->pbr_tex_clr_id >= 0);
+        result.materials[mat_idx].use_tex_mr   = !!(mat->pbr_tex_mr_id >= 0);
+        result.materials[mat_idx].use_tex_nm   = !!(mat->tex_nm_id >= 0);
+        result.materials[mat_idx].use_tex_ao   = !!(mat->tex_ao_id >= 0);
+        result.materials[mat_idx].use_tex_em   = !!(mat->tex_em_id >= 0);
+        result.materials[mat_idx].tex_id_al    = mat->pbr_tex_clr_id;
+        result.materials[mat_idx].tex_id_mr    = mat->pbr_tex_mr_id;
+        result.materials[mat_idx].tex_id_nm    = mat->tex_nm_id;
+        result.materials[mat_idx].tex_id_ao    = mat->tex_ao_id;
+        result.materials[mat_idx].tex_id_em    = mat->tex_em_id;
+        result.materials[mat_idx].tex_uv_al    = mat->pbr_tex_clr_uv;
+        result.materials[mat_idx].tex_uv_mr    = mat->pbr_tex_mr_uv;
+        result.materials[mat_idx].tex_uv_nm    = mat->tex_nm_uv;
+        result.materials[mat_idx].tex_uv_ao    = mat->tex_ao_uv;
+        result.materials[mat_idx].tex_uv_em    = mat->tex_em_uv;
+
+        if (result.materials[mat_idx].use_tex_al)
+        {
+            i32 id = result.materials[mat_idx].tex_id_al;
+            EMBER_ASSERT(id < result.texture_count);
+
+            result.textures[id].type = TEXTURE_TYPE_ALBEDO;
+        }
+        if (result.materials[mat_idx].use_tex_mr)
+        {
+            i32 id = result.materials[mat_idx].tex_id_mr;
+            EMBER_ASSERT(id < result.texture_count);
+
+            result.textures[id].type = TEXTURE_TYPE_METALIC_ROUGHNESS;
+        }
+        if (result.materials[mat_idx].use_tex_nm)
+        {
+            i32 id = result.materials[mat_idx].tex_id_nm;
+            EMBER_ASSERT(id < result.texture_count);
+
+            result.textures[id].type = TEXTURE_TYPE_NORMAL;
+        }
+        if (result.materials[mat_idx].use_tex_ao)
+        {
+            i32 id = result.materials[mat_idx].tex_id_ao;
+            EMBER_ASSERT(id < result.texture_count);
+
+            result.textures[id].type = TEXTURE_TYPE_AMBIENT_OCCLUSION;
+        }
+        if (result.materials[mat_idx].use_tex_em)
+        {
+            i32 id = result.materials[mat_idx].tex_id_em;
+            EMBER_ASSERT(id < result.texture_count);
+
+            result.textures[id].type = TEXTURE_TYPE_EMISSION;
+        }
     }
 
     // NOTE(KB): This is needed because we consider every unique primitive entry a new mesh

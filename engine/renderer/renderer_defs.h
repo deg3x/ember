@@ -62,7 +62,8 @@ enum
 typedef u32 renderer_img_format_t;
 enum
 {
-    RENDERER_IMG_FORMAT_rgba_srgb = VK_FORMAT_R8G8B8A8_SRGB,
+    RENDERER_IMG_FORMAT_rgba_srgb  = VK_FORMAT_R8G8B8A8_SRGB,
+    RENDERER_IMG_FORMAT_rgba_unorm = VK_FORMAT_R8G8B8A8_UNORM,
 };
 
 typedef u32 renderer_img_usage_flags_t;
