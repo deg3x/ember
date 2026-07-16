@@ -60,7 +60,7 @@ typedef struct gltf_parser_t gltf_parser_t;
 struct gltf_parser_t
 {
     cpu_arena_t* arena;
-    buffer_t     source;
+    string_t     source;
     u64          position;
 };
 
@@ -95,7 +95,7 @@ struct gltf_node_t
 typedef struct gltf_mesh_t gltf_mesh_t;
 struct gltf_mesh_t
 {
-    buffer_t          name;
+    string_t          name;
     gltf_primitive_t* primitives;
     i32               primitive_count;
 };

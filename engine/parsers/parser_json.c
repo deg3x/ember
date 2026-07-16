@@ -437,7 +437,7 @@ internal b32 json_child_value(cpu_arena_t* arena, json_entry_t* entry, json_valu
         case JSON_VALUE_TYPE_i32:
         {
             c8* value_str = MEMORY_PUSH(scratch.arena, c8, child->value.size + 1);
-            buffer_to_cstr(&child->value, value_str);
+            cstr_from_buffer(&child->value, value_str);
 
             *((i32 *)dest) = strtol(value_str, NULL, 10);
 
@@ -446,7 +446,7 @@ internal b32 json_child_value(cpu_arena_t* arena, json_entry_t* entry, json_valu
         case JSON_VALUE_TYPE_u32:
         {
             c8* value_str = MEMORY_PUSH(scratch.arena, c8, child->value.size + 1);
-            buffer_to_cstr(&child->value, value_str);
+            cstr_from_buffer(&child->value, value_str);
 
             *((u32 *)dest) = strtol(value_str, NULL, 10);
 
@@ -455,7 +455,7 @@ internal b32 json_child_value(cpu_arena_t* arena, json_entry_t* entry, json_valu
         case JSON_VALUE_TYPE_f32:
         {
             c8* value_str = MEMORY_PUSH(scratch.arena, c8, child->value.size + 1);
-            buffer_to_cstr(&child->value, value_str);
+            cstr_from_buffer(&child->value, value_str);
 
             *((f32 *)dest) = strtof(value_str, NULL);
             
@@ -483,7 +483,7 @@ internal b32 json_child_value(cpu_arena_t* arena, json_entry_t* entry, json_valu
         }
         case JSON_VALUE_TYPE_str:
         {
-            buffer_to_cstr(&child->value, (c8 *)dest);
+            cstr_from_buffer(&child->value, (c8 *)dest);
 
             break;
         }
@@ -502,7 +502,7 @@ internal b32 json_child_value(cpu_arena_t* arena, json_entry_t* entry, json_valu
             while (array_child != NULL)
             {
                 c8* value_str = MEMORY_PUSH(scratch.arena, c8, array_child->value.size + 1);
-                buffer_to_cstr(&array_child->value, value_str);
+                cstr_from_buffer(&array_child->value, value_str);
 
                 *i_dest = strtol(value_str, NULL, 10);
 
@@ -528,7 +528,7 @@ internal b32 json_child_value(cpu_arena_t* arena, json_entry_t* entry, json_valu
             while (array_child != NULL)
             {
                 c8* value_str = MEMORY_PUSH(scratch.arena, c8, array_child->value.size + 1);
-                buffer_to_cstr(&array_child->value, value_str);
+                cstr_from_buffer(&array_child->value, value_str);
 
                 *f_dest = strtof(value_str, NULL);
 

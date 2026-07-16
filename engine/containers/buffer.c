@@ -40,7 +40,7 @@ internal buffer_t buffer_from_cstr(const c8* cstr)
     return result;
 }
 
-internal void buffer_to_cstr(buffer_t* buf, c8* dest)
+internal void cstr_from_buffer(buffer_t* buf, c8* dest)
 {
     EMBER_ASSERT(dest != NULL);
 
