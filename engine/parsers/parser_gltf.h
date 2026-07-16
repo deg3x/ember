@@ -83,13 +83,13 @@ struct gltf_primitive_t
 typedef struct gltf_node_t gltf_node_t;
 struct gltf_node_t
 {
-    mat4_t matrix;
-    i32*   children;
-    c8     name[64];
-    i32    parent;
-    b32    has_parent;
-    i32    child_count;
-    i32    mesh;
+    mat4_t   matrix;
+    i32*     children;
+    string_t name;
+    i32      parent;
+    b32      has_parent;
+    i32      child_count;
+    i32      mesh;
 };
 
 typedef struct gltf_mesh_t gltf_mesh_t;

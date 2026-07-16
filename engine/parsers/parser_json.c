@@ -381,23 +381,7 @@ internal json_token_t json_parse_token(json_parser_t* parser)
     return result;
 }
 
-internal i32 json_num_of_children(json_entry_t* entry)
-{
-    EMBER_ASSERT(entry != NULL);
-
-    i32 result = 0;
-
-    json_entry_t* current = entry->child;
-    while (current != NULL)
-    {
-        result += 1;
-        current = current->next;
-    }
-
-    return result;
-}
-
-internal json_entry_t* json_find_child(json_entry_t* entry, buffer_t* child_label)
+internal json_entry_t* json_child_find(json_entry_t* entry, buffer_t* child_label)
 {
     EMBER_ASSERT(entry != NULL);
 
@@ -415,6 +399,22 @@ internal json_entry_t* json_find_child(json_entry_t* entry, buffer_t* child_labe
     return result;
 }
 
+internal i32 json_child_count(json_entry_t* entry)
+{
+    EMBER_ASSERT(entry != NULL);
+
+    i32 result = 0;
+
+    json_entry_t* current = entry->child;
+    while (current != NULL)
+    {
+        result += 1;
+        current = current->next;
+    }
+
+    return result;
+}
+
 internal b32 json_child_value(cpu_arena_t* arena, json_entry_t* entry, json_value_type_t type, void* dest, const c8* child_label)
 {
     EMBER_ASSERT(entry != NULL);
@@ -422,7 +422,7 @@ internal b32 json_child_value(cpu_arena_t* arena, json_entry_t* entry, json_valu
     EMBER_ASSERT(child_label != NULL);
 
     buffer_t label_buffer = buffer_from_cstr(child_label);
-    json_entry_t* child   = json_find_child(entry, &label_buffer);
+    json_entry_t* child   = json_child_find(entry, &label_buffer);
 
     if (child == NULL)
     {

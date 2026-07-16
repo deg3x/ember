@@ -61,8 +61,8 @@ internal json_entry_t* json_parse_entry(json_parser_t* parser, buffer_t* label, 
 internal json_entry_t* json_parse_list(json_parser_t* parser, json_token_type_t end_type, b32 has_labels);
 internal json_token_t  json_parse_token(json_parser_t* parser);
 
-internal i32           json_num_of_children(json_entry_t* entry);
-internal json_entry_t* json_find_child(json_entry_t* entry, buffer_t* child_label);
+internal json_entry_t* json_child_find(json_entry_t* entry, buffer_t* child_label);
+internal i32           json_child_count(json_entry_t* entry);
 internal b32           json_child_value(cpu_arena_t* arena, json_entry_t* entry, json_value_type_t type, void* dest, const c8* child_label);
 
 internal b32  json_parser_is_valid(json_parser_t* parser);

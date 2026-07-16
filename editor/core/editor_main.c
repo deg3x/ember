@@ -37,10 +37,8 @@ inline void editor_main()
         f32 delta_time = (f32)platform_timer_delta(g_program_state.timer);
 
         quat_t rot = quat_from_axis_angle(&VEC3_UP, delta_time);
-        f32 scale  = 1.5f + 0.5f * math_cos(3.0f * (f32)platform_timer_since_start(g_program_state.timer));
 
         quad_trs.rotation = quat_mul(&rot, &quad_trs.rotation);
-        quad_trs.scale    = (vec3_t){scale, scale, scale};
 
         world_entity_set_transform(&world, quad, &quad_trs);
 
