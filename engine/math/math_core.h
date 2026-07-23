@@ -22,7 +22,6 @@ internal quat_t quat_from_axis_angle(vec3_t* axis, f32 angle);
 internal vec3_t euler_from_quat(quat_t* quat);
 internal vec3_t euler_from_mat4(mat4_t* matrix);
 
-internal vec3_t mat4_to_euler(mat4_t* matrix);
 internal mat4_t mat4_from_euler(vec3_t* angles);
 internal mat4_t mat4_from_pitch(f32 pitch);
 internal mat4_t mat4_from_yaw(f32 yaw);
