@@ -7,10 +7,11 @@ internal gltf_data_t gltf_parse_file(const c8* file_path)
 
     cpu_arena_params_t params = { MAX(file_info.size * 2, KB(32)), MAX(file_info.size * 2, KB(32)), 0 };
 
-    parser.arena       = cpu_arena_init(&params);
-    parser.source.data = MEMORY_PUSH(parser.arena, u8, file_info.size);
-    parser.source.size = platform_file_read(file_handle, parser.source.data, FILE_READ_ALL);
-    parser.position    = 0;
+    parser.arena           = cpu_arena_init(&params);
+    parser.source.data     = MEMORY_PUSH(parser.arena, c8, file_info.size);
+    parser.source.size     = platform_file_read(file_handle, parser.source.data, FILE_READ_ALL);
+    parser.source.capacity = parser.source.size;
+    parser.position        = 0;
 
     u32 magic   = *((u32*)(parser.source.data));
     u32 version = *((u32*)(parser.source.data + 4));
@@ -58,26 +59,24 @@ internal gltf_data_t gltf_parse_file(const c8* file_path)
 
 internal gltf_json_t gltf_parse_chunk_json(gltf_parser_t* parser, u32 chunk_length)
 {
-    (void)chunk_length;
-
-    json_entry_t* json    = json_parse(parser->source.data + parser->position, chunk_length, parser->arena);
+    json_entry_t* json    = json_parse(parser->source.data + parser->position, chunk_length);
     json_entry_t* current = json->child;
 
     gltf_json_t result = {0};
 
     while (current != NULL)
     {
-        buffer_t label_nodes  = buffer_from_cstr("nodes");
-        buffer_t label_meshes = buffer_from_cstr("meshes");
-        buffer_t label_access = buffer_from_cstr("accessors");
-        buffer_t label_views  = buffer_from_cstr("bufferViews");
-        buffer_t label_buffer = buffer_from_cstr("buffers");
-        buffer_t label_tex    = buffer_from_cstr("textures");
-        buffer_t label_img    = buffer_from_cstr("images");
-        buffer_t label_sample = buffer_from_cstr("samplers");
-        buffer_t label_mat    = buffer_from_cstr("materials");
+        string_t label_nodes  = string_from_cstr("nodes");
+        string_t label_meshes = string_from_cstr("meshes");
+        string_t label_access = string_from_cstr("accessors");
+        string_t label_views  = string_from_cstr("bufferViews");
+        string_t label_buffer = string_from_cstr("buffers");
+        string_t label_tex    = string_from_cstr("textures");
+        string_t label_img    = string_from_cstr("images");
+        string_t label_sample = string_from_cstr("samplers");
+        string_t label_mat    = string_from_cstr("materials");
 
-        if (buffer_is_equal(&label_nodes, &current->label))
+        if (string_is_equal(&label_nodes, &current->label))
         {
             i32 node_count    = json_child_count(current);
             result.nodes      = MEMORY_PUSH(parser->arena, gltf_node_t, node_count);
@@ -104,7 +103,7 @@ internal gltf_json_t gltf_parse_chunk_json(gltf_parser_t* parser, u32 chunk_leng
                 b32 trs_is_valid      = EMBER_TRUE;
 
                 i32 child_count             = 0;
-                buffer_t children_label     = buffer_from_cstr("children");
+                string_t children_label     = string_from_cstr("children");
                 json_entry_t* children_node = json_child_find(node, &children_label);
 
                 i32* children = NULL;
@@ -148,7 +147,7 @@ internal gltf_json_t gltf_parse_chunk_json(gltf_parser_t* parser, u32 chunk_leng
             }
 
         }
-        else if (buffer_is_equal(&label_meshes, &current->label))
+        else if (string_is_equal(&label_meshes, &current->label))
         {
             i32 mesh_count    = json_child_count(current);
             result.meshes     = MEMORY_PUSH(parser->arena, gltf_mesh_t, mesh_count);
@@ -171,10 +170,10 @@ internal gltf_json_t gltf_parse_chunk_json(gltf_parser_t* parser, u32 chunk_leng
 
                 // TODO(KB): Fill missing info, if necessary
 
-                buffer_t primitives_buffer = buffer_from_cstr("primitives");
-                buffer_t attributes_buffer = buffer_from_cstr("attributes");
+                string_t primitives_str = string_from_cstr("primitives");
+                string_t attributes_str = string_from_cstr("attributes");
 
-                json_entry_t* current_prim = json_child_find(mesh, &primitives_buffer);
+                json_entry_t* current_prim = json_child_find(mesh, &primitives_str);
                 i32 primitive_count        = json_child_count(current_prim);
 
                 result.meshes[i].primitives      = MEMORY_PUSH(parser->arena, gltf_primitive_t, primitive_count);
@@ -186,7 +185,7 @@ internal gltf_json_t gltf_parse_chunk_json(gltf_parser_t* parser, u32 chunk_leng
                 {
                     EMBER_ASSERT(current_prim != NULL);
 
-                    json_entry_t* attributes = json_child_find(current_prim, &attributes_buffer);
+                    json_entry_t* attributes = json_child_find(current_prim, &attributes_str);
 
                     b32 position_is_valid  = json_child_value(parser->arena, attributes, JSON_VALUE_TYPE_i32, &position, "POSITION");
                     b32 normal_is_valid    = json_child_value(parser->arena, attributes, JSON_VALUE_TYPE_i32, &normal, "NORMAL");
@@ -220,7 +219,7 @@ internal gltf_json_t gltf_parse_chunk_json(gltf_parser_t* parser, u32 chunk_leng
                 mesh = mesh->next;
             }
         }
-        else if (buffer_is_equal(&label_access, &current->label))
+        else if (string_is_equal(&label_access, &current->label))
         {
             i32 accessor_count    = json_child_count(current);
             result.accessors      = MEMORY_PUSH(parser->arena, gltf_accessor_t, accessor_count);
@@ -268,7 +267,7 @@ internal gltf_json_t gltf_parse_chunk_json(gltf_parser_t* parser, u32 chunk_leng
                 accessor = accessor->next;
             }
         }
-        else if (buffer_is_equal(&label_views, &current->label))
+        else if (string_is_equal(&label_views, &current->label))
         {
             i32 view_count           = json_child_count(current);
             result.buffer_views      = MEMORY_PUSH(parser->arena, gltf_buffer_view_t, view_count);
@@ -298,7 +297,7 @@ internal gltf_json_t gltf_parse_chunk_json(gltf_parser_t* parser, u32 chunk_leng
                 view = view->next;
             }
         }
-        else if (buffer_is_equal(&label_buffer, &current->label))
+        else if (string_is_equal(&label_buffer, &current->label))
         {
             i32 buffer_count    = json_child_count(current);
             result.buffers      = MEMORY_PUSH(parser->arena, gltf_buffer_t, buffer_count);
@@ -316,7 +315,7 @@ internal gltf_json_t gltf_parse_chunk_json(gltf_parser_t* parser, u32 chunk_leng
                 buffer = buffer->next;
             }
         }
-        else if (buffer_is_equal(&label_tex, &current->label))
+        else if (string_is_equal(&label_tex, &current->label))
         {
             i32 texture_count    = json_child_count(current);
             result.textures      = MEMORY_PUSH(parser->arena, gltf_texture_t, texture_count);
@@ -337,7 +336,7 @@ internal gltf_json_t gltf_parse_chunk_json(gltf_parser_t* parser, u32 chunk_leng
                 tex = tex->next;
             }
         }
-        else if (buffer_is_equal(&label_img, &current->label))
+        else if (string_is_equal(&label_img, &current->label))
         {
             i32 image_count    = json_child_count(current);
             result.images      = MEMORY_PUSH(parser->arena, gltf_image_t, image_count);
@@ -359,15 +358,15 @@ internal gltf_json_t gltf_parse_chunk_json(gltf_parser_t* parser, u32 chunk_leng
 
                 EMBER_ASSERT(mime_type_is_valid);
 
-                buffer_t png      = buffer_from_cstr("image/png");
-                buffer_t jpeg     = buffer_from_cstr("image/jpeg");
-                buffer_t mime_buf = buffer_from_cstr(mime_type);
+                string_t png  = string_from_cstr("image/png");
+                string_t jpeg = string_from_cstr("image/jpeg");
+                string_t mime = string_from_cstr(mime_type);
 
-                if (buffer_is_equal(&mime_buf, &png))
+                if (string_is_equal(&mime, &png))
                 {
                     result.images[i].mime_type = GLTF_MIME_TYPE_PNG;
                 }
-                else if (buffer_is_equal(&mime_buf, &jpeg))
+                else if (string_is_equal(&mime, &jpeg))
                 {
                     result.images[i].mime_type = GLTF_MIME_TYPE_JPEG;
                 }
@@ -379,7 +378,7 @@ internal gltf_json_t gltf_parse_chunk_json(gltf_parser_t* parser, u32 chunk_leng
                 image = image->next;
             }
         }
-        else if (buffer_is_equal(&label_sample, &current->label))
+        else if (string_is_equal(&label_sample, &current->label))
         {
             i32 sampler_count    = json_child_count(current);
             result.samplers      = MEMORY_PUSH(parser->arena, gltf_sampler_t, sampler_count);
@@ -406,18 +405,18 @@ internal gltf_json_t gltf_parse_chunk_json(gltf_parser_t* parser, u32 chunk_leng
                 sampler = sampler->next;
             }
         }
-        else if (buffer_is_equal(&label_mat, &current->label))
+        else if (string_is_equal(&label_mat, &current->label))
         {
             i32 material_count    = json_child_count(current);
             result.materials      = MEMORY_PUSH(parser->arena, gltf_material_t, material_count);
             result.material_count = material_count;
 
-            buffer_t buffer_pbr     = buffer_from_cstr("pbrMetallicRoughness");
-            buffer_t buffer_tex_clr = buffer_from_cstr("baseColorTexture");
-            buffer_t buffer_tex_mr  = buffer_from_cstr("metallicRoughnessTexture");
-            buffer_t buffer_tex_nm  = buffer_from_cstr("normalTexture");
-            buffer_t buffer_tex_ao  = buffer_from_cstr("occlusionTexture");
-            buffer_t buffer_tex_em  = buffer_from_cstr("emissiveTexture");
+            string_t str_pbr     = string_from_cstr("pbrMetallicRoughness");
+            string_t str_tex_clr = string_from_cstr("baseColorTexture");
+            string_t str_tex_mr  = string_from_cstr("metallicRoughnessTexture");
+            string_t str_tex_nm  = string_from_cstr("normalTexture");
+            string_t str_tex_ao  = string_from_cstr("occlusionTexture");
+            string_t str_tex_em  = string_from_cstr("emissiveTexture");
 
             json_entry_t* mat = current->child;
             for (i32 i = 0; i < material_count && mat != NULL; i++)
@@ -442,7 +441,7 @@ internal gltf_json_t gltf_parse_chunk_json(gltf_parser_t* parser, u32 chunk_leng
                 f32 alpha_cutoff   = 0.5f;
                 b32 double_sided   = EMBER_FALSE;
 
-                json_entry_t* pbr = json_child_find(mat, &buffer_pbr);
+                json_entry_t* pbr = json_child_find(mat, &str_pbr);
 
                 b32 pbr_clr_is_valid        = EMBER_FALSE;
                 b32 pbr_tex_clr_id_is_valid = EMBER_FALSE;
@@ -454,8 +453,8 @@ internal gltf_json_t gltf_parse_chunk_json(gltf_parser_t* parser, u32 chunk_leng
 
                 if (pbr != NULL)
                 {
-                    json_entry_t* tex_clr = json_child_find(pbr, &buffer_tex_clr);
-                    json_entry_t* tex_mr  = json_child_find(pbr, &buffer_tex_mr);
+                    json_entry_t* tex_clr = json_child_find(pbr, &str_tex_clr);
+                    json_entry_t* tex_mr  = json_child_find(pbr, &str_tex_mr);
 
                     pbr_clr_is_valid   = json_child_value(parser->arena, pbr, JSON_VALUE_TYPE_arr_f32, &pbr_clr, "baseColorFactor");
                     pbr_metal_is_valid = json_child_value(parser->arena, pbr, JSON_VALUE_TYPE_f32, &pbr_metal, "metallicFactor");
@@ -474,7 +473,7 @@ internal gltf_json_t gltf_parse_chunk_json(gltf_parser_t* parser, u32 chunk_leng
                     }
                 }
 
-                json_entry_t* tex_nm = json_child_find(mat, &buffer_tex_nm);
+                json_entry_t* tex_nm = json_child_find(mat, &str_tex_nm);
 
                 b32 tex_nm_id_is_valid    = EMBER_FALSE;
                 b32 tex_nm_uv_is_valid    = EMBER_FALSE;
@@ -487,7 +486,7 @@ internal gltf_json_t gltf_parse_chunk_json(gltf_parser_t* parser, u32 chunk_leng
                     tex_nm_scale_is_valid = json_child_value(parser->arena, tex_nm, JSON_VALUE_TYPE_f32, &tex_nm_scale, "scale");
                 }
 
-                json_entry_t* tex_ao = json_child_find(mat, &buffer_tex_ao);
+                json_entry_t* tex_ao = json_child_find(mat, &str_tex_ao);
 
                 b32 tex_ao_id_is_valid  = EMBER_FALSE;
                 b32 tex_ao_uv_is_valid  = EMBER_FALSE;
@@ -500,7 +499,7 @@ internal gltf_json_t gltf_parse_chunk_json(gltf_parser_t* parser, u32 chunk_leng
                     tex_ao_str_is_valid = json_child_value(parser->arena, tex_ao, JSON_VALUE_TYPE_f32, &tex_ao_str, "strength");
                 }
 
-                json_entry_t* tex_em = json_child_find(mat, &buffer_tex_em);
+                json_entry_t* tex_em = json_child_find(mat, &str_tex_em);
 
                 b32 tex_em_id_is_valid = EMBER_FALSE;
                 b32 tex_em_uv_is_valid = EMBER_FALSE;
@@ -536,15 +535,15 @@ internal gltf_json_t gltf_parse_chunk_json(gltf_parser_t* parser, u32 chunk_leng
 
                 if (alpha_mode_is_valid)
                 {
-                    buffer_t buf_mask     = buffer_from_cstr("MASK");
-                    buffer_t buf_blend    = buffer_from_cstr("BLEND");
-                    buffer_t buf_mode_val = buffer_from_cstr(alpha_mode);
+                    string_t str_mask     = string_from_cstr("MASK");
+                    string_t str_blend    = string_from_cstr("BLEND");
+                    string_t str_mode_val = string_from_cstr(alpha_mode);
 
-                    if (buffer_is_equal(&buf_mask, &buf_mode_val))
+                    if (string_is_equal(&str_mask, &str_mode_val))
                     {
                         result.materials[i].alpha_mode = GLTF_ALPHA_MODE_MASK;
                     }
-                    else if (buffer_is_equal(&buf_blend, &buf_mode_val))
+                    else if (string_is_equal(&str_blend, &str_mode_val))
                     {
                         result.materials[i].alpha_mode = GLTF_ALPHA_MODE_BLEND;
                     }
@@ -591,7 +590,7 @@ internal gltf_data_t gltf_parse_chunk_binary(gltf_parser_t* parser, u32 chunk_le
 {
     (void)chunk_length;
 
-    u8* data = parser->source.data + parser->position;
+    u8* data = (u8*)(parser->source.data + parser->position);
 
     gltf_data_t result = {0};
 

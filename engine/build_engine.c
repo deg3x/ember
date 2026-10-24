@@ -43,12 +43,14 @@
 #include "math/math_core.h"
 
 #include "core/types.h"
-
 #include "core/transform.h"
 #include "core/mesh.h"
 
 #include "memory/cpu_arena.h"
+
 #include "containers/buffer.h"
+#include "containers/str_types.h"
+
 #include "input/input.h"
 
 #include "renderer/gpu_arena.h"
@@ -80,11 +82,14 @@
 #include "math/matrix.c"
 #include "math/math_core.c"
 
-#include "core/mesh.c"
 #include "core/transform.c"
+#include "core/mesh.c"
 
 #include "memory/cpu_arena.c"
+
 #include "containers/buffer.c"
+#include "containers/str_types.c"
+
 #include "input/input.c"
 
 #include "renderer/gpu_arena.c"

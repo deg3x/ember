@@ -1,43 +1,47 @@
-internal json_entry_t* json_parse(u8* data, u64 size, cpu_arena_t* arena)
+internal json_entry_t* json_parse(void* data, i64 size)
 {
     json_parser_t parser;
 
-    parser.arena       = arena;
-    parser.position    = 0;
-    parser.has_error   = EMBER_FALSE;
-    parser.source.data = data;
-    parser.source.size = size;
+    cpu_arena_params_t params = { MAX(size * 8, KB(32)), MAX(size * 8, KB(32)), 0 };
+
+    parser.arena           = cpu_arena_init(&params);
+    parser.position        = 0;
+    parser.has_error       = EMBER_FALSE;
+    parser.source.data     = (c8*)data;
+    parser.source.size     = size;
+    parser.source.capacity = size;
 
     json_token_t token   = json_parse_token(&parser);
-    json_entry_t* result = json_parse_entry(&parser, &(buffer_t){0}, &token);
+    json_entry_t* result = json_parse_entry(&parser, &(string_t){0}, &token);
 
     return result;
 }
 
-internal json_entry_t* json_parse_file(const c8* file_path, cpu_arena_t* arena)
+internal json_entry_t* json_parse_file(const c8* file_path)
 {
     platform_hnd_t file_handle     = platform_file_open(file_path, PLATFORM_FILE_FLAGS_read | PLATFORM_FILE_FLAGS_share_r);
     platform_file_info_t file_info = platform_file_info_get(file_handle);
 
-    EMBER_ASSERT(file_info.size <= cpu_arena_avail(arena));
-
     json_parser_t parser;
 
-    parser.arena       = arena;
-    parser.position    = 0;
-    parser.has_error   = EMBER_FALSE;
-    parser.source.data = MEMORY_PUSH(arena, u8, file_info.size);
-    parser.source.size = platform_file_read(file_handle, parser.source.data, FILE_READ_ALL);
+    cpu_arena_params_t params = { MAX(file_info.size * 8, KB(32)), MAX(file_info.size * 8, KB(32)), 0 };
+
+    parser.arena           = cpu_arena_init(&params);
+    parser.position        = 0;
+    parser.has_error       = EMBER_FALSE;
+    parser.source.data     = MEMORY_PUSH(parser.arena, c8, file_info.size);
+    parser.source.size     = platform_file_read(file_handle, parser.source.data, FILE_READ_ALL);
+    parser.source.capacity = parser.source.size;
 
     json_token_t token   = json_parse_token(&parser);
-    json_entry_t* result = json_parse_entry(&parser, &(buffer_t){0}, &token);
+    json_entry_t* result = json_parse_entry(&parser, &(string_t){0}, &token);
 
     platform_file_close(file_handle);
 
     return result;
 }
 
-internal json_entry_t* json_parse_entry(json_parser_t* parser, buffer_t* label, json_token_t* token)
+internal json_entry_t* json_parse_entry(json_parser_t* parser, string_t* label, json_token_t* token)
 {
     b32 is_valid = EMBER_TRUE;
 
@@ -84,7 +88,7 @@ internal json_entry_t* json_parse_list(json_parser_t* parser, json_token_type_t 
 
     while (json_parser_is_valid(parser))
     {
-        buffer_t label     = {0};
+        string_t label     = {0};
         json_token_t token = json_parse_token(parser);
 
         if (has_labels)
@@ -150,19 +154,20 @@ internal json_token_t json_parse_token(json_parser_t* parser)
 {
     json_token_t result = {0};
 
-    buffer_t src = parser->source;
-    u64 pos      = parser->position;
+    string_t src = parser->source;
+    i64 pos      = parser->position;
 
     while (json_is_whitespace(&src, pos))
     {
         pos += 1;
     }
 
-    if (buffer_is_valid_idx(&src, pos))
+    if (string_is_valid_idx(&src, pos))
     {
-        result.type       = JSON_TOKEN_TYPE_error;
-        result.value.size = 1;
-        result.value.data = src.data + pos;
+        result.type           = JSON_TOKEN_TYPE_error;
+        result.value.data     = src.data + pos;
+        result.value.size     = 1;
+        result.value.capacity = 1;
 
         u8 byte = src.data[pos];
 
@@ -214,16 +219,17 @@ internal json_token_t json_parse_token(json_parser_t* parser)
             {
                 pos += 1;
 
-                buffer_t remain = buffer_from_cstr("alse");
+                string_t remain = string_from_cstr("alse");
 
                 if ((src.size - pos) >= remain.size)
                 {
-                    buffer_t check = {
+                    string_t check = {
+                        src.data + pos,
                         remain.size,
-                        src.data + pos
+                        remain.capacity
                     };
 
-                    if (buffer_is_equal(&check, &remain))
+                    if (string_is_equal(&check, &remain))
                     {
                         result.type = JSON_TOKEN_TYPE_false;
                         result.value.size = remain.size;
@@ -238,19 +244,21 @@ internal json_token_t json_parse_token(json_parser_t* parser)
             {
                 pos += 1;
 
-                buffer_t remain = buffer_from_cstr("rue");
+                string_t remain = string_from_cstr("rue");
 
                 if ((src.size - pos) >= remain.size)
                 {
-                    buffer_t check = {
+                    string_t check = {
+                        src.data + pos,
                         remain.size,
-                        src.data + pos
+                        remain.capacity
                     };
 
-                    if (buffer_is_equal(&check, &remain))
+                    if (string_is_equal(&check, &remain))
                     {
-                        result.type = JSON_TOKEN_TYPE_true;
-                        result.value.size = remain.size;
+                        result.type           = JSON_TOKEN_TYPE_true;
+                        result.value.size     = remain.size;
+                        result.value.capacity = remain.size;
 
                         pos += remain.size;
                     }
@@ -262,19 +270,21 @@ internal json_token_t json_parse_token(json_parser_t* parser)
             {
                 pos += 1;
 
-                buffer_t remain = buffer_from_cstr("ull");
+                string_t remain = string_from_cstr("ull");
 
                 if ((src.size - pos) >= remain.size)
                 {
-                    buffer_t check = {
+                    string_t check = {
+                        src.data + pos,
                         remain.size,
-                        src.data + pos
+                        remain.capacity
                     };
 
-                    if (buffer_is_equal(&check, &remain))
+                    if (string_is_equal(&check, &remain))
                     {
-                        result.type = JSON_TOKEN_TYPE_null;
-                        result.value.size = remain.size;
+                        result.type           = JSON_TOKEN_TYPE_null;
+                        result.value.size     = remain.size;
+                        result.value.capacity = remain.size;
 
                         pos += remain.size;
                     }
@@ -287,11 +297,11 @@ internal json_token_t json_parse_token(json_parser_t* parser)
                 result.type = JSON_TOKEN_TYPE_string;
 
                 pos += 1;
-                u64 start_pos = pos;
+                i64 start_pos = pos;
 
-                while (buffer_is_valid_idx(&src, pos) && src.data[pos] != '"')
+                while (string_is_valid_idx(&src, pos) && src.data[pos] != '"')
                 {
-                    if (buffer_is_valid_idx(&src, pos + 1) && src.data[pos] == '\\' && src.data[pos + 1] == '"')
+                    if (string_is_valid_idx(&src, pos + 1) && src.data[pos] == '\\' && src.data[pos + 1] == '"')
                     {
                         pos += 1;
                     }
@@ -299,10 +309,11 @@ internal json_token_t json_parse_token(json_parser_t* parser)
                     pos += 1;
                 }
 
-                result.value.data = src.data + start_pos;
-                result.value.size = pos - start_pos;
+                result.value.data     = src.data + start_pos;
+                result.value.size     = pos - start_pos;
+                result.value.capacity = result.value.size;
 
-                if (buffer_is_valid_idx(&src, pos))
+                if (string_is_valid_idx(&src, pos))
                 {
                     pos += 1;
                 }
@@ -322,11 +333,11 @@ internal json_token_t json_parse_token(json_parser_t* parser)
             case '9':
             {
                 result.type = JSON_TOKEN_TYPE_number;
-                u64 start = pos;
+                i64 start = pos;
 
                 pos += 1;
 
-                if (byte == '-' && buffer_is_valid_idx(&src, pos))
+                if (byte == '-' && string_is_valid_idx(&src, pos))
                 {
                     byte = src.data[pos];
                     pos += 1;
@@ -340,7 +351,7 @@ internal json_token_t json_parse_token(json_parser_t* parser)
                     }
                 }
 
-                if (buffer_is_valid_idx(&src, pos) && src.data[pos] == '.')
+                if (string_is_valid_idx(&src, pos) && src.data[pos] == '.')
                 {
                     pos += 1;
 
@@ -349,11 +360,11 @@ internal json_token_t json_parse_token(json_parser_t* parser)
                         pos += 1;
                     }
                 }
-                if (buffer_is_valid_idx(&src, pos) && ((src.data[pos] == 'e') || (src.data[pos] == 'E')))
+                if (string_is_valid_idx(&src, pos) && ((src.data[pos] == 'e') || (src.data[pos] == 'E')))
                 {
                     pos += 1;
 
-                    if (buffer_is_valid_idx(&src, pos) && ((src.data[pos] == '-') || (src.data[pos] == '+')))
+                    if (string_is_valid_idx(&src, pos) && ((src.data[pos] == '-') || (src.data[pos] == '+')))
                     {
                         pos += 1;
                     }
@@ -364,7 +375,8 @@ internal json_token_t json_parse_token(json_parser_t* parser)
                     }
                 }
 
-                result.value.size = pos - start;
+                result.value.size     = pos - start;
+                result.value.capacity = result.value.size;
 
                 break;
             }
@@ -381,7 +393,7 @@ internal json_token_t json_parse_token(json_parser_t* parser)
     return result;
 }
 
-internal json_entry_t* json_child_find(json_entry_t* entry, buffer_t* child_label)
+internal json_entry_t* json_child_find(json_entry_t* entry, string_t* child_label)
 {
     EMBER_ASSERT(entry != NULL);
 
@@ -389,7 +401,7 @@ internal json_entry_t* json_child_find(json_entry_t* entry, buffer_t* child_labe
 
     for (json_entry_t* iter = entry->child; iter != NULL; iter = iter->next)
     {
-        if (buffer_is_equal(&iter->label, child_label))
+        if (string_is_equal(&iter->label, child_label))
         {
             result = iter;
             break;
@@ -421,8 +433,8 @@ internal b32 json_child_value(cpu_arena_t* arena, json_entry_t* entry, json_valu
     EMBER_ASSERT(dest != NULL);
     EMBER_ASSERT(child_label != NULL);
 
-    buffer_t label_buffer = buffer_from_cstr(child_label);
-    json_entry_t* child   = json_child_find(entry, &label_buffer);
+    string_t label_string = string_from_cstr(child_label);
+    json_entry_t* child   = json_child_find(entry, &label_string);
 
     if (child == NULL)
     {
@@ -437,7 +449,7 @@ internal b32 json_child_value(cpu_arena_t* arena, json_entry_t* entry, json_valu
         case JSON_VALUE_TYPE_i32:
         {
             c8* value_str = MEMORY_PUSH(scratch.arena, c8, child->value.size + 1);
-            cstr_from_buffer(&child->value, value_str);
+            cstr_from_string(&child->value, value_str);
 
             *((i32 *)dest) = strtol(value_str, NULL, 10);
 
@@ -446,7 +458,7 @@ internal b32 json_child_value(cpu_arena_t* arena, json_entry_t* entry, json_valu
         case JSON_VALUE_TYPE_u32:
         {
             c8* value_str = MEMORY_PUSH(scratch.arena, c8, child->value.size + 1);
-            cstr_from_buffer(&child->value, value_str);
+            cstr_from_string(&child->value, value_str);
 
             *((u32 *)dest) = strtol(value_str, NULL, 10);
 
@@ -455,7 +467,7 @@ internal b32 json_child_value(cpu_arena_t* arena, json_entry_t* entry, json_valu
         case JSON_VALUE_TYPE_f32:
         {
             c8* value_str = MEMORY_PUSH(scratch.arena, c8, child->value.size + 1);
-            cstr_from_buffer(&child->value, value_str);
+            cstr_from_string(&child->value, value_str);
 
             *((f32 *)dest) = strtof(value_str, NULL);
             
@@ -463,14 +475,14 @@ internal b32 json_child_value(cpu_arena_t* arena, json_entry_t* entry, json_valu
         }
         case JSON_VALUE_TYPE_b32:
         {
-            buffer_t buf_true  = buffer_from_cstr("tru");
-            buffer_t buf_false = buffer_from_cstr("fals");
+            string_t buf_true  = string_from_cstr("tru");
+            string_t buf_false = string_from_cstr("fals");
 
-            if (buffer_is_equal(&buf_true, &child->value))
+            if (string_is_equal(&buf_true, &child->value))
             {
                 *((b32 *)dest) = EMBER_TRUE;
             }
-            else if (buffer_is_equal(&buf_false, &child->value))
+            else if (string_is_equal(&buf_false, &child->value))
             {
                 *((b32 *)dest) = EMBER_FALSE;
             }
@@ -483,7 +495,7 @@ internal b32 json_child_value(cpu_arena_t* arena, json_entry_t* entry, json_valu
         }
         case JSON_VALUE_TYPE_str:
         {
-            cstr_from_buffer(&child->value, (c8 *)dest);
+            cstr_from_string(&child->value, (c8 *)dest);
 
             break;
         }
@@ -502,7 +514,7 @@ internal b32 json_child_value(cpu_arena_t* arena, json_entry_t* entry, json_valu
             while (array_child != NULL)
             {
                 c8* value_str = MEMORY_PUSH(scratch.arena, c8, array_child->value.size + 1);
-                cstr_from_buffer(&array_child->value, value_str);
+                cstr_from_string(&array_child->value, value_str);
 
                 *i_dest = strtol(value_str, NULL, 10);
 
@@ -528,7 +540,7 @@ internal b32 json_child_value(cpu_arena_t* arena, json_entry_t* entry, json_valu
             while (array_child != NULL)
             {
                 c8* value_str = MEMORY_PUSH(scratch.arena, c8, array_child->value.size + 1);
-                cstr_from_buffer(&array_child->value, value_str);
+                cstr_from_string(&array_child->value, value_str);
 
                 *f_dest = strtof(value_str, NULL);
 
@@ -554,7 +566,7 @@ internal b32 json_child_value(cpu_arena_t* arena, json_entry_t* entry, json_valu
 
 internal b32 json_parser_is_valid(json_parser_t* parser)
 {
-    b32 result = (!parser->has_error && buffer_is_valid_idx(&parser->source, parser->position));
+    b32 result = (!parser->has_error && string_is_valid_idx(&parser->source, parser->position));
 
     return result;
 }
@@ -564,13 +576,13 @@ internal void json_parser_error(json_parser_t* parser)
     parser->has_error = EMBER_TRUE;
 }
 
-internal b32 json_is_whitespace(buffer_t* buffer, u64 pos)
+internal b32 json_is_whitespace(string_t* str, i64 pos)
 {
     b32 result = EMBER_FALSE;
 
-    if (buffer_is_valid_idx(buffer, pos))
+    if (string_is_valid_idx(str, pos))
     {
-        u8 value = buffer->data[pos];
+        c8 value = str->data[pos];
 
         result = IS_WHITESPACE(value);
     }
@@ -578,13 +590,13 @@ internal b32 json_is_whitespace(buffer_t* buffer, u64 pos)
     return result;
 }
 
-internal b32 json_is_number(buffer_t* buffer, u64 pos)
+internal b32 json_is_number(string_t* str, i64 pos)
 {
     b32 result = EMBER_FALSE;
 
-    if (buffer_is_valid_idx(buffer, pos))
+    if (string_is_valid_idx(str, pos))
     {
-        u8 value = buffer->data[pos];
+        c8 value = str->data[pos];
 
         result = ((value >= '0') && (value <= '9'));
     }

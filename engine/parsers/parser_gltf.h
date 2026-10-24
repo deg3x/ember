@@ -61,7 +61,7 @@ struct gltf_parser_t
 {
     cpu_arena_t* arena;
     string_t     source;
-    u64          position;
+    i64          position;
 };
 
 typedef struct gltf_primitive_t gltf_primitive_t;
@@ -109,8 +109,8 @@ struct gltf_accessor_t
     i32      count;
     b32      normalized;
     i32      type;
-    buffer_t min;
-    buffer_t max;
+    string_t min;
+    string_t max;
 };
 
 typedef struct gltf_buffer_view_t gltf_buffer_view_t;
