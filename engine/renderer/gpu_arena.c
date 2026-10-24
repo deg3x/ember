@@ -186,7 +186,11 @@ internal gpu_arena_t gpu_arena_init(VkPhysicalDevice physical_device, VkDevice d
     ret.blocks[GPU_MEM_TYPE_draw].mem_idx  = mem_idx_draw;
     ret.blocks[GPU_MEM_TYPE_mats].mem_idx  = mem_idx_mats;
 
-    cpu_arena_params_t host_arena_params = { KB(32), KB(32), 0 };
+    cpu_arena_params_t host_arena_params = {0};
+    host_arena_params.name               = "GPU arena";
+    host_arena_params.size_res           = KB(32);
+    host_arena_params.size_cmt           = KB(32);
+    host_arena_params.flags              = 0;
 
     ret.host_arena = cpu_arena_init(&host_arena_params);
 

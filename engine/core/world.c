@@ -2,7 +2,11 @@ internal world_t world_init()
 {
     world_t result = {0};
 
-    cpu_arena_params_t params = { WORLD_MEM_SIZE, WORLD_MEM_SIZE, 0 };
+    cpu_arena_params_t params = {0};
+    params.name               = "World";
+    params.size_res           = MB(64);
+    params.size_cmt           = MB(1);
+    params.flags              = 0;
 
     result.arena              = cpu_arena_init(&params);
     result.nodes.transforms   = MEMORY_PUSH_ZERO(result.arena, mat4_t, WORLD_NODE_COUNT);
@@ -23,6 +27,8 @@ internal world_entity_t world_load_model(world_t* world, const c8* file)
     world_entity_t ret = { -1 };
 
     memcpy(world->nodes.transforms + world->nodes.count, gltf.transforms, gltf.node_count * sizeof(mat4_t));
+
+    EMBER_ASSERT((world->nodes.count + gltf.node_count) <= WORLD_NODE_COUNT);
 
     for (i32 i = 0; i < gltf.node_count; i++)
     {
@@ -159,6 +165,8 @@ internal world_entity_t world_load_model(world_t* world, const c8* file)
 
 internal world_entity_t world_entity_create(world_t* world, mesh_t* meshes, i32 mesh_count, mat4_t* transform)
 {
+    EMBER_ASSERT(world->nodes.count < WORLD_NODE_COUNT);
+
     i32 node_id = world->nodes.count;
     mat4_t trs  = transform != NULL ? *transform : MAT4_IDENTITY;
 

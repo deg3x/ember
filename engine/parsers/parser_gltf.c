@@ -5,7 +5,11 @@ internal gltf_data_t gltf_parse_file(const c8* file_path)
 
     gltf_parser_t parser;
 
-    cpu_arena_params_t params = { MAX(file_info.size * 2, KB(32)), MAX(file_info.size * 2, KB(32)), 0 };
+    cpu_arena_params_t params = {0};
+    params.name               = "GLTF Parser";
+    params.size_res           = MAX(file_info.size, KB(64));
+    params.size_cmt           = MAX(file_info.size, KB(64));
+    params.flags              = 0;
 
     parser.arena           = cpu_arena_init(&params);
     parser.source.data     = MEMORY_PUSH(parser.arena, c8, file_info.size);
@@ -59,8 +63,8 @@ internal gltf_data_t gltf_parse_file(const c8* file_path)
 
 internal gltf_json_t gltf_parse_chunk_json(gltf_parser_t* parser, u32 chunk_length)
 {
-    json_entry_t* json    = json_parse(parser->source.data + parser->position, chunk_length);
-    json_entry_t* current = json->child;
+    json_data_t json      = json_parse(parser->source.data + parser->position, chunk_length);
+    json_entry_t* current = json.root->child;
 
     gltf_json_t result = {0};
 
@@ -582,6 +586,8 @@ internal gltf_json_t gltf_parse_chunk_json(gltf_parser_t* parser, u32 chunk_leng
 
         current = current->next;
     }
+
+    json_free(&json);
 
     return result;
 }

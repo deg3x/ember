@@ -1,8 +1,12 @@
-internal json_entry_t* json_parse(void* data, i64 size)
+internal json_data_t json_parse(void* data, i64 size)
 {
     json_parser_t parser;
 
-    cpu_arena_params_t params = { MAX(size * 8, KB(32)), MAX(size * 8, KB(32)), 0 };
+    cpu_arena_params_t params = {0};
+    params.name               = "JSON Parser";
+    params.size_res           = MAX(size * 8, KB(64));
+    params.size_cmt           = MAX(size * 2, KB(64));
+    params.flags              = 0;
 
     parser.arena           = cpu_arena_init(&params);
     parser.position        = 0;
@@ -11,20 +15,28 @@ internal json_entry_t* json_parse(void* data, i64 size)
     parser.source.size     = size;
     parser.source.capacity = size;
 
-    json_token_t token   = json_parse_token(&parser);
-    json_entry_t* result = json_parse_entry(&parser, &(string_t){0}, &token);
+    json_token_t token = json_parse_token(&parser);
+    json_entry_t* root = json_parse_entry(&parser, &(string_t){0}, &token);
+
+    json_data_t result = {0};
+    result.arena       = parser.arena;
+    result.root        = root;
 
     return result;
 }
 
-internal json_entry_t* json_parse_file(const c8* file_path)
+internal json_data_t json_parse_file(const c8* file_path)
 {
     platform_hnd_t file_handle     = platform_file_open(file_path, PLATFORM_FILE_FLAGS_read | PLATFORM_FILE_FLAGS_share_r);
     platform_file_info_t file_info = platform_file_info_get(file_handle);
 
     json_parser_t parser;
 
-    cpu_arena_params_t params = { MAX(file_info.size * 8, KB(32)), MAX(file_info.size * 8, KB(32)), 0 };
+    cpu_arena_params_t params = {0};
+    params.name               = "JSON Parser";
+    params.size_res           = MAX(file_info.size * 8, KB(64));
+    params.size_cmt           = MAX(file_info.size * 2, KB(64));
+    params.flags              = 0;
 
     parser.arena           = cpu_arena_init(&params);
     parser.position        = 0;
@@ -34,9 +46,13 @@ internal json_entry_t* json_parse_file(const c8* file_path)
     parser.source.capacity = parser.source.size;
 
     json_token_t token   = json_parse_token(&parser);
-    json_entry_t* result = json_parse_entry(&parser, &(string_t){0}, &token);
+    json_entry_t* root   = json_parse_entry(&parser, &(string_t){0}, &token);
 
     platform_file_close(file_handle);
+
+    json_data_t result = {0};
+    result.arena       = parser.arena;
+    result.root        = root;
 
     return result;
 }
@@ -602,5 +618,10 @@ internal b32 json_is_number(string_t* str, i64 pos)
     }
 
     return result;
+}
+
+internal void json_free(json_data_t* json)
+{
+    cpu_arena_release(json->arena);
 }
 

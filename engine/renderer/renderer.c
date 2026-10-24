@@ -1,6 +1,10 @@
 internal void renderer_init(platform_hnd_t window_handle)
 {
-    cpu_arena_params_t params = { GB(1), GB(1), 0 };
+    cpu_arena_params_t params = {0};
+    params.name               = "Renderer";
+    params.size_res           = MB(128);
+    params.size_cmt           = MB(32);
+    params.flags              = 0;
 
     g_renderer.host_arena = cpu_arena_init(&params);
 

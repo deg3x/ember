@@ -2,7 +2,6 @@
 #define WORLD_H
 
 #define WORLD_NODE_COUNT 100000
-#define WORLD_MEM_SIZE   WORLD_NODE_COUNT * (sizeof(transform_t) + sizeof(mat4_t) + sizeof(i32))
 
 typedef struct world_entity_t world_entity_t;
 struct world_entity_t

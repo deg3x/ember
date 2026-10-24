@@ -126,7 +126,7 @@ void assert_fail(const c8* expression, const c8* message, const c8* file, i32 li
 {
 #if EMBER_BUILD_CONSOLE
     fprintf(stderr, "Assertion failed: (%s)\n\nFile: [%s::%d]\nMessage: %s\n", expression, file, line, message);
-#endif
+#endif // EMBER_BUILD_CONSOLE
 
 #if PLATFORM_WINDOWS
     c8 assert_buf[4096];
@@ -134,7 +134,7 @@ void assert_fail(const c8* expression, const c8* message, const c8* file, i32 li
     wsprintfA(assert_buf, "Assertion failed: (%s)\n\nFile: [%s::%d]\nMessage: %s\n", expression, file, line, message);
 
     MessageBoxA(NULL, assert_buf, "Assertion Failure", MB_OK | MB_ICONERROR | MB_SYSTEMMODAL);
-#endif
+#endif // PLATFORM_WINDOWS
 
     return;
 }
@@ -159,9 +159,12 @@ void assert_fail(const c8* expression, const c8* message, const c8* file, i32 li
             }                                                \
         }
 
+#define EMBER_ASSERT_STATIC(expr, id) global u8 id##__LINE__[(expr) ? 1 : -1]
+
 #else
 #define EMBER_ASSERT(expr)
 #define EMBER_ASSERT_MSG(expr, msg)
+#define EMBER_ASSERT_STATIC(expr, id)
 #endif // EMBER_ASSERT_ENABLED
 
 #endif // ENGINE_DEFS_H

@@ -1,17 +1,19 @@
 #ifndef ARENA_H
 #define ARENA_H
 
-#define ARENA_HEADER_SIZE 64 
+#define ARENA_HEADER_SIZE 128 
 
 typedef u64 cpu_arena_flags_t;
 enum
 {
     CPU_ARENA_FLAGS_large_pages = (1 << 0),
+    CPU_ARENA_FLAGS_no_chain    = (1 << 1),
 };
 
 typedef struct cpu_arena_params_t cpu_arena_params_t;
 struct cpu_arena_params_t
 {
+    c8*               name;
     u64               size_res;
     u64               size_cmt;
     cpu_arena_flags_t flags;
@@ -20,11 +22,19 @@ struct cpu_arena_params_t
 typedef struct cpu_arena_t cpu_arena_t;
 struct cpu_arena_t
 {
+    c8*               name;
+    u64               pos_base;
+    u64               pos_curr;
+    u64               reserved;
+    u64               committed;
     u64               size_res;
     u64               size_cmt;
-    u64               position;
+    cpu_arena_t*      previous;
+    cpu_arena_t*      current;
     cpu_arena_flags_t flags;
 };
+
+EMBER_ASSERT_STATIC(ARENA_HEADER_SIZE >= sizeof(cpu_arena_t), arena_header_size_assert);
 
 typedef struct cpu_scratch_t cpu_scratch_t;
 struct cpu_scratch_t

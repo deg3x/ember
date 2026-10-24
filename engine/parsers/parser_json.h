@@ -55,8 +55,15 @@ struct json_parser_t
     b64          has_error;
 };
 
-internal json_entry_t* json_parse(void* data, i64 size);
-internal json_entry_t* json_parse_file(const c8* file_path);
+typedef struct json_data_t json_data_t;
+struct json_data_t
+{
+    cpu_arena_t*  arena;
+    json_entry_t* root;
+};
+
+internal json_data_t   json_parse(void* data, i64 size);
+internal json_data_t   json_parse_file(const c8* file_path);
 internal json_entry_t* json_parse_entry(json_parser_t* parser, string_t* label, json_token_t* token);
 internal json_entry_t* json_parse_list(json_parser_t* parser, json_token_type_t end_type, b32 has_labels);
 internal json_token_t  json_parse_token(json_parser_t* parser);
@@ -70,5 +77,7 @@ internal void json_parser_error(json_parser_t* parser);
 
 internal b32  json_is_whitespace(string_t* str, i64 pos);
 internal b32  json_is_number(string_t* str, i64 pos);
+
+internal void json_free(json_data_t* json);
 
 #endif //PARSER_JSON_H
