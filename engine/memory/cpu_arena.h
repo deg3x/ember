@@ -16,6 +16,7 @@ struct cpu_arena_params_t
     c8*               name;
     u64               size_res;
     u64               size_cmt;
+    void*             base_memory;
     cpu_arena_flags_t flags;
 };
 

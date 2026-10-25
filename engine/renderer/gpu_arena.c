@@ -190,7 +190,6 @@ internal gpu_arena_t gpu_arena_init(VkPhysicalDevice physical_device, VkDevice d
     host_arena_params.name               = "GPU arena";
     host_arena_params.size_res           = KB(32);
     host_arena_params.size_cmt           = KB(32);
-    host_arena_params.flags              = 0;
 
     ret.host_arena = cpu_arena_init(&host_arena_params);
 

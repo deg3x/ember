@@ -4,7 +4,6 @@ internal void renderer_init(platform_hnd_t window_handle)
     params.name               = "Renderer";
     params.size_res           = MB(128);
     params.size_cmt           = MB(32);
-    params.flags              = 0;
 
     g_renderer.host_arena = cpu_arena_init(&params);
 

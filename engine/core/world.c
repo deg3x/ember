@@ -6,7 +6,6 @@ internal world_t world_init()
     params.name               = "World";
     params.size_res           = MB(64);
     params.size_cmt           = MB(1);
-    params.flags              = 0;
 
     result.arena              = cpu_arena_init(&params);
     result.nodes.transforms   = MEMORY_PUSH_ZERO(result.arena, mat4_t, WORLD_NODE_COUNT);

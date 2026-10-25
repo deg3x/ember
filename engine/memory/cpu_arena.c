@@ -3,25 +3,31 @@ internal cpu_arena_t* cpu_arena_init(cpu_arena_params_t* params)
     EMBER_ASSERT(params->size_res >= params->size_cmt);
     EMBER_ASSERT(params->size_cmt >= ARENA_HEADER_SIZE);
 
-    b64 lrg_pages = params->flags & CPU_ARENA_FLAGS_large_pages; 
-    u64 page_size = lrg_pages ? g_platform_info.page_size_large : g_platform_info.page_size;
+    u64 reserve = params->size_res;
+    u64 commit  = params->size_cmt;
 
-    u64 reserve = POW_2_ROUND_UP(params->size_res + ARENA_HEADER_SIZE, page_size);
-    u64 commit  = POW_2_ROUND_UP(params->size_cmt + ARENA_HEADER_SIZE, page_size);
-
-    void* address = NULL;
+    void* address = params->base_memory;
     
-    // NOTE(KB): Large pages not working currently
-    //           We need to attempt enabling them in win32
-    if (lrg_pages)
+    if (address == NULL)
     {
-        address = platform_mem_reserve_large(reserve);
-        platform_mem_commit_large(address, commit);
-    }
-    else
-    {
-        address = platform_mem_reserve(reserve);
-        platform_mem_commit(address, commit);
+        b64 lrg_pages = params->flags & CPU_ARENA_FLAGS_large_pages; 
+        u64 page_size = lrg_pages ? g_platform_info.page_size_large : g_platform_info.page_size;
+
+        reserve = POW_2_ROUND_UP(params->size_res + ARENA_HEADER_SIZE, page_size);
+        commit  = POW_2_ROUND_UP(params->size_cmt + ARENA_HEADER_SIZE, page_size);
+
+        // NOTE(KB): Large pages are not supported currently
+        //           We need to attempt enabling them in win32
+        if (lrg_pages)
+        {
+            address = platform_mem_reserve_large(reserve);
+            platform_mem_commit_large(address, commit);
+        }
+        else
+        {
+            address = platform_mem_reserve(reserve);
+            platform_mem_commit(address, commit);
+        }
     }
 
     EMBER_ASSERT(address != 0);

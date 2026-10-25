@@ -6,7 +6,6 @@ internal json_data_t json_parse(void* data, i64 size)
     params.name               = "JSON Parser";
     params.size_res           = MAX(size * 8, KB(64));
     params.size_cmt           = MAX(size * 2, KB(64));
-    params.flags              = 0;
 
     parser.arena           = cpu_arena_init(&params);
     parser.position        = 0;
@@ -36,7 +35,6 @@ internal json_data_t json_parse_file(const c8* file_path)
     params.name               = "JSON Parser";
     params.size_res           = MAX(file_info.size * 8, KB(64));
     params.size_cmt           = MAX(file_info.size * 2, KB(64));
-    params.flags              = 0;
 
     parser.arena           = cpu_arena_init(&params);
     parser.position        = 0;

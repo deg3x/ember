@@ -9,7 +9,6 @@ internal gltf_data_t gltf_parse_file(const c8* file_path)
     params.name               = "GLTF Parser";
     params.size_res           = MAX(file_info.size, KB(64));
     params.size_cmt           = MAX(file_info.size, KB(64));
-    params.flags              = 0;
 
     parser.arena           = cpu_arena_init(&params);
     parser.source.data     = MEMORY_PUSH(parser.arena, c8, file_info.size);
